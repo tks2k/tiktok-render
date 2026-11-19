@@ -352,8 +352,8 @@ let impact = null;
 const D = { set: world, mood: MOOD.day };
 const SCN = [
   Object.assign({ t: 0, hook: 1, mark: 1,
-    upd(lt){ show(ben); stack(1, 0); refHouse.visible = false; benStand(5.4); ben.head.rotation.x = 0.55; ben.torso.rotation.x = 0.12; bFace(ben, -0.5, 0.15); shadowAt(0, TOP, 4, 12);
-      camL(E.io(seg(lt, 0, 4.3)), [0.35, TOP + 5.2, 7.2, 0, 0, 14, 56, [0, 0, 1]], [0.3, TOP + 4.6, 7.0, 0, 0, 13, 44, [0, 0, 1]]); camFin(); } }, D),
+    upd(lt){ show(ben); stack(1, 0); refHouse.visible = false; benStand(6.0); ben.head.rotation.x = 0.55; ben.torso.rotation.x = 0.12; bFace(ben, -0.5, 0.15); shadowAt(0, TOP, 4, 12);
+      camL(E.io(seg(lt, 0, 4.3)), [0.4, TOP + 4.6, 6.9, 0, 0, 12.5, 58, [0, 0, 1]], [0.35, TOP + 4.2, 6.8, 0, 0, 12, 48, [0, 0, 1]]); camFin(); } }, D),
   Object.assign({ t: 4.36, label: 1, hud: () => ['HÖHE', '276 m', 'Eiffelturm · oberste Plattform'],
     upd(lt){ show(ben); stack(1, 0); refHouse.visible = false; benStand(5.4); ben.head.rotation.x = 0.35; bFace(ben, -0.6, 0.2); const k = E.io(seg(lt, 0, 3.6)); shadowAt(0, TOP, 4, 14);
       camL(k, [3.2, TOP + 1.9, 11.5, 0, TOP + 1.2, 5.2, 50], [30, TOP - 12, 72, 0, TOP - 4, 2, 38]); camFin(); } }, D),
@@ -362,7 +362,7 @@ const SCN = [
       const jump = clamp01(lt / 0.7), y = TOP + (lt < 0.7 ? 1.3 * Math.sin(Math.PI * jump) : 0) - 0.54 * hAt(Math.max(0, tau - 0.4)), z = lerp(5.4, SPOT_Z, E.out(clamp01(lt / 1.3)));
       rag(ben, T, 0); place(ben, 0, y, z, 0); ben.root.rotation.x = lerp(0, -1.35, E.io(seg(lt, 0.3, 2.2))) + 0.1 * Math.sin(T * 4); ben.root.rotation.z = 0.12 * Math.sin(T * 2.6);
       if (lt < 0.25){ benStand(5.4); ben.body.position.y = 1 - 0.25 * Math.sin(Math.PI * lt / 0.25); ben.sh[0].rotation.x = ben.sh[1].rotation.x = -0.6; }
-      shadowAt(0, y, z, 12); camL(E.io(seg(lt, 0, 4.4)), [11, y + 3.5, z + 30, 0, y + 0.5, z, 26], [9, y + 2.5, z + 26, 0, y, z, 24]); camFin(); } }, D),
+      shadowAt(0, y, z, 12); camL(E.io(seg(lt, 0, 4.4)), [7, y + 3, z + 18, 0, y + 0.5, z, 28], [6, y + 2, z + 15, 0, y, z, 26]); camFin(); } }, D),
   Object.assign({ t: 12.44, impactAt: 14.6, hud: () => ['MATRATZEN', '1', T < 14.6 ? '20 cm Bremsweg' : 'durchgeschlagen ✗'],
     upd(lt){ show(ben); refHouse.visible = false; const ti = 14.6; shadowAt(0, 1, SPOT_Z, 10);
       if (T < ti){ const top = stack(1, 0); benFall(top + 15 * (ti - T), 1); } else { const top = stack(1, MH - 0.012, MH - 0.012); benLie(top, 0.04 * Math.exp(-(T - ti) * 6) * Math.sin((T - ti) * 40)); bFace(ben, -1, 0.6); ben.eyes.forEach(e => e.scale.y = 0.15); }
@@ -374,10 +374,10 @@ const SCN = [
       redA = T > ti ? 0.55 * Math.exp(-(T - ti) * 2.5) : 0; impact = [new THREE.Vector3(0, 0.8, SPOT_Z), ti];
       camL(E.io(seg(lt, 0, 4.3)), [5.4, 1.7, SPOT_Z + 7.0, 0, 2.6, SPOT_Z, 52], [4.9, 1.5, SPOT_Z + 6.2, 0, 1.6, SPOT_Z, 50]); camFin(T > ti ? 0.14 * Math.exp(-(T - ti) * 4) : 0); } }, D),
   Object.assign({ t: 19.76, ruler: 1, hud: () => ['MATRATZEN', '50', '10 m hoch · so hoch wie ein Haus'],
-    upd(lt){ show(ben); refHouse.visible = true; const top = stack(50, 0); benFall(top + 0.157 + 8 * (23.2 - T), 0.6); shadowAt(0, 5, SPOT_Z, 14);
+    upd(lt){ show(ben); refHouse.visible = true; const top = stack(50, 0); benFall(top + 0.157 + 4 * (23.2 - T), 0.6); shadowAt(0, 5, SPOT_Z, 14);
       camL(E.io(seg(lt, 0, 3.3)), [17, 3.5, SPOT_Z + 27, -1.5, 6.5, SPOT_Z, 44], [15, 4.5, SPOT_Z + 24, -1.5, 7.5, SPOT_Z, 46]); camFin(); } }, D),
   Object.assign({ t: 23.08, slow: 1, hud: () => ['BREMSWEG', fmt(sinkAt(T)) + ' m', 'Matratze für Matratze'],
-    upd(lt){ show(ben); refHouse.visible = false; const s = sinkAt(T), top = stack(50, s); if (T < 23.2) benFall(top + 0.157 + 8 * (23.2 - T), 0.4); else { benLie(top); bFace(ben, -1, 0.5 * (1 - seg(T, 26.6, 27.2))); ben.eyes.forEach(e => e.scale.y = 0.3); ben.sh[0].rotation.z = -0.9; ben.sh[1].rotation.z = 0.9; }
+    upd(lt){ show(ben); refHouse.visible = false; const s = sinkAt(T), top = stack(50, s); if (T < 23.2) benFall(top + 0.157 + 4 * (23.2 - T), 0.4); else { benLie(top); bFace(ben, -1, 0.5 * (1 - seg(T, 26.6, 27.2))); ben.eyes.forEach(e => e.scale.y = 0.3); ben.sh[0].rotation.z = -0.9; ben.sh[1].rotation.z = 0.9; }
       shadowAt(0, top, SPOT_Z, 9); const k = E.io(seg(lt, 0, 4.3));
       setCam([lerp(4.6, 4.0, k), top + lerp(2.4, 1.6, k), SPOT_Z + lerp(5.6, 4.8, k)], [0, top + 0.1, SPOT_Z], 50); camFin(); } }, D),
   Object.assign({ t: 27.47, alive: 28.4, hud: () => ['BREMSUNG', '≈ 20 g', T > 28.4 ? 'überlebt ✓ · gerade so' : '…'],
@@ -386,7 +386,7 @@ const SCN = [
       camL(E.io(seg(lt, 0, 3.0)), [4.6, top + 2.2, SPOT_Z + 4.6, 0, top + 0.3, SPOT_Z, 48], [4.2, top + 2.6, SPOT_Z + 4.0, 0, top + 0.3, SPOT_Z - 0.2, 46]); camFin(); } }, D),
   Object.assign({ t: 30.44, target: 1, hud: () => ['ZIEL', 'genau die Mitte', 'daneben = Boden'],
     upd(lt){ show(ben); refHouse.visible = false; const top = stack(50, 7.05); benLie(top); ben.sh[1].rotation.set(-2.6, 0, 0.3); bFace(ben, 0.4, 0.1); shadowAt(0, top, SPOT_Z, 9);
-      const r = 0.25 * lt; setCam([Math.sin(r) * 0.6, top + lerp(16, 13, E.io(seg(lt, 0, 2.5))), SPOT_Z + Math.cos(r) * 0.6], [0, top, SPOT_Z], 46, [Math.sin(r + 1.2), 0, -Math.cos(r + 1.2)]); camFin(); } }, D),
+      const r = 0.25 * lt; setCam([Math.sin(r) * 0.6, top + lerp(10, 8, E.io(seg(lt, 0, 2.5))), SPOT_Z + Math.cos(r) * 0.6], [0, top, SPOT_Z], 46, [Math.sin(r + 1.2), 0, -Math.cos(r + 1.2)]); camFin(); } }, D),
   Object.assign({ t: 32.96, card: 1,
     upd(lt){ SCN[7].upd(lt + 2.97); fadeBlk = 0.62 * E.io(seg(lt, 0, 0.5)) + 0.38 * seg(lt, 3.6, 4.2); } }, D),
 ];

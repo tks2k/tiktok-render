@@ -16,7 +16,7 @@ html = prep(html)
 async def main():
     ff = shutil.which('ffmpeg')
     p = subprocess.Popen([ff, '-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', str(fps), '-c:v', 'mjpeg', '-i', '-',
-        '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-pix_fmt', 'yuv420p', '-r', str(fps), out], stdin=subprocess.PIPE)
+        '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-vf', 'scale=out_range=tv,format=yuv420p', '-color_range', 'tv', '-r', str(fps), out], stdin=subprocess.PIPE)
     async with async_playwright() as pw:
         b = await pw.chromium.launch(headless=True, args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'])
         pg = await b.new_page(viewport={'width': 540, 'height': 960})

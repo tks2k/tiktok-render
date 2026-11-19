@@ -1,0 +1,69 @@
+name: Render
+on:
+  workflow_dispatch:
+    inputs:
+      video:
+        description: "Ordner unter videos/"
+        required: true
+permissions:
+  contents: write
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      chunks: ${{ steps.p.outputs.chunks }}
+      frames: ${{ steps.p.outputs.frames }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python3 - <<'EOF' >> $GITHUB_OUTPUT
+          import json, math
+          m = json.load(open("videos/${{ inputs.video }}/meta.json"))
+          fr = math.floor(m["end"] * m.get("fps", 30)); n = m.get("chunks", 12); size = math.ceil(fr / n)
+          ch = [{"i": k, "start": k * size, "count": min(size, fr - k * size)} for k in range(n) if k * size < fr]
+          print("frames=" + str(fr)); print("chunks=" + json.dumps(ch))
+          EOF
+  render:
+    needs: plan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        chunk: ${{ fromJson(needs.plan.outputs.chunks) }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - run: pip install playwright==1.48.0 && python -m playwright install --with-deps chromium
+      - run: python render.py "$PWD/videos/${{ inputs.video }}/video.html" "seg_$(printf %02d ${{ matrix.chunk.i }}).mp4" ${{ matrix.chunk.start }} ${{ matrix.chunk.count }} 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: seg-${{ matrix.chunk.i }}
+          path: seg_*.mp4
+          retention-days: 2
+  final:
+    needs: [plan, render]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: seg-*
+          merge-multiple: true
+          path: segs
+      - name: Zusammenfügen + Ton
+        run: |
+          V=videos/${{ inputs.video }}
+          ls segs/*.mp4 | sort | sed "s|^|file '$PWD/|; s|$|'|" > list.txt
+          ffmpeg -y -loglevel error -f concat -safe 0 -i list.txt -c copy silent.mp4
+          ffmpeg -y -loglevel error -i silent.mp4 -i $V/sprecher.m4a -i $V/effekte.m4a \
+            -filter_complex "[1:a][2:a]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.8[a]" \
+            -map 0:v -map "[a]" -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart final.mp4
+          ffprobe -v error -show_entries format=duration,size -of default=nw=1 final.mp4
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete "${{ inputs.video }}" -y --cleanup-tag || true
+          gh release create "${{ inputs.video }}" final.mp4 silent.mp4 --title "${{ inputs.video }}" --notes "Render ${{ github.run_id }}"

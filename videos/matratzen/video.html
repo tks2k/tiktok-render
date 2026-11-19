@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wie viele Matratzen brauchst du beim Sprung vom Eiffelturm?</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#out{width:min(100vw,56.25vh);width:min(100vw,calc(100dvh*9/16));height:auto;aspect-ratio:9/16;display:block}
+#ui{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.62);color:#fff;text-align:center;padding:24px}
+#ui.hidden{display:none}
+#ui h1{font:italic 700 28px Georgia,"Times New Roman",serif;margin:0 0 4px;line-height:1.2;max-width:360px}
+#ui p{margin:0 0 6px;opacity:.85;font-size:14px;max-width:330px;line-height:1.35}
+button{font:800 17px system-ui,-apple-system,sans-serif;padding:14px 22px;border-radius:14px;border:0;min-width:270px;cursor:pointer}
+.b1{background:#E8B21F;color:#000}.b2{background:#E0262B;color:#fff}.b3{background:#3bd16f;color:#000}
+#recdot{position:fixed;top:10px;right:12px;color:#ff3b3b;font:800 13px system-ui;display:none;text-shadow:0 0 4px #000}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script>window.THREE||document.write('<script src="https://unpkg.com/three@0.149.0/build/three.min.js"><\/script>')</script>
+</head>
+<body>
+<div id="wrap"><canvas id="out" width="1080" height="1920"></canvas></div>
+<div id="recdot">● REC</div>
+<div id="ui"></div>
+<script>
+(function(){
+if (!window.THREE){ document.getElementById('ui').innerHTML = '<h1>3D-Engine konnte nicht geladen werden</h1><p>Bitte mit Internetverbindung in Safari, Chrome oder Edge öffnen.</p>'; return; }
+const CM = THREE.ColorManagement; if (CM){ if ('legacyMode' in CM) CM.legacyMode = false; if ('enabled' in CM) CM.enabled = true; }
+
+/* =========================================================
+   GRUNDSETUP
+   ========================================================= */
+const W = 1080, H = 1920, END = 37.2;
+const out = document.getElementById('out'), g2 = out.getContext('2d');
+const ui = document.getElementById('ui'), recdot = document.getElementById('recdot');
+const clamp01 = v => Math.max(0, Math.min(1, v)), lerp = (a, b, p) => a + (b - a) * p;
+const seg = (t, a, b) => clamp01((t - a) / (b - a));
+const bump = (t, a, b) => (t <= a || t >= b) ? 0 : Math.pow(Math.sin(Math.PI * (t - a) / (b - a)), 2);
+const E = {
+  io: p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
+  out: p => 1 - Math.pow(1 - p, 3),
+  back: p => { const c = 1.70158; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); },
+};
+function aLerp(a, b, p){ let d = b - a; d = Math.atan2(Math.sin(d), Math.cos(d)); return a + d * p; }
+let seed = 5;
+function rnd(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(1); renderer.setSize(W, H, false);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xffffff, 30, 140);
+const cam = new THREE.PerspectiveCamera(36, W / H, 0.3, 4000); scene.add(cam);
+const hemi = new THREE.HemisphereLight(0xffffff, 0x888888, 0.6); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03; sun.shadow.camera.near = 1; sun.shadow.camera.far = 220;
+scene.add(sun); scene.add(sun.target);
+const fill = new THREE.DirectionalLight(0xffffff, 0.25); scene.add(fill);
+
+// Umgebungslicht-Reflexionen (Tag / Nacht)
+let envDay = null, envNight = null;
+try {
+  const pm = new THREE.PMREMGenerator(renderer);
+  const mkEnv = (top, bot, lamp) => {
+    const s = new THREE.Scene(), geo = new THREE.SphereGeometry(50, 24, 12), pos = geo.attributes.position;
+    const col = new Float32Array(pos.count * 3), cT = new THREE.Color(top), cB = new THREE.Color(bot), c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++){ c.copy(cB).lerp(cT, clamp01(pos.getY(i) / 100 + 0.5)); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    s.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ side: THREE.BackSide, vertexColors: true })));
+    const b = new THREE.Mesh(new THREE.BoxGeometry(34, 2, 34), new THREE.MeshBasicMaterial({ color: lamp })); b.position.set(12, 40, 14); s.add(b);
+    return pm.fromScene(s, 0.04).texture;
+  };
+  envDay = mkEnv(0xdfe8f5, 0x8a8078, 0xffffff); envNight = mkEnv(0x1c2c58, 0x0a1020, 0x6f8fd8);
+} catch (e) { envDay = envNight = null; }
+
+/* =========================================================
+   BAUSTEINE: abgerundete Boxen, Materialien, Instanzen
+   ========================================================= */
+const geoCache = {};
+function rbox(w, h, d, r, sg){
+  r = r === undefined ? 0.06 : r; sg = sg || 2;
+  const key = [w, h, d, r, sg].join(','); if (geoCache[key]) return geoCache[key];
+  r = Math.min(r, w / 2 - 1e-3, h / 2 - 1e-3, d / 2 - 1e-3);
+  const n = 2 * sg + 1, g = new THREE.BoxGeometry(w, h, d, n, n, n), p = g.attributes.position, nm = g.attributes.normal;
+  const half = [w / 2, h / 2, d / 2], v = [0, 0, 0], inn = [0, 0, 0];
+  for (let i = 0; i < p.count; i++){
+    v[0] = p.getX(i); v[1] = p.getY(i); v[2] = p.getZ(i);
+    for (let a = 0; a < 3; a++){
+      const hh = half[a], idx = Math.round((v[a] + hh) / (2 * hh / n)), lo = idx <= sg, k = lo ? idx : n - idx;
+      v[a] = (lo ? -1 : 1) * (hh - r * (k / sg)); inn[a] = Math.max(-(hh - r), Math.min(hh - r, v[a]));
+    }
+    let dx = v[0] - inn[0], dy = v[1] - inn[1], dz = v[2] - inn[2]; const len = Math.hypot(dx, dy, dz) || 1; dx /= len; dy /= len; dz /= len;
+    p.setXYZ(i, inn[0] + dx * r, inn[1] + dy * r, inn[2] + dz * r); nm.setXYZ(i, dx, dy, dz);
+  }
+  return geoCache[key] = g;
+}
+const mats = {};
+function mat(c, o){ const k = c + (o ? JSON.stringify(o) : ''); return mats[k] || (mats[k] = new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.62, metalness: 0, envMapIntensity: 0.55 }, o || {}))); }
+const GOLD = mat(0xe2b23a, { roughness: 0.3, metalness: 0.4, envMapIntensity: 1.2 });
+const BLACK = mat(0x17171c, { roughness: 0.3 }), WHITEB = new THREE.MeshBasicMaterial({ color: 0xffffff });
+function P(par, geo, m, x, y, z){ const me = new THREE.Mesh(geo, m); me.position.set(x || 0, y || 0, z || 0); me.castShadow = true; me.receiveShadow = true; par.add(me); return me; }
+function rod(par, m, a, b, r){
+  const A = new THREE.Vector3(a[0], a[1], a[2]), B = new THREE.Vector3(b[0], b[1], b[2]), d = B.clone().sub(A), L = d.length();
+  const me = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 8), m); me.position.copy(A).add(B).multiplyScalar(0.5);
+  me.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); me.castShadow = true; par.add(me); return me;
+}
+const _E = new THREE.Euler(), _Q = new THREE.Quaternion(), _P = new THREE.Vector3(), _S = new THREE.Vector3(), _B = new THREE.Matrix4(), _T = new THREE.Matrix4();
+function Inst(n, defs, s){
+  const o = { g: new THREE.Group(), n, x: new Float32Array(n), y: new Float32Array(n), z: new Float32Array(n), yaw: new Float32Array(n), lean: new Float32Array(n), sc: new Float32Array(n).fill(s || 1) };
+  const parts = defs.map(d => {
+    const im = new THREE.InstancedMesh(d.g, d.m, n); im.castShadow = !d.noShadow; im.receiveShadow = !d.noShadow; im.frustumCulled = false; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    const off = new THREE.Matrix4(); if (d.rz) off.makeRotationZ(d.rz); off.setPosition(d.x || 0, d.y || 0, d.z || 0); o.g.add(im); return { im, off, dyn: d.dyn };
+  });
+  o.parts = parts;
+  o.flush = function(t){
+    for (let i = 0; i < n; i++){
+      _E.set(o.lean[i], o.yaw[i], 0, 'YXZ'); _Q.setFromEuler(_E); _P.set(o.x[i], o.y[i], o.z[i]); _S.setScalar(Math.max(1e-4, o.sc[i])); _B.compose(_P, _Q, _S);
+      for (const p of parts){ _T.multiplyMatrices(_B, p.dyn ? p.dyn(i, t) : p.off); p.im.setMatrixAt(i, _T); }
+    }
+    for (const p of parts) p.im.instanceMatrix.needsUpdate = true;
+  };
+  return o;
+}
+function crowdDefs(o){
+  const bh = o.bh || 1.9, d = [];
+  d.push({ g: rbox(1.0, bh, 0.64, 0.1, 1), m: mat(o.body), y: bh / 2 });
+  if (o.belt) d.push({ g: rbox(1.04, 0.12, 0.68, 0.03, 1), m: o.belt, y: bh * 0.45 });
+  if (o.stripe) d.push({ g: rbox(0.13, bh * 0.86, 0.04, 0.015, 1), m: mat(o.stripe), x: 0.24, y: bh * 0.52, z: 0.325 });
+  d.push({ g: rbox(0.98, 0.86, 0.92, 0.12, 1), m: mat(0xf2c6a2), y: bh + 0.4 });
+  d.push({ g: rbox(1.05, 0.3, 0.99, 0.1, 1), m: o.top, y: bh + 0.8, z: -0.01 });
+  if (o.crest) d.push({ g: rbox(0.17, 0.24, 0.62, 0.06, 1), m: mat(0xc8281e), y: bh + 1.05 });
+  [-1, 1].forEach(s => {
+    d.push({ g: rbox(0.12, 0.17, 0.05, 0.02, 1), m: BLACK, x: s * 0.21, y: bh + 0.42, z: 0.455 });
+    d.push({ g: rbox(0.27, 0.075, 0.07, 0.025, 1), m: mat(0x2e1a10), x: s * 0.21, y: bh + 0.6, z: 0.46, rz: s * 0.24 * (o.angry || 0) });
+  });
+  d.push({ g: rbox(0.16, 0.25, 0.17, 0.06, 1), m: mat(0xe8b592), y: bh + 0.33, z: 0.5 });
+  return d;
+}
+const LEGION = { body: 0xc8281e, belt: GOLD, top: GOLD, crest: 1, angry: 0.6 };
+const SENATOR = { body: 0xefece6, stripe: 0x8a2a3a, top: mat(0x3a2416), angry: 1 };
+
+/* =========================================================
+   FIGUREN MIT ELLBOGEN (Boxer, Ben, Ringrichter)
+   ========================================================= */
+function boxer(o){
+  const skin = mat(o.skin || 0xf2c6a2), hairM = mat(o.hair || 0x3a2416), topM = o.top ? mat(o.top) : skin;
+  const root = new THREE.Group(), body = new THREE.Group(); root.rotation.order = 'YXZ'; body.position.y = 1.0; root.add(body);
+  const legs = [], sh = [], el = [], eyes = [], brw = [];
+  [-1, 1].forEach(s => {
+    const lg = new THREE.Group(); lg.position.x = s * 0.26; body.add(lg);
+    P(lg, rbox(0.44, 0.86, 0.46, 0.07), o.pants ? mat(o.pants) : skin, 0, -0.42, 0);
+    P(lg, rbox(0.5, 0.2, 0.66, 0.07), mat(o.shoe || 0x1c1c22), 0, -0.9, 0.08); if (o.sole) P(lg, rbox(0.52, 0.06, 0.68, 0.02, 1), mat(o.sole), 0, -0.98, 0.08);
+    legs.push(lg);
+  });
+  const torso = new THREE.Group(); body.add(torso);
+  P(torso, rbox(1.0, 1.05, 0.56, 0.09), topM, 0, 0.52, 0);
+  P(torso, rbox(1.08, 0.42, 0.64, 0.08), mat(o.shorts || o.pants || 0x222222), 0, 0, 0);
+  if (o.band) P(torso, rbox(1.1, 0.12, 0.66, 0.03, 1), mat(o.band), 0, 0.17, 0);
+  if (o.trim){ P(torso, rbox(0.05, 0.86, 0.02, 0.008, 1), mat(o.trim), 0, 0.58, 0.285); P(torso, rbox(1.03, 0.1, 0.59, 0.03, 1), mat(o.trim), 0, 0.24, 0); P(torso, rbox(0.86, 0.24, 0.3, 0.08), topM, 0, 1.0, -0.33); }
+  if (o.refStripes) for (let k = -2; k <= 2; k++) P(torso, rbox(0.07, 0.8, 0.02, 0.008, 1), mat(0x15151a), k * 0.19, 0.62, 0.285);
+  [-1, 1].forEach(s => {
+    const a = new THREE.Group(); a.position.set(s * 0.67, 0.92, 0); torso.add(a); P(a, rbox(0.31, 0.56, 0.36, 0.07), topM, 0, -0.2, 0);
+    const e = new THREE.Group(); e.position.y = -0.46; a.add(e); P(e, rbox(0.29, 0.5, 0.34, 0.07), topM, 0, -0.2, 0);
+    if (o.trim) P(e, rbox(0.31, 0.08, 0.36, 0.03, 1), mat(o.trim), 0, -0.42, 0);
+    if (o.glove){ P(e, rbox(0.46, 0.46, 0.46, 0.16), mat(o.glove, { roughness: 0.4 }), 0, -0.62, 0.02); P(e, rbox(0.36, 0.12, 0.38, 0.04, 1), mat(0xf4f4f4), 0, -0.4, 0); }
+    else P(e, rbox(0.3, 0.28, 0.34, 0.08), skin, 0, -0.56, 0);
+    sh.push(a); el.push(e);
+  });
+  P(torso, rbox(0.38, 0.2, 0.38, 0.05, 1), skin, 0, 1.09, 0);
+  const head = new THREE.Group(); head.position.y = 1.13; torso.add(head);
+  P(head, rbox(1.12, 1.0, 1.02, 0.13), skin, 0, 0.55, 0);
+  P(head, rbox(1.19, 0.32, 1.09, 0.1), hairM, 0, 1.0, -0.01); P(head, rbox(1.19, 0.5, 0.34, 0.1), hairM, 0, 0.78, -0.39);
+  if (o.headband) P(head, rbox(1.16, 0.15, 1.06, 0.04, 1), mat(o.headband), 0, 0.8, 0);
+  [-1, 1].forEach(s => {
+    P(head, rbox(0.09, 0.22, 0.18, 0.04, 1), skin, s * 0.59, 0.46, -0.04);
+    const e = P(head, rbox(0.15, 0.21, 0.06, 0.03, 1), BLACK, s * 0.25, 0.56, 0.5); P(e, rbox(0.06, 0.07, 0.03, 0.01, 1), WHITEB, 0.03, 0.05, 0.022); eyes.push(e);
+    brw.push(P(head, rbox(0.31, 0.09, 0.08, 0.035, 1), mat(0x2a1a10), s * 0.25, 0.79, 0.52));
+  });
+  const c = new THREE.Color(o.skin || 0xf2c6a2).multiplyScalar(0.9);
+  P(head, rbox(0.18, 0.31, 0.2, 0.07), new THREE.MeshStandardMaterial({ color: c, roughness: 0.62, envMapIntensity: 0.55 }), 0, 0.45, 0.58);
+  const mouth = P(head, rbox(0.25, 0.06, 0.04, 0.02, 1), mat(0x6a2018), 0.02, 0.2, 0.512);
+  return { root, body, torso, head, sh, el, legs, eyes, brows: brw, mouth };
+}
+function place(r, x, y, z, yaw){ r.root.position.set(x, y, z); r.root.rotation.set(0, yaw, 0); }
+function bRest(r, t, k){
+  r.body.position.set(0, 1, 0); r.body.rotation.set(0, 0, 0); r.torso.rotation.set(0, 0, 0); r.head.rotation.set(0, 0, 0);
+  r.sh[0].rotation.set(0, 0, -0.07); r.sh[1].rotation.set(0, 0, 0.07); r.el[0].rotation.set(-0.1, 0, 0); r.el[1].rotation.set(-0.1, 0, 0);
+  r.legs[0].rotation.set(0, 0, 0); r.legs[1].rotation.set(0, 0, 0); r.mouth.scale.set(1, 1, 1); r.mouth.rotation.z = 0;
+  const b = Math.sin(t * 2.1 + k); r.torso.scale.y = 1 + b * 0.012; r.head.position.y = 1.13 + b * 0.012;
+  const ph = (t + k * 1.37) % 3.4, bl = ph < 0.14 ? Math.abs(Math.cos(Math.PI * ph / 0.14)) : 1; r.eyes.forEach(e => e.scale.y = Math.max(0.08, bl));
+  bFace(r, 0, 0);
+}
+function bFace(r, m, open){ r.brows[0].rotation.z = -0.32 * m; r.brows[1].rotation.z = 0.32 * m; const y = 0.79 + (m < 0 ? -m * 0.05 : -m * 0.015); r.brows[0].position.y = y; r.brows[1].position.y = y; r.mouth.scale.y = 1 + open * 4; }
+function guard(r, t, k){
+  const b = Math.sin(t * 7 + k); r.body.position.y = 0.93 + Math.abs(b) * 0.06; r.torso.rotation.set(0.12, 0.4, 0); r.head.rotation.y = -0.35;
+  r.legs[0].rotation.set(-0.3, 0, -0.12); r.legs[1].rotation.set(0.35, 0, 0.12);
+  r.sh[0].rotation.set(-1.0, 0, 0.15); r.el[0].rotation.x = -1.75; r.sh[1].rotation.set(-0.85, 0, -0.15); r.el[1].rotation.x = -1.85;
+}
+function strike(r, p, i){
+  if (p <= 0) return;
+  r.sh[i].rotation.x = lerp(r.sh[i].rotation.x, -1.57, p); r.sh[i].rotation.z = lerp(r.sh[i].rotation.z, 0, p); r.el[i].rotation.x = lerp(r.el[i].rotation.x, -0.03, p);
+  r.torso.rotation.y += (i ? -0.85 : 0.3) * p; r.torso.rotation.x += 0.1 * p; r.body.position.z += 0.3 * p; r.legs[1].rotation.x += 0.2 * p;
+}
+function pc(lt, t0, hold){ hold = hold || 0.14; const x = lt - t0; if (x <= 0) return 0; if (x < 0.09) return E.out(x / 0.09); if (x < 0.09 + hold) return 1; if (x < 0.35 + hold) return 1 - E.io((x - 0.09 - hold) / 0.26); return 0; }
+function rag(r, t, k){
+  r.body.position.y = 1; r.torso.rotation.set(-0.2, 0, 0); r.head.rotation.set(-0.3, 0, 0);
+  r.sh[0].rotation.set(Math.sin(t * 9 + k) * 0.6, 0, -2.0); r.sh[1].rotation.set(Math.cos(t * 8 + k) * 0.6, 0, 2.0); r.el[0].rotation.x = -0.5; r.el[1].rotation.x = -0.5;
+  r.legs[0].rotation.set(Math.sin(t * 10 + k) * 0.7, 0, -0.45); r.legs[1].rotation.set(-Math.sin(t * 10 + k) * 0.7, 0, 0.45); bFace(r, -1, 1);
+}
+function idle(r){ r.sh[0].rotation.set(0.05, 0, -0.1); r.sh[1].rotation.set(0.05, 0, 0.1); }
+function wlk(r, ph, a){ const s = Math.sin(ph); r.legs[0].rotation.x = s * 0.75 * a; r.legs[1].rotation.x = -s * 0.75 * a; r.sh[0].rotation.x = -s * 0.7 * a; r.sh[1].rotation.x = s * 0.7 * a; r.el[0].rotation.x = -0.9 * a; r.el[1].rotation.x = -0.9 * a; r.body.position.y = 1 + (Math.abs(Math.cos(ph)) * 0.08 - 0.03) * a; r.torso.rotation.x = 0.15 * a; }
+const hsh = n => { const x = Math.sin(n * 127.1 + 11.7) * 43758.5453; return x - Math.floor(x); };
+/* =========================================================
+   FIGUREN
+   ========================================================= */
+const SK = 0xE9C3A0;
+const ben = boxer({ top: 0xE8B21F, trim: 0xC4920F, pants: 0x1F2A44, shoe: 0xf2f2f2, sole: 0x9a9a9a, hair: 0x3A2616, skin: SK });
+const ALL = [ben]; scene.add(ben.root);
+function show(){ ALL.forEach(r => r.root.visible = false); for (let i = 0; i < arguments.length; i++) arguments[i].root.visible = true; }
+function sit(r, seatY){ r.body.position.y = seatY + 0.18; r.legs[0].rotation.x = -1.5; r.legs[1].rotation.x = -1.5; r.torso.rotation.x = 0.08; }
+const PI = Math.PI, V3 = new THREE.Vector3(), _w = new THREE.Vector3();
+function wpos(o, v){ o.updateWorldMatrix(true, false); return (v || _w).setFromMatrixPosition(o.matrixWorld); }
+function anchor(par, x, y, z){ const o = new THREE.Object3D(); o.position.set(x, y, z); par.add(o); return o; }
+
+/* =========================================================
+   STIMMUNG: TAG ÜBER PARIS
+   ========================================================= */
+function sky(stops){
+  const c = document.createElement('canvas'); c.width = 4; c.height = 256; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
+  stops.forEach(s => g.addColorStop(s[0], s[1])); x.fillStyle = g; x.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+}
+const MOOD = { day: { sky: sky([[0, '#3f7fd0'], [0.55, '#86b6e8'], [1, '#d6e6f2']]), fog: [0xc9dcec, 260, 1500] } };
+function setMood(m){
+  scene.background = m.sky; scene.fog.color.set(m.fog[0]); scene.fog.near = m.fog[1]; scene.fog.far = m.fog[2]; scene.environment = envDay;
+  hemi.color.set(0xe4f0ff); hemi.groundColor.set(0x6e7a58); hemi.intensity = 0.95; sun.color.set(0xfff0d8); sun.intensity = 1.55;
+  fill.color.set(0xbcd4ff); fill.position.set(-30, 20, 40); fill.intensity = 0.3;
+}
+const SUNDIR = new THREE.Vector3(0.45, 0.8, 0.4).normalize();
+function shadowAt(x, y, z, R){
+  sun.target.position.set(x, y, z); sun.position.set(x + SUNDIR.x * 80, y + SUNDIR.y * 80, z + SUNDIR.z * 80); sun.target.updateMatrixWorld();
+  const c = sun.shadow.camera; if (c.right !== R){ c.left = -R; c.right = R; c.top = R; c.bottom = -R; c.near = 1; c.far = 200; c.updateProjectionMatrix(); }
+}
+
+/* =========================================================
+   SET: EIFFELTURM, PARK, STADT, MATRATZEN
+   ========================================================= */
+const world = new THREE.Group(); scene.add(world);
+const SETS = [world];
+const TOP = 276, SPOT_Z = 12;
+const TW = h => 2.5 + 59.5 * Math.pow(Math.max(0, 1 - h / TOP), 2.2);
+const IRON = mat(0x7b5b40, { roughness: 0.78, metalness: 0.15 }), IRON2 = mat(0x6a4c35, { roughness: 0.8, metalness: 0.1 });
+const UNIT = new THREE.BoxGeometry(1, 1, 1);
+(function buildTower(){
+  const beams = [];
+  const lv = [0, 10, 22, 36, 50, 57, 70, 85, 100, 115, 132, 150, 168, 186, 204, 222, 240, 258, 276];
+  const CR = [[1, 1], [1, -1], [-1, -1], [-1, 1]];
+  const cp = (k, y) => { const w = TW(y); return new THREE.Vector3(CR[k][0] * w, y, CR[k][1] * w); };
+  for (let i = 0; i < lv.length - 1; i++){
+    const y0 = lv[i], y1 = lv[i + 1], w0 = TW(y0);
+    for (let k = 0; k < 4; k++){
+      beams.push([cp(k, y0), cp(k, y1), 1.1 + w0 * 0.11]);
+      if (y0 >= 57){ const n = (k + 1) % 4, th = 0.35 + w0 * 0.012;
+        beams.push([cp(k, y0), cp(n, y1), th]); beams.push([cp(n, y0), cp(k, y1), th]); beams.push([cp(k, y1), cp(n, y1), 0.7]); }
+    }
+  }
+  const im = new THREE.InstancedMesh(UNIT, IRON, beams.length); im.castShadow = true; im.receiveShadow = true;
+  const up = new THREE.Vector3(0, 1, 0), q = new THREE.Quaternion(), m4 = new THREE.Matrix4(), mid = new THREE.Vector3(), sc = new THREE.Vector3(), d = new THREE.Vector3();
+  beams.forEach((b, i) => { d.copy(b[1]).sub(b[0]); const L = d.length(); q.setFromUnitVectors(up, d.normalize()); mid.copy(b[0]).add(b[1]).multiplyScalar(0.5); sc.set(b[2], L, b[2]); m4.compose(mid, q, sc); im.setMatrixAt(i, m4); });
+  world.add(im);
+  // Bögen unten
+  const arc = new THREE.TorusGeometry(44, 1.7, 6, 30, Math.PI);
+  for (let k = 0; k < 4; k++){ const a = new THREE.Mesh(arc, IRON2); a.castShadow = true; const r = k * Math.PI / 2; a.position.set(Math.sin(r) * 50, -6, Math.cos(r) * 50); a.rotation.y = r; world.add(a); }
+  // Plattformen als Ringe (Mitte offen)
+  function ring(y, outer, inner, h){
+    const t = outer - inner;
+    [[0, outer - t / 2, 2 * outer, t], [0, -(outer - t / 2), 2 * outer, t], [outer - t / 2, 0, t, 2 * inner], [-(outer - t / 2), 0, t, 2 * inner]].forEach(p => {
+      const me = new THREE.Mesh(rbox(p[2], h, p[3], 0.3), IRON2); me.position.set(p[0], y, p[1]); me.castShadow = true; me.receiveShadow = true; world.add(me); });
+  }
+  ring(57, TW(57) + 3, 27, 5); ring(115, TW(115) + 2, 15, 3.4);
+  // Spitze mit Plattform, Kabine, Geländer, Antenne
+  const deck = new THREE.Mesh(rbox(13, 1, 13, 0.15), mat(0x5d4532, { roughness: 0.85 })); deck.position.set(0, TOP - 0.5, 0); deck.receiveShadow = true; deck.castShadow = true; world.add(deck);
+  const cab = new THREE.Mesh(rbox(7, 7, 7, 0.3), mat(0x8a6a4c, { roughness: 0.7 })); cab.position.set(0, TOP + 3.5, -1.5); cab.castShadow = true; cab.receiveShadow = true; world.add(cab);
+  const cabTop = new THREE.Mesh(rbox(5, 3, 5, 0.3), IRON2); cabTop.position.set(0, TOP + 8.5, -1.5); world.add(cabTop);
+  const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.5, 18, 8), mat(0xd9d9d9, { roughness: 0.4, metalness: 0.5 })); ant.position.set(0, TOP + 19, -1.5); world.add(ant);
+  const RAIL = mat(0x4a3626, { roughness: 0.6 });
+  [[0, 6.45, 13, 0.12], [0, -6.45, 13, 0.12], [6.45, 0, 0.12, 13], [-6.45, 0, 0.12, 13]].forEach(p => { const r = new THREE.Mesh(rbox(p[2], 0.1, p[3], 0.03, 1), RAIL); r.position.set(p[0], TOP + 1.1, p[1]); r.castShadow = true; world.add(r); });
+  for (let x = -6; x <= 6; x += 1.5){ const po = new THREE.Mesh(rbox(0.09, 1.1, 0.09, 0.02, 1), RAIL); po.position.set(x, TOP + 0.55, 6.45); po.castShadow = true; world.add(po); }
+})();
+// Boden, Kies, Marsfeld, Stadt
+(function buildCity(){
+  const g = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), mat(0x79a052, { roughness: 0.95 })); g.rotation.x = -Math.PI / 2; g.receiveShadow = true; world.add(g);
+  const gr = new THREE.Mesh(new THREE.PlaneGeometry(170, 170), mat(0xcdbd9b, { roughness: 1 })); gr.rotation.x = -Math.PI / 2; gr.position.y = 0.03; gr.receiveShadow = true; world.add(gr);
+  [[-28, 0x6f9a4a], [28, 0x6f9a4a]].forEach(p => { const l = new THREE.Mesh(new THREE.PlaneGeometry(40, 700), mat(p[1], { roughness: 1 })); l.rotation.x = -Math.PI / 2; l.position.set(p[0], 0.05, 450); l.receiveShadow = true; world.add(l); });
+  const pa = new THREE.Mesh(new THREE.PlaneGeometry(16, 700), mat(0xd6c7a4, { roughness: 1 })); pa.rotation.x = -Math.PI / 2; pa.position.set(0, 0.06, 450); world.add(pa);
+  seed = 11; const N = 140, house = new THREE.InstancedMesh(UNIT, mat(0xdccfb4, { roughness: 0.85 }), N), roof = new THREE.InstancedMesh(UNIT, mat(0x4d5866, { roughness: 0.6, metalness: 0.2 }), N);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
+  for (let i = 0; i < N; i++){
+    let x, z; do { const a = rnd() * Math.PI * 2, r = 230 + rnd() * 700; x = Math.cos(a) * r; z = Math.sin(a) * r; } while (Math.abs(x) < 60 && z > 0);
+    const w = 30 + rnd() * 35, d = 25 + rnd() * 35, h = 18 + rnd() * 14; q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.round(rnd() * 3) * 0.3);
+    p.set(x, h / 2, z); s.set(w, h, d); m4.compose(p, q, s); house.setMatrixAt(i, m4);
+    p.set(x, h + 2.5, z); s.set(w * 0.9, 5, d * 0.9); m4.compose(p, q, s); roof.setMatrixAt(i, m4);
+  }
+  house.receiveShadow = true; world.add(house); world.add(roof);
+})();
+// Matratzenstapel (bis 50 Stück, je 20 cm)
+const MATR = [], MH = 0.2, MAXC = 0.17;
+const mGeo = rbox(1.0, MH, 2.0, 0.05), mBand = rbox(1.02, 0.045, 2.02, 0.02, 1), mM = mat(0xf1f4f8, { roughness: 0.88 }), mB = mat(0x3d6fd6, { roughness: 0.7 });
+for (let i = 0; i < 50; i++){ const gq = new THREE.Group(); const a = new THREE.Mesh(mGeo, mM); a.castShadow = true; a.receiveShadow = true; const b = new THREE.Mesh(mBand, mB); gq.add(a); gq.add(b); gq.position.set(0, 0, SPOT_Z); world.add(gq); MATR.push(gq); }
+function stack(n, s, mx){
+  mx = mx || MAXC; let y = 0.06;
+  for (let i = 0; i < 50; i++){
+    const gq = MATR[i]; if (i >= n){ gq.visible = false; continue; } gq.visible = true;
+    const j = n - 1 - i, c = Math.max(0, Math.min(mx, s - mx * j)), h = MH - c, k = c / MH;
+    gq.scale.set(1 + 0.22 * k, h / MH, 1 + 0.12 * k); gq.position.y = y + h / 2; gq.rotation.y = (hsh(i) - 0.5) * 0.06; y += h;
+  }
+  return y;
+}
+// Haus zum Größenvergleich
+const refHouse = new THREE.Group(); world.add(refHouse);
+(function(){ const b = new THREE.Mesh(rbox(6, 7, 6, 0.1), mat(0xe9dcc0)); b.position.y = 3.5; b.castShadow = true; b.receiveShadow = true; refHouse.add(b);
+  const r = new THREE.Mesh(new THREE.ConeGeometry(4.6, 3, 4), mat(0xa4482f)); r.rotation.y = Math.PI / 4; r.position.y = 8.5; r.castShadow = true; refHouse.add(r);
+  for (const x of [-1.5, 1.5]) { const w = new THREE.Mesh(rbox(1.2, 1.3, 0.1, 0.03, 1), mat(0x8fb6d6, { roughness: 0.2 })); w.position.set(x, 4.8, 3.02); refHouse.add(w); }
+  const d = new THREE.Mesh(rbox(1.3, 2.2, 0.1, 0.03, 1), mat(0x6b4426)); d.position.set(0, 1.1, 3.02); refHouse.add(d);
+  refHouse.position.set(-6.5, 0, SPOT_Z - 1); refHouse.rotation.y = 0.5; })();
+
+/* =========================================================
+   KAMERA + PHYSIK
+   ========================================================= */
+const cL = new THREE.Vector3();
+let blurAmt = 0, fadeBlk = 0, T = 0, flashA = 0, redA = 0;
+function setCam(p, l, fov, up){ cam.position.set(p[0], p[1], p[2]); cL.set(l[0], l[1], l[2]); cam.fov = fov; if (up) cam.up.set(up[0], up[1], up[2]); else cam.up.set(0, 1, 0); }
+function camL(k, a, b){ setCam([lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)], [lerp(a[3], b[3], k), lerp(a[4], b[4], k), lerp(a[5], b[5], k)], lerp(a[6], b[6], k), a[7]); }
+function camFin(sh){ cam.position.x += Math.sin(T * 0.7) * 0.03; cam.position.y += Math.sin(T * 0.9 + 1) * 0.02; if (sh){ cam.position.x += Math.sin(T * 61) * sh; cam.position.y += Math.cos(T * 47) * sh; } cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
+const VT = 80, G = 9.81;
+const vAt = tau => VT * Math.tanh(G * tau / VT);
+const hAt = tau => VT * VT / G * Math.log(Math.cosh(G * tau / VT));
+const BS = 0.56; ben.root.scale.setScalar(BS);
+function benStand(z, yaw){ bRest(ben, T, 0); place(ben, 0, TOP, z, yaw || 0); idle(ben); }
+function benLie(top, wob){ bRest(ben, T, 0); place(ben, 0, top + 0.157, SPOT_Z + 0.9, 0); ben.root.rotation.x = -Math.PI / 2 + (wob || 0); }
+function benFall(y, k){ rag(ben, T, 0); place(ben, 0, y, SPOT_Z + 0.9, 0); ben.root.rotation.x = -Math.PI / 2 + 0.25 * Math.sin(T * 3) * k; ben.root.rotation.z = 0.15 * Math.sin(T * 2.3) * k; }
+// Einsinken (Meter) synchron zur Stimme: 24,37 → 2 · 25,57 → 5 · 26,64 → 7
+const SK_T = [[23.2, 0], [24.4, 2], [25.6, 5], [26.7, 7], [27.1, 7.05]];
+function sinkAt(t){ if (t <= SK_T[0][0]) return 0; for (let i = 1; i < SK_T.length; i++) if (t <= SK_T[i][0]){ const p = (t - SK_T[i - 1][0]) / (SK_T[i][0] - SK_T[i - 1][0]); return lerp(SK_T[i - 1][1], SK_T[i][1], i === SK_T.length - 1 ? E.out(p) : p); } return SK_T[SK_T.length - 1][1]; }
+const fmt = v => v.toFixed(1).replace('.', ',');
+let impact = null;
+
+/* =========================================================
+   SZENEN (Zeiten = Sprecherspur Take 1)
+   ========================================================= */
+const D = { set: world, mood: MOOD.day };
+const SCN = [
+  Object.assign({ t: 0, hook: 1, mark: 1,
+    upd(lt){ show(ben); stack(1, 0); refHouse.visible = false; benStand(5.4); ben.head.rotation.x = 0.55; ben.torso.rotation.x = 0.12; bFace(ben, -0.5, 0.15); shadowAt(0, TOP, 4, 12);
+      camL(E.io(seg(lt, 0, 4.3)), [0.35, TOP + 5.2, 7.2, 0, 0, 14, 56, [0, 0, 1]], [0.3, TOP + 4.6, 7.0, 0, 0, 13, 44, [0, 0, 1]]); camFin(); } }, D),
+  Object.assign({ t: 4.36, label: 1, hud: () => ['HÖHE', '276 m', 'Eiffelturm · oberste Plattform'],
+    upd(lt){ show(ben); stack(1, 0); refHouse.visible = false; benStand(5.4); ben.head.rotation.x = 0.35; bFace(ben, -0.6, 0.2); const k = E.io(seg(lt, 0, 3.6)); shadowAt(0, TOP, 4, 14);
+      camL(k, [3.2, TOP + 1.9, 11.5, 0, TOP + 1.2, 5.2, 50], [30, TOP - 12, 72, 0, TOP - 4, 2, 38]); camFin(); } }, D),
+  Object.assign({ t: 8.0, speed: 1, hud: lt => { const tau = Math.min(7, lt * 7 / 4.3); return ['TEMPO', Math.round(vAt(tau) * 3.6) + ' km/h', 'freier Fall · ' + fmt(tau) + ' s']; },
+    upd(lt){ show(ben); stack(1, 0); refHouse.visible = false; const tau = Math.min(7, lt * 7 / 4.3);
+      const jump = clamp01(lt / 0.7), y = TOP + (lt < 0.7 ? 1.3 * Math.sin(Math.PI * jump) : 0) - 0.54 * hAt(Math.max(0, tau - 0.4)), z = lerp(5.4, SPOT_Z, E.out(clamp01(lt / 1.3)));
+      rag(ben, T, 0); place(ben, 0, y, z, 0); ben.root.rotation.x = lerp(0, -1.35, E.io(seg(lt, 0.3, 2.2))) + 0.1 * Math.sin(T * 4); ben.root.rotation.z = 0.12 * Math.sin(T * 2.6);
+      if (lt < 0.25){ benStand(5.4); ben.body.position.y = 1 - 0.25 * Math.sin(Math.PI * lt / 0.25); ben.sh[0].rotation.x = ben.sh[1].rotation.x = -0.6; }
+      shadowAt(0, y, z, 12); camL(E.io(seg(lt, 0, 4.4)), [11, y + 3.5, z + 30, 0, y + 0.5, z, 26], [9, y + 2.5, z + 26, 0, y, z, 24]); camFin(); } }, D),
+  Object.assign({ t: 12.44, impactAt: 14.6, hud: () => ['MATRATZEN', '1', T < 14.6 ? '20 cm Bremsweg' : 'durchgeschlagen ✗'],
+    upd(lt){ show(ben); refHouse.visible = false; const ti = 14.6; shadowAt(0, 1, SPOT_Z, 10);
+      if (T < ti){ const top = stack(1, 0); benFall(top + 15 * (ti - T), 1); } else { const top = stack(1, MH - 0.012, MH - 0.012); benLie(top, 0.04 * Math.exp(-(T - ti) * 6) * Math.sin((T - ti) * 40)); bFace(ben, -1, 0.6); ben.eyes.forEach(e => e.scale.y = 0.15); }
+      redA = T > ti ? 0.45 * Math.exp(-(T - ti) * 3) : 0; impact = [new THREE.Vector3(0, 0.2, SPOT_Z), ti];
+      camL(E.io(seg(lt, 0, 2.8)), [4.6, 1.1, SPOT_Z + 6.2, 0, 2.4, SPOT_Z, 52], [4.2, 0.9, SPOT_Z + 5.4, 0, 1.6, SPOT_Z, 50]); camFin(T > ti ? 0.12 * Math.exp(-(T - ti) * 5) : 0); } }, D),
+  Object.assign({ t: 15.32, impactAt: 16.9, hud: () => ['MATRATZEN', '10', T < 16.9 ? '2 m Bremsweg' : '100 g · keine Chance ✗'],
+    upd(lt){ show(ben); refHouse.visible = false; const ti = 16.9; shadowAt(0, 1.5, SPOT_Z, 10);
+      if (T < ti){ const top = stack(10, 0); benFall(top + 15 * (ti - T), 1); } else { const s = 1.55 * E.out(clamp01((T - ti) / 0.08)), top = stack(10, s); benLie(top, 0.05 * Math.exp(-(T - ti) * 6) * Math.sin((T - ti) * 38)); bFace(ben, -1, 0.6); ben.eyes.forEach(e => e.scale.y = 0.15); }
+      redA = T > ti ? 0.55 * Math.exp(-(T - ti) * 2.5) : 0; impact = [new THREE.Vector3(0, 0.8, SPOT_Z), ti];
+      camL(E.io(seg(lt, 0, 4.3)), [5.4, 1.7, SPOT_Z + 7.0, 0, 2.6, SPOT_Z, 52], [4.9, 1.5, SPOT_Z + 6.2, 0, 1.6, SPOT_Z, 50]); camFin(T > ti ? 0.14 * Math.exp(-(T - ti) * 4) : 0); } }, D),
+  Object.assign({ t: 19.76, ruler: 1, hud: () => ['MATRATZEN', '50', '10 m hoch · so hoch wie ein Haus'],
+    upd(lt){ show(ben); refHouse.visible = true; const top = stack(50, 0); benFall(top + 0.157 + 8 * (23.2 - T), 0.6); shadowAt(0, 5, SPOT_Z, 14);
+      camL(E.io(seg(lt, 0, 3.3)), [17, 3.5, SPOT_Z + 27, -1.5, 6.5, SPOT_Z, 44], [15, 4.5, SPOT_Z + 24, -1.5, 7.5, SPOT_Z, 46]); camFin(); } }, D),
+  Object.assign({ t: 23.08, slow: 1, hud: () => ['BREMSWEG', fmt(sinkAt(T)) + ' m', 'Matratze für Matratze'],
+    upd(lt){ show(ben); refHouse.visible = false; const s = sinkAt(T), top = stack(50, s); if (T < 23.2) benFall(top + 0.157 + 8 * (23.2 - T), 0.4); else { benLie(top); bFace(ben, -1, 0.5 * (1 - seg(T, 26.6, 27.2))); ben.eyes.forEach(e => e.scale.y = 0.3); ben.sh[0].rotation.z = -0.9; ben.sh[1].rotation.z = 0.9; }
+      shadowAt(0, top, SPOT_Z, 9); const k = E.io(seg(lt, 0, 4.3));
+      setCam([lerp(4.6, 4.0, k), top + lerp(2.4, 1.6, k), SPOT_Z + lerp(5.6, 4.8, k)], [0, top + 0.1, SPOT_Z], 50); camFin(); } }, D),
+  Object.assign({ t: 27.47, alive: 28.4, hud: () => ['BREMSUNG', '≈ 20 g', T > 28.4 ? 'überlebt ✓ · gerade so' : '…'],
+    upd(lt){ show(ben); refHouse.visible = false; const top = stack(50, 7.05); benLie(top); shadowAt(0, top, SPOT_Z, 9);
+      const a = E.out(seg(T, 28.9, 29.5)); ben.sh[1].rotation.set(-2.6 * a, 0, 0.3 * a); ben.el[1].rotation.x = -0.4 * a; bFace(ben, 0.4 * a - 0.6 * (1 - a), 0.15); ben.eyes.forEach(e => e.scale.y = lerp(0.2, 1, seg(T, 28.2, 28.6)));
+      camL(E.io(seg(lt, 0, 3.0)), [4.6, top + 2.2, SPOT_Z + 4.6, 0, top + 0.3, SPOT_Z, 48], [4.2, top + 2.6, SPOT_Z + 4.0, 0, top + 0.3, SPOT_Z - 0.2, 46]); camFin(); } }, D),
+  Object.assign({ t: 30.44, target: 1, hud: () => ['ZIEL', 'genau die Mitte', 'daneben = Boden'],
+    upd(lt){ show(ben); refHouse.visible = false; const top = stack(50, 7.05); benLie(top); ben.sh[1].rotation.set(-2.6, 0, 0.3); bFace(ben, 0.4, 0.1); shadowAt(0, top, SPOT_Z, 9);
+      const r = 0.25 * lt; setCam([Math.sin(r) * 0.6, top + lerp(16, 13, E.io(seg(lt, 0, 2.5))), SPOT_Z + Math.cos(r) * 0.6], [0, top, SPOT_Z], 46, [Math.sin(r + 1.2), 0, -Math.cos(r + 1.2)]); camFin(); } }, D),
+  Object.assign({ t: 32.96, card: 1,
+    upd(lt){ SCN[7].upd(lt + 2.97); fadeBlk = 0.62 * E.io(seg(lt, 0, 0.5)) + 0.38 * seg(lt, 3.6, 4.2); } }, D),
+];
+
+/* =========================================================
+   UNTERTITEL (synchron zur Sprecherspur)
+   ========================================================= */
+const SUBS = [[4.36, 7.92, 'Ben steht ganz oben. *276 Meter*.'], [8.0, 12.32, 'Er springt. Nach sieben Sekunden: *200 km/h*.'],
+  [12.44, 15.28, 'Eine Matratze? Merkt man nicht mal. *Durch.*'], [15.32, 19.68, 'Zehn Matratzen? Immer noch *hundertfache* Erdbeschleunigung. Keine Chance.'],
+  [19.76, 23.04, '*Fünfzig* Matratzen, ein Turm so hoch wie ein Haus.'], [23.08, 27.36, 'Er sinkt ein … zwei Meter … fünf … *sieben* …'],
+  [27.47, 30.4, 'Und Ben … *lebt*. Gerade so.'], [30.44, 32.88, 'Aber nur, wenn er genau die *Mitte* trifft.']];
+
+/* =========================================================
+   2D-EFFEKTE
+   ========================================================= */
+function proj(v){ V3.copy(v).project(cam); return V3.z < 1 ? [(V3.x + 1) / 2 * W, (1 - V3.y) / 2 * H] : null; }
+function glowDot(x, y, r, col, a){ if (a <= 0) return; const g = g2.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, 'rgba(255,255,255,' + Math.min(1, a) + ')'); g.addColorStop(0.25, col.replace('A', Math.min(1, a) * 0.9)); g.addColorStop(1, col.replace('A', 0)); g2.fillStyle = g; g2.fillRect(x - r, y - r, 2 * r, 2 * r); }
+function tag(x, y, text, col, a){ g2.save(); g2.globalAlpha = a; g2.font = `800 40px ${SANS}`; g2.textAlign = 'center'; g2.textBaseline = 'middle'; const w = g2.measureText(text).width + 40;
+  g2.fillStyle = 'rgba(12,16,26,0.72)'; g2.beginPath(); g2.roundRect(x - w / 2, y - 32, w, 64, 32); g2.fill(); g2.fillStyle = col; g2.fillText(text, x, y + 1);
+  g2.strokeStyle = col; g2.lineWidth = 5; g2.beginPath(); g2.moveTo(x, y + 34); g2.lineTo(x, y + 80); g2.stroke(); g2.restore(); }
+function drawMark(lt){ const p = proj(new THREE.Vector3(0, 0.3, SPOT_Z)); if (!p) return; const a = E.out(seg(lt, 0.6, 1.1)); g2.save(); g2.strokeStyle = '#ffd23c'; g2.lineWidth = 6;
+  for (let k = 0; k < 2; k++){ const q = (lt * 0.9 + k / 2) % 1; g2.globalAlpha = a * (1 - q); g2.beginPath(); g2.arc(p[0], p[1], 20 + q * 70, 0, Math.PI * 2); g2.stroke(); } g2.restore(); tag(p[0], p[1] - 120, '1 Matratze', '#ffd23c', a); }
+function drawLabel(lt){ const p = proj(wpos(ben.head, new THREE.Vector3()).add(_w.set(0, 1.4, 0))); if (!p) return; tag(p[0], p[1] - 70, 'Ben', '#ffd23c', E.out(seg(lt, 2.0, 2.5))); }
+function drawSpeed(lt){ const a = 0.35 * E.out(seg(lt, 0.8, 2.0)); if (a <= 0) return; g2.save(); g2.strokeStyle = '#ffffff'; g2.lineCap = 'round';
+  for (let i = 0; i < 26; i++){ const x = hsh(i) * W, sp = 2200 + hsh(i + 9) * 1600, y = ((hsh(i + 3) * H - T * sp) % (H + 400) + H + 400) % (H + 400) - 200, L = 120 + hsh(i + 5) * 220; g2.globalAlpha = a * (0.4 + hsh(i + 7) * 0.6); g2.lineWidth = 2 + hsh(i + 2) * 4; g2.beginPath(); g2.moveTo(x, y); g2.lineTo(x, y + L); g2.stroke(); }
+  g2.restore(); }
+function drawImpact(){ if (!impact || T < impact[1]) return; const p = proj(impact[0]); if (!p) return; const q = T - impact[1]; g2.save();
+  for (let k = 0; k < 9; k++){ const an = k / 9 * Math.PI * 2 + 0.3, r = 60 + q * (380 + hsh(k) * 260); glowDot(p[0] + Math.cos(an) * r * 1.3, p[1] + Math.sin(an) * r * 0.35 - q * 40, 70 + q * 150, 'rgba(214,200,170,A)', 0.6 * Math.exp(-q * 1.8)); }
+  g2.restore(); }
+function drawRuler(lt){ const a = proj(new THREE.Vector3(1.4, 0.05, SPOT_Z + 1.1)), b = proj(new THREE.Vector3(1.4, 10.06, SPOT_Z + 1.1)); if (!a || !b) return; const k = E.out(seg(lt, 0.3, 1.2));
+  g2.save(); g2.strokeStyle = '#ffd23c'; g2.lineWidth = 6; g2.globalAlpha = k; const x = a[0] + 70; g2.beginPath(); g2.moveTo(x, a[1]); g2.lineTo(x, lerp(a[1], b[1], k)); g2.stroke();
+  [a[1], lerp(a[1], b[1], k)].forEach(y => { g2.beginPath(); g2.moveTo(x - 18, y); g2.lineTo(x + 18, y); g2.stroke(); });
+  g2.font = `800 48px ${SANS}`; g2.fillStyle = '#ffd23c'; g2.shadowColor = 'rgba(0,0,0,.7)'; g2.shadowBlur = 10; g2.textBaseline = 'middle'; g2.fillText('10 m', x + 28, lerp(a[1], b[1], k * 0.5)); g2.restore(); }
+function stamp(text, col, age){ if (age < 0) return; const s = 1 + 0.6 * Math.exp(-age * 9), a = clamp01(age / 0.08); g2.save(); g2.translate(W / 2, 880); g2.rotate(-0.08); g2.scale(s, s); g2.globalAlpha = a;
+  g2.font = `900 120px ${SANS}`; g2.textAlign = 'center'; g2.textBaseline = 'middle'; const w = g2.measureText(text).width + 70; g2.strokeStyle = col; g2.lineWidth = 12; g2.strokeRect(-w / 2, -82, w, 164);
+  g2.fillStyle = col; g2.shadowColor = 'rgba(0,0,0,.5)'; g2.shadowBlur = 16; g2.fillText(text, 0, 6); g2.restore(); }
+function drawTarget(lt){ const c = proj(new THREE.Vector3(0, 3, SPOT_Z)); if (!c) return; const e = proj(new THREE.Vector3(0.5, 3, SPOT_Z)); const u = e ? Math.hypot(e[0] - c[0], e[1] - c[1]) : 60; const a = E.out(seg(lt, 0.2, 0.8));
+  g2.save(); g2.globalAlpha = a; g2.lineWidth = 7; [[2.2, '#ff4a3d'], [1.4, '#ffffff'], [0.7, '#ff4a3d']].forEach(r => { g2.strokeStyle = r[1]; g2.beginPath(); g2.arc(c[0], c[1], u * r[0], 0, Math.PI * 2); g2.stroke(); });
+  const pu = 1 + 0.25 * Math.abs(Math.sin(T * 5)) * (T > 31.9 ? 1 : 0.3); g2.fillStyle = '#ff4a3d'; g2.beginPath(); g2.arc(c[0], c[1], u * 0.22 * pu, 0, Math.PI * 2); g2.fill(); g2.restore();
+  if (T > 31.95) tag(c[0], c[1] - u * 2.2 - 90, 'MITTE', '#ff6a5a', E.out(seg(T, 31.95, 32.3))); }
+
+/* =========================================================
+   TEXT
+   ========================================================= */
+const SERIF = 'Georgia, "Times New Roman", serif', SANS = 'system-ui, -apple-system, "Segoe UI", Arial, sans-serif';
+let hv = '', hvT = -9, hp = '', hpT = -9, hl = '', hlT = -9;
+function spaced(s, x, y, sp){ let cx = x; for (const ch of s){ g2.fillText(ch, cx, y); cx += g2.measureText(ch).width + sp; } return cx; }
+function serifCap(text, age, cy, size, style, maxW, fa){
+  const toks = []; text.split(/(\*[^*]+\*)/).forEach(part => { const gr = part[0] === '*'; (gr ? part.slice(1, -1) : part).split(/\s+/).forEach(w => { if (w) toks.push({ w, gr }); }); });
+  g2.save(); g2.font = `${style || ''} ${size}px ${SERIF}`; g2.textBaseline = 'middle'; const spc = g2.measureText(' ').width, lines = [[]]; let lw = 0;
+  toks.forEach(tk => { tk.wd = g2.measureText(tk.w).width; if (lw + tk.wd > (maxW || 940) && lines[lines.length - 1].length){ lines.push([]); lw = 0; } lines[lines.length - 1].push(tk); lw += tk.wd + spc; });
+  const lh = size * 1.22, y0 = cy - (lines.length - 1) * lh / 2; let k = 0; g2.shadowColor = 'rgba(0,0,0,.85)'; g2.shadowBlur = 18; g2.shadowOffsetY = 3;
+  lines.forEach((ln, li) => { const tw = ln.reduce((a, b) => a + b.wd, 0) + spc * (ln.length - 1); let x = W / 2 - tw / 2;
+    ln.forEach(tk => { const a = E.out(clamp01((age - k * 0.04) / 0.22)); g2.globalAlpha = a * (fa == null ? 1 : fa); g2.fillStyle = tk.gr ? '#ffd23c' : '#ffffff'; g2.fillText(tk.w, x, y0 + li * lh + (1 - a) * 16); x += tk.wd + spc; k++; }); });
+  g2.restore();
+}
+const vig = document.createElement('canvas'); vig.width = 270; vig.height = 480;
+(function(){ const x = vig.getContext('2d'), g = x.createRadialGradient(135, 240, 120, 135, 240, 330); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.38)'); x.fillStyle = g; x.fillRect(0, 0, 270, 480); })();
+function draw2D(sc, lt, dur){
+  g2.globalAlpha = 1; g2.globalCompositeOperation = 'source-over'; g2.drawImage(renderer.domElement, 0, 0, W, H);
+  if (sc.speed) drawSpeed(lt);
+  if (sc.impactAt) drawImpact();
+  if (sc.ruler) drawRuler(lt);
+  if (sc.target) drawTarget(lt);
+  g2.globalAlpha = 1; g2.globalCompositeOperation = 'source-over'; g2.drawImage(vig, 0, 0, W, H);
+  if (sc.mark) drawMark(lt);
+  if (sc.label) drawLabel(lt);
+  if (redA > 0){ g2.fillStyle = `rgba(220,30,30,${Math.min(0.6, redA)})`; g2.fillRect(0, 0, W, H); }
+  if (sc.impactAt) stamp('✗', '#ff4a3d', T - sc.impactAt - 0.05);
+  if (sc.alive) stamp('ÜBERLEBT', '#3bd16f', T - sc.alive);
+  if (flashA > 0){ g2.fillStyle = `rgba(255,250,240,${Math.min(1, flashA)})`; g2.fillRect(0, 0, W, H); }
+  if (fadeBlk > 0){ g2.fillStyle = `rgba(0,0,0,${fadeBlk})`; g2.fillRect(0, 0, W, H); }
+  const h = sc.hud && sc.hud(lt);
+  if (h){ g2.save(); g2.textBaseline = 'alphabetic'; g2.shadowColor = 'rgba(0,0,0,.6)'; g2.shadowBlur = 12; g2.shadowOffsetY = 2;
+    g2.fillStyle = '#ffffff'; g2.font = `600 30px ${SANS}`; spaced(h[0], 34, 420, 7);
+    g2.fillStyle = '#ffffff'; g2.font = `500 108px ${SERIF}`; g2.fillText(h[1], 30, 536);
+    g2.fillStyle = 'rgba(240,244,250,.95)'; g2.font = `italic 34px ${SERIF}`; g2.fillText(h[2], 34, 584); g2.restore(); }
+  if (sc.hook) serifCap('Wie viele *Matratzen* brauchst du für einen Sprung vom *Eiffelturm*?', lt - 0.1, 560, 84, '600', 980, clamp01((dur - lt) / 0.25));
+  for (const s of SUBS) if (T >= s[0] && T < s[1] + 0.12) serifCap(s[2], T - s[0], 1330, 60, 'italic', 940, clamp01((s[1] + 0.12 - T) / 0.12));
+  if (sc.card){
+    serifCap('Wie viele hättest *du* gestapelt?', lt - 0.05, 900, 88, '600');
+    g2.save(); g2.globalAlpha = clamp01((lt - 1.6) / 0.4); g2.font = `italic 46px ${SERIF}`; g2.fillStyle = '#e6edf4'; g2.textAlign = 'center'; g2.shadowColor = 'rgba(0,0,0,.7)'; g2.shadowBlur = 12; g2.fillText('Schreib’s in die Kommentare.', W / 2, 1090); g2.restore();
+  }
+}
+
+/* =========================================================
+   ABLAUF
+   ========================================================= */
+let curI = -1, curS = SCN[0], curLt = 0;
+function step(){
+  let i = 0; while (i < SCN.length - 1 && T >= SCN[i + 1].t) i++;
+  const sc = SCN[i];
+  if (i !== curI){ curI = i; SETS.forEach(s => s.visible = s === sc.set); setMood(sc.mood); if (sc.enter) sc.enter(); }
+  blurAmt = 0; fadeBlk = 0; flashA = 0; redA = 0; impact = null; ben.mouth.rotation.z = 0; ben.root.rotation.z = 0;
+  curS = sc; curLt = T - sc.t; sc.upd(curLt);
+  if (T >= END && !ended) finish();
+}
+let vTrack = null;
+function frame(){
+  renderer.render(scene, cam);
+  draw2D(curS, curLt, (curI < SCN.length - 1 ? SCN[curI + 1].t : END) - curS.t);
+  if (recording && vTrack) vTrack.requestFrame();
+}
+let playing = false, startMs = 0, ended = false, rec = null, chunks = [], recording = false, videoBlob = null;
+function reset(){ T = 0; curI = -1; ended = false; hv = hp = hl = ''; hvT = hpT = hlT = -9; step(); }
+function loop(now){
+  requestAnimationFrame(loop);
+  if (exporting) return;
+  if (playing){ T = Math.min((now - startMs) / 1000, END + 0.3); step(); }
+  frame();
+}
+function startRec(){
+  if (!out.captureStream || typeof MediaRecorder === 'undefined'){ ui.innerHTML = '<p>Aufnahme wird von diesem Browser nicht unterstützt.</p>'; ui.classList.remove('hidden'); return false; }
+  let stream; try { stream = out.captureStream(0); vTrack = stream.getVideoTracks()[0]; if (!vTrack || !vTrack.requestFrame) throw 0; } catch (e) { stream = out.captureStream(30); vTrack = null; }
+  const types = ['video/mp4', 'video/mp4;codecs=avc1', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  const mime = types.find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
+  try { rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 10000000 } : {}); } catch (e) { rec = new MediaRecorder(stream); }
+  chunks = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  rec.onstop = () => { vTrack = null; videoBlob = new Blob(chunks, { type: rec.mimeType || mime || 'video/webm' }); recording = false; recdot.style.display = 'none'; showUI('end'); };
+  rec.start(); recording = true; recdot.style.display = 'block'; return true;
+}
+/* Bild-für-Bild-Export: H.264 über WebCodecs + eigener MP4-Schreiber (kein Echtzeit-Mitschnitt) */
+function mp4Build(samples, avcC, w, h, fps){
+  const enc = new TextEncoder();
+  const u32 = n => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255], u16 = n => [(n >> 8) & 255, n & 255];
+  const cat = arrs => { let L = 0; arrs.forEach(a => L += a.length); const o = new Uint8Array(L); let p = 0; arrs.forEach(a => { o.set(a, p); p += a.length; }); return o; };
+  const box = (type, ...parts) => { const body = cat(parts.map(p => p instanceof Uint8Array ? p : new Uint8Array(p))); return cat([new Uint8Array(u32(body.length + 8)), enc.encode(type), body]); };
+  const full = (type, ver, flags, ...parts) => box(type, [ver, (flags >> 16) & 255, (flags >> 8) & 255, flags & 255], ...parts);
+  const n = samples.length, dur = n, MAT = [].concat(u32(0x10000), u32(0), u32(0), u32(0), u32(0x10000), u32(0), u32(0), u32(0), u32(0x40000000));
+  // Reihenfolge der Anzeige (falls der Encoder B-Bilder liefert)
+  let shift = 0; const off = samples.map((s, i) => { const d = s.pts - i; if (-d > shift) shift = -d; return d; }); const needCtts = off.some(d => d !== 0);
+  const sync = []; samples.forEach((s, i) => { if (s.key) sync.push(i + 1); });
+  const stsd = full('stsd', 0, 0, u32(1), box('avc1', [0, 0, 0, 0, 0, 0], u16(1), u16(0), u16(0), u32(0), u32(0), u32(0), u16(w), u16(h), u32(0x480000), u32(0x480000), u32(0), u16(1), new Uint8Array(32), u16(24), [255, 255], box('avcC', avcC)));
+  const stbl = stco => box('stbl', stsd,
+    full('stts', 0, 0, u32(1), u32(n), u32(1)),
+    needCtts ? full('ctts', 0, 0, u32(n), cat(off.map(d => new Uint8Array(u32(1).concat(u32(d + shift)))))) : new Uint8Array(0),
+    full('stss', 0, 0, u32(sync.length), cat(sync.map(i => new Uint8Array(u32(i))))),
+    full('stsc', 0, 0, u32(1), u32(1), u32(n), u32(1)),
+    full('stsz', 0, 0, u32(0), u32(n), cat(samples.map(s => new Uint8Array(u32(s.data.length))))),
+    full('stco', 0, 0, u32(1), u32(stco)));
+  const moov = stco => box('moov',
+    full('mvhd', 0, 0, u32(0), u32(0), u32(fps), u32(dur), u32(0x10000), u16(0x100), u16(0), u32(0), u32(0), MAT, new Uint8Array(24), u32(2)),
+    box('trak',
+      full('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(dur), u32(0), u32(0), u16(0), u16(0), u16(0), u16(0), MAT, u32(w << 16), u32(h << 16)),
+      box('mdia',
+        full('mdhd', 0, 0, u32(0), u32(0), u32(fps), u32(dur), u16(0x55c4), u16(0)),
+        full('hdlr', 0, 0, u32(0), enc.encode('vide'), u32(0), u32(0), u32(0), enc.encode('Video\0')),
+        box('minf', full('vmhd', 0, 1, u16(0), u16(0), u16(0), u16(0)), box('dinf', full('dref', 0, 0, u32(1), full('url ', 0, 1))), stbl(stco)))));
+  const ftyp = box('ftyp', enc.encode('isom'), u32(0x200), enc.encode('isomiso2avc1mp41'));
+  const mv = moov(ftyp.length + moov(0).length + 8);
+  let L = 0; samples.forEach(s => L += s.data.length);
+  return new Blob([ftyp, mv, new Uint8Array(u32(L + 8)), enc.encode('mdat')].concat(samples.map(s => s.data)), { type: 'video/mp4' });
+}
+async function exportMP4(canvas, total, fps, renderAt, onProgress){
+  const w = canvas.width, h = canvas.height; let cfg = null;
+  for (const codec of ['avc1.640028', 'avc1.4d0028', 'avc1.42002a', 'avc1.42e028']){
+    const c = { codec, width: w, height: h, bitrate: 12000000, framerate: fps, avc: { format: 'avc' } };
+    try { const r = await VideoEncoder.isConfigSupported(c); if (r && r.supported){ cfg = c; break; } } catch (e) {}
+  }
+  if (!cfg) throw new Error('H.264 wird nicht unterstützt');
+  const samples = []; let avcC = null, err = null; const usPer = 1e6 / fps;
+  const enc = new VideoEncoder({
+    output: (chunk, meta) => {
+      if (meta && meta.decoderConfig && meta.decoderConfig.description && !avcC){ const d = meta.decoderConfig.description; avcC = new Uint8Array(d.buffer ? d.buffer.slice(d.byteOffset, d.byteOffset + d.byteLength) : d); }
+      const data = new Uint8Array(chunk.byteLength); chunk.copyTo(data); samples.push({ data, key: chunk.type === 'key', pts: Math.round(chunk.timestamp / usPer) });
+    },
+    error: e => { err = e; },
+  });
+  enc.configure(cfg);
+  for (let i = 0; i < total; i++){
+    if (err) throw err;
+    renderAt(i);
+    const vf = new VideoFrame(canvas, { timestamp: Math.round(i * usPer), duration: Math.round(usPer) });
+    enc.encode(vf, { keyFrame: i % 60 === 0 }); vf.close();
+    while (enc.encodeQueueSize > 2) await new Promise(r => setTimeout(r, 4));
+    if (i % 3 === 0){ onProgress && onProgress(i / total); await new Promise(r => setTimeout(r, 0)); }
+  }
+  await enc.flush(); enc.close(); if (err) throw err;
+  if (!avcC || !samples.length) throw new Error('Encoder hat keine Daten geliefert');
+  return mp4Build(samples, avcC, w, h, fps);
+}
+let exporting = false;
+async function doExport(){
+  reset(); exporting = true; playing = false; videoBlob = null; ui.classList.remove('hidden');
+  ui.innerHTML = '<h1>Video wird erstellt …</h1><p id="prog" style="font-size:34px;font-weight:800;opacity:1">0 %</p><p>Bild für Bild in voller Qualität. Bitte die Seite offen lassen und den Bildschirm nicht sperren.</p>';
+  const pr = document.getElementById('prog');
+  try {
+    videoBlob = await exportMP4(out, Math.floor(END * 30), 30, i => { T = i / 30; step(); frame(); }, p => { pr.textContent = Math.round(p * 100) + ' %'; });
+    exporting = false; ended = true; showUI('end');
+  } catch (e) {
+    exporting = false; showUI('start');
+    const m = document.createElement('p'); m.style.color = '#ffb3a0'; m.textContent = 'Export hat nicht geklappt (' + (e && e.message ? e.message : e) + '). Du kannst stattdessen „Aufnehmen“ nutzen.'; ui.appendChild(m);
+  }
+}
+let claudeDL = null;
+try { if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { claudeDL = d; }).catch(() => {}); } catch (e) {}
+async function saveVideo(){
+  if (!videoBlob) return;
+  const fname = `matratzen-eiffelturm.${videoBlob.type.includes('mp4') ? 'mp4' : 'webm'}`;
+  if (claudeDL){ try { await claudeDL.save({ filename: fname, data: videoBlob }); return; } catch (e) { if (e && e.code === 'declined') return; } }
+  const file = new File([videoBlob], fname, { type: videoBlob.type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })){ try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+}
+function finish(){ ended = true; playing = false; if (recording && rec) setTimeout(() => rec.stop(), 300); else showUI('end'); }
+function begin(withRec){
+  reset(); if (withRec){ videoBlob = null; if (!startRec()) return; }
+  ui.classList.add('hidden'); playing = true; startMs = performance.now();
+}
+function showUI(mode){
+  ui.classList.remove('hidden');
+  if (mode === 'start'){
+    ui.innerHTML = `<h1>Wie viele Matratzen brauchst du beim Sprung vom Eiffelturm?</h1><p>9:16 · 1080 × 1920 · ca. 37 s · Sprecher-Spur (ElevenLabs, Jan) ab 0:00 drunterlegen</p>
+      <button class="b1" id="bPlay">▶ Abspielen</button>
+      ${window.VideoEncoder ? '<button class="b3" id="bExp">💾 Als MP4-Video exportieren</button><p style="font-size:12px;opacity:.7">Der Export rechnet jedes Bild einzeln. Das Ergebnis läuft flüssig, auch wenn das Handy langsam ist.</p>' : ''}
+      <button class="b2" id="bRec">⏺ Live aufnehmen${window.VideoEncoder ? ' (Notlösung)' : ' &amp; speichern'}</button>`;
+  } else {
+    if (videoBlob && !videoBlob._url) videoBlob._url = URL.createObjectURL(videoBlob);
+    ui.innerHTML = `<h1>Fertig!</h1>
+      ${videoBlob ? `<video src="${videoBlob._url}" controls playsinline muted style="max-height:38vh;max-width:80vw;border-radius:12px;background:#000"></video><button class="b3" id="bSave">💾 Video speichern</button>` : ''}
+      <button class="b1" id="bPlay">↺ Nochmal ansehen</button>${window.VideoEncoder ? '<button class="b2" id="bExp">💾 Neu exportieren</button>' : '<button class="b2" id="bRec">⏺ Aufnehmen &amp; speichern</button>'}`;
+  }
+  const bp = document.getElementById('bPlay'), br = document.getElementById('bRec'), bs = document.getElementById('bSave');
+  bp && (bp.onclick = () => begin(false)); br && (br.onclick = () => begin(true)); bs && (bs.onclick = saveVideo); const be = document.getElementById('bExp'); be && (be.onclick = doExport);
+}
+reset(); showUI('start'); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

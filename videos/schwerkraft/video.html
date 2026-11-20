@@ -46,7 +46,7 @@ function aLerp(a, b, p){ let d = b - a; d = Math.atan2(Math.sin(d), Math.cos(d))
 let seed = 5;
 function rnd(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance', logarithmicDepthBuffer: true });
 renderer.setPixelRatio(1); renderer.setSize(W, H, false);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -311,7 +311,7 @@ const cL = new THREE.Vector3();
 let blurAmt = 0, fadeBlk = 0, T = 0, flashA = 0, redA = 0, impact = null;
 function setCam(p, l, fov){ cam.position.set(p[0], p[1], p[2]); cL.set(l[0], l[1], l[2]); cam.fov = fov; cam.up.set(0, 1, 0); }
 function camL(k, a, b){ setCam([lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)], [lerp(a[3], b[3], k), lerp(a[4], b[4], k), lerp(a[5], b[5], k)], lerp(a[6], b[6], k)); }
-function camFin(sh){ cam.position.x += Math.sin(T * 0.7) * 0.02; cam.position.y += Math.sin(T * 0.9 + 1) * 0.015; if (sh){ cam.position.x += Math.sin(T * 61) * sh; cam.position.y += Math.cos(T * 47) * sh; } cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
+function camFin(sh){ cam.position.x += Math.sin(T * 0.7) * 0.02; cam.position.y += Math.sin(T * 0.9 + 1) * 0.015; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const BS = 0.56; ben.root.scale.setScalar(BS);
 
 /* Verdopplungen (Zeiten = Sprecherspur) */

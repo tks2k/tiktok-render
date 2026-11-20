@@ -238,8 +238,8 @@ const MOOD = {
   space:{ sky: sky([[0, '#02030a'], [1, '#070b1c']]), fog: [0x000000, 1e9, 2e9], space: 1 } };
 function setMood(m){
   scene.background = m.sky; scene.fog.color.set(m.fog[0]); scene.fog.near = m.fog[1]; scene.fog.far = m.fog[2]; scene.environment = m.space ? envNight : envDay;
-  hemi.color.set(m.space ? 0x223355 : 0xe8f0ff); hemi.groundColor.set(m.space ? 0x000000 : 0x9aa6b8); hemi.intensity = m.space ? 0.25 : 0.8;
-  sun.color.set(0xfff2e0); sun.intensity = m.space ? 2.2 : 1.35; fill.color.set(0xbcd4ff); fill.position.set(-30, 20, 40); fill.intensity = m.space ? 0.05 : 0.25;
+  hemi.color.set(m.space ? 0x223355 : 0xe8f0ff); hemi.groundColor.set(m.space ? 0x000000 : 0x9aa6b8); hemi.intensity = m.space ? 0.25 : 0.62;
+  sun.color.set(0xfff2e0); sun.intensity = m.space ? 2.2 : 1.05; fill.color.set(0xbcd4ff); fill.position.set(-30, 20, 40); fill.intensity = m.space ? 0.05 : 0.25;
 }
 const SUNDIR = new THREE.Vector3(0.45, 0.8, 0.4).normalize();
 function shadowAt(x, y, z, R){
@@ -253,7 +253,7 @@ function shadowAt(x, y, z, R){
    ========================================================= */
 const world = new THREE.Group(), space = new THREE.Group(); scene.add(world); scene.add(space);
 const SETS = [world, space];
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(2e7, 2e7), mat(0xe9eef5, { roughness: 0.9 })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; world.add(ground);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(2e7, 2e7), mat(0xd6e0ec, { roughness: 0.9 })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; world.add(ground);
 function house(par, x, z, yaw, w, d, h, wall){
   const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = yaw; par.add(g);
   const b = new THREE.Mesh(rbox(w, h, d, 0.12), mat(wall)); b.position.y = h / 2; b.castShadow = b.receiveShadow = true; g.add(b);
@@ -312,7 +312,7 @@ const BS = 0.56; ben.root.scale.setScalar(BS);
 /* =========================================================
    SCHNEEBALL-WACHSTUM (Sekunde n der Simulation, Volumen ×2 pro Sekunde)
    ========================================================= */
-const NK = [[6.24, 0], [7.12, 0], [8.48, 10], [10.84, 11], [12.28, 15], [15.5, 18], [17.28, 21], [20.4, 22.5], [21.96, 30], [25.1, 33], [26.96, 45], [30.4, 46], [31.72, 60], [34.5, 61], [37.84, 80.776]];
+const NK = [[6.24, 0], [7.12, 0], [8.48, 10], [10.84, 11], [12.28, 15], [15.5, 18], [17.28, 21], [20.4, 22.5], [21.96, 30], [25.1, 33], [26.96, 45], [30.4, 46], [31.72, 60], [34.5, 61], [37.84, 80.7755]];
 function simN(t){ if (t <= NK[0][0]) return 0; for (let i = 1; i < NK.length; i++) if (t <= NK[i][0]) return lerp(NK[i - 1][1], NK[i][1], (t - NK[i - 1][0]) / (NK[i][0] - NK[i - 1][0])); return NK[NK.length - 1][1]; }
 const diam = n => 0.1 * Math.pow(2, n / 3);
 function fmtD(d){ const c = v => v.toFixed(1).replace('.', ','); if (d < 1) return Math.round(d * 100) + ' cm'; if (d < 10) return c(d) + ' m'; if (d < 1000) return Math.round(d) + ' m'; if (d < 10000) return c(d / 1000) + ' km'; return Math.round(d / 1000).toLocaleString('de-DE') + ' km'; }
@@ -363,9 +363,9 @@ const SCN = [
   { t: 10.84, set: world, mood: SNOW, hud: 1,
     upd(lt){ world0(); shadowAt(1, 0, 0, 14); camL(E.io(seg(lt, 0, 4.7)), [10, 2.6, 3.0, 1.0, 1.4, -0.5, 52], [13, 3.4, 4.0, 1.2, 2.6, -1.5, 56]); camFin(); } },
   { t: 15.56, set: world, mood: SNOW, hud: 1, houseTag: 1,
-    upd(lt){ world0(); shadowAt(0, 0, -25, 60); camL(E.io(seg(lt, 0, 5)), [58, 14, 26, 0, 9, -18, 50], [64, 18, 34, 0, 12, -24, 52]); camFin(); } },
+    upd(lt){ world0(); shadowAt(0, 0, -25, 60); camL(E.io(seg(lt, 0, 5)), [25, 10, 45, 0, 8, -20, 52], [29, 12, 52, 0, 10, -24, 54]); camFin(); } },
   { t: 20.52, set: world, mood: SNOW, hud: 1,
-    upd(lt){ world0(); shadowAt(0, 0, 0, 0); scene.fog.near = 1500; scene.fog.far = 9000; camL(E.io(seg(lt, 0, 4.7)), [200, 170, 130, 0, 10, -70, 50], [520, 430, 380, 0, 40, -150, 52]); camFin(); } },
+    upd(lt){ world0(); shadowAt(0, 0, 0, 0); scene.fog.near = 1500; scene.fog.far = 9000; camL(E.io(seg(lt, 0, 4.7)), [260, 60, 200, 0, 30, -90, 50], [560, 150, 420, 0, 90, -170, 52]); camFin(); } },
   { t: 25.24, set: world, mood: MOOD.alp, hud: 1, zugTag: 1,
     upd(lt){ world0(); shadowAt(0, 0, 0, 0); camL(E.io(seg(lt, 0, 5.2)), [9000, 4500, 14000, 2800, 1500, -1600, 46], [10500, 5200, 16000, 2800, 1600, -1700, 46]); camFin(); } },
   { t: 30.52, set: world, mood: MOOD.high, hud: 1, alt: 1,

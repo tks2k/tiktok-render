@@ -267,7 +267,7 @@ let car, front, flaps = [], bag, belt, doorL = [], doorR = [], debris, dust, ctr
   P(car, rbox(3.8, 1.3, 2.0, 0.25), body, 0, 1.15, 3.4);
   [-1, 1].forEach(s => { const arr = s < 0 ? doorL : doorR; arr.push(P(car, rbox(0.14, 1.3, 3.8, 0.05, 1), body, s * 1.85, 1.15, 0.5));
     const w = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.6), glass); w.rotation.y = PI / 2; w.position.set(s * 1.82, 2.65, 0.5); car.add(w); arr.push(w);
-    rod(car, body, [s * 1.8, 1.8, -1.55], [s * 1.7, 3.55, -0.5], 0.09); rod(car, body, [s * 1.8, 1.8, 2.35], [s * 1.7, 3.55, 2.2], 0.12); });
+    arr.push(rod(car, body, [s * 1.8, 1.8, -1.55], [s * 1.7, 3.55, -0.5], 0.09), rod(car, body, [s * 1.8, 1.8, 2.35], [s * 1.7, 3.55, 2.2], 0.12)); });
   P(car, rbox(3.6, 0.15, 2.8, 0.06), body, 0, 3.62, 0.85);
   const ws = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.1), glass); ws.position.set(0, 2.7, -1.03); ws.rotation.x = -0.56; car.add(ws);
   const rw = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.8), glass); rw.position.set(0, 2.7, 2.3); rw.rotation.x = 0.1; car.add(rw);
@@ -330,24 +330,24 @@ function camC(p, a, b){ const z = car.position.z, x = car.position.x; cam.positi
 function camW(p, a, b){ const z = CONTACT, x = -0.4; cam.position.set(x + lerp(a[0], b[0], p), lerp(a[1], b[1], p), z + lerp(a[2], b[2], p)); cL.set(x + lerp(a[3], b[3], p), lerp(a[4], b[4], p), z + lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(T * 0.7) * 0.015; cam.position.y += Math.sin(T * 0.9 + 1) * 0.01; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const imp = at => T >= at ? Math.exp(-(T - at) * 3) : 0;
-const HOOKCAM = [[-8.6, 4.5, -2.0, 0, 1.2, 4.0, 55], [-8.0, 4.2, -1.6, 0, 1.3, 1.5, 50]];
+const HOOKCAM = [[-8.5, 4.2, 8.0, 0, 1.3, -1.0, 50], [-8.0, 4.0, 7.0, 0, 1.3, -2.0, 46]];
 
 /* =========================================================
    SZENEN (Zeiten = Sprecherspur, Tempo 1.08 + Bens „Na toll.“)
    ========================================================= */
 const SCN = [
   { t: 0, set: world, mood: MOOD.night, hook: 1,
-    upd(lt){ show(ben); crash(kf(T, [[0, -420], [0.45, 0], [1.62, 115, 'o']])); hideSide(null); eyeS = 1.15;
+    upd(lt){ show(ben); crash(kf(T, [[0, -260], [0.45, 0], [1.62, 115, 'o']])); hideSide(null); eyeS = 1.15;
       flashA = T > 0.45 && T < 0.55 ? 0.45 : 0; camW(E.out(seg(lt, 0, 1.62)), HOOKCAM[0], HOOKCAM[1]); camFin(0.09 * imp(0.45)); } },
   { t: 1.62, set: world, mood: MOOD.night,
     upd(lt){ show(ben); crash(32); hideSide('R'); eyeS = 1.35; bFace(ben, -0.6, 0.5);
-      camC(E.io(seg(lt, 0, 1.9)), [2.6, 2.9, -1.6, -0.75, 2.6, 0.2, 40], [2.3, 2.85, -1.2, -0.75, 2.6, 0.2, 36]); camFin(); } },
+      camC(E.io(seg(lt, 0, 1.9)), [4.4, 2.8, -0.2, -0.75, 2.45, -0.35, 40], [3.9, 2.75, -0.1, -0.75, 2.45, -0.35, 36]); camFin(); } },
   { t: 3.54, set: world, mood: MOOD.night, hud: 'AUFPRALL',
     upd(lt){ show(ben); crash(kf(T, [[3.54, -720], [5.62, 0], [5.85, 6, 'o']])); hideSide(null); eyeS = 1; flashA = T > 5.62 && T < 5.72 ? 0.4 : 0;
       camW(E.io(seg(lt, 0, 2.3)), [-6.6, 1.3, -2.8, 0.2, 1.4, 7.5, 48], [-6.9, 1.4, -2.8, 0.2, 1.4, 3.0, 50]); camFin(0.07 * imp(5.62)); } },
   { t: 5.85, set: world, mood: MOOD.night, hud: 'SENSOREN MELDEN', xray: 1,
     upd(lt){ show(ben); crash(kf(T, [[5.85, 0.2], [6.9, 1, 'o'], [8.7, 4]])); hideSide(null); eyeS = 1;
-      camC(E.io(seg(lt, 0, 2.9)), [-6, 8, -2, 0, 1.0, -2.0, 46], [-5.4, 7.4, -1.6, 0, 1.0, -2.0, 46]); camFin(); } },
+      camC(E.io(seg(lt, 0, 2.9)), [-7.5, 7.5, -1.0, 0, 1.0, -2.5, 46], [-7.0, 7.0, -1.2, 0, 1.0, -2.5, 44]); camFin(); } },
   { t: 8.75, set: world, mood: MOOD.night, hud: 'ZÜNDUNG', ign: 10.8,
     upd(lt){ show(ben); crash(kf(T, [[8.75, 4], [9.9, 15, 'o'], [12.25, 15.6]])); hideSide(null); eyeS = 1.2;
       camC(E.io(seg(lt, 0, 3.5)), [1.0, 2.95, 0.6, -0.75, 2.25, -0.95, 46], [0.8, 2.85, 0.2, -0.75, 2.3, -0.95, 42]); camFin(); } },
@@ -356,19 +356,19 @@ const SCN = [
       camC(E.io(seg(lt, 0, 3.3)), [1.3, 2.9, 0.3, -0.7, 2.3, -0.6, 52], [1.45, 3.0, 0.7, -0.7, 2.35, -0.5, 54]); camFin(0.02 * imp(12.4)); } },
   { t: 15.6, set: world, mood: MOOD.night, hud: 'KOMPLETT VOLL',
     upd(lt){ show(ben); crash(kf(T, [[15.6, 27], [16.6, 30, 'o'], [18.15, 31]])); hideSide('R'); eyeS = 1.35; bFace(ben, -0.6, 0.5);
-      camC(E.io(seg(lt, 0, 2.5)), [2.6, 2.9, -1.4, -0.75, 2.6, 0.1, 42], [2.4, 2.85, -1.2, -0.75, 2.6, 0.1, 38]); camFin(); } },
+      camC(E.io(seg(lt, 0, 2.5)), [4.0, 2.75, 0.0, -0.75, 2.5, -0.3, 38], [3.7, 2.7, -0.1, -0.75, 2.5, -0.3, 34]); camFin(); } },
   { t: 18.15, set: world, mood: MOOD.night, hud: 'AUGE NOCH OFFEN',
     upd(lt){ show(ben); crash(kf(T, [[18.15, 31], [20.35, 62, 'io']])); hideSide('R'); eyeS = 1.35; bFace(ben, -1, 0.3);
-      camC(E.io(seg(lt, 0, 2.2)), [2.8, 3.0, -0.6, -0.75, 2.5, -0.3, 46], [2.5, 2.9, -0.9, -0.75, 2.5, -0.3, 40]); camFin(); } },
+      camC(E.io(seg(lt, 0, 2.2)), [4.4, 2.9, 0.3, -0.75, 2.4, -0.3, 44], [4.0, 2.8, 0.1, -0.75, 2.4, -0.3, 40]); camFin(); } },
   { t: 20.4, set: world, mood: MOOD.night, nat: 1,
-    upd(lt){ show(ben); crash(kf(T, [[20.4, 62], [21.88, 85]])); hideSide('R'); eyeS = 0.5; bFace(ben, 0.45, 0);
+    upd(lt){ show(ben); crash(kf(T, [[20.4, 62], [21.88, 85]])); hideSide('R'); eyeS = 0.5; bFace(ben, 0.45, 0); ben.head.rotation.y = -1.15 * E.out(seg(lt, 0.0, 0.3)); ben.head.rotation.x *= 0.3;
       talk = (T > 20.52 && T < 20.95) || (T > 21.0 && T < 21.6) ? 0.35 + 0.35 * Math.abs(Math.sin(T * 19)) : 0;
-      camC(E.io(seg(lt, 0, 1.4)), [2.2, 2.8, -1.1, -0.75, 2.6, 0.0, 32], [2.0, 2.75, -1.0, -0.75, 2.6, 0.0, 30]); camFin(); } },
+      camC(E.io(seg(lt, 0, 1.4)), [3.3, 2.7, 0.2, -0.75, 2.55, -0.1, 32], [3.0, 2.68, 0.1, -0.75, 2.55, -0.1, 28]); camFin(); } },
   { t: 21.88, set: world, mood: MOOD.night, hud: 'LUFT ENTWEICHT', vent: 1,
     upd(lt){ show(ben); crash(kf(T, [[21.88, 85], [23.95, 140]])); hideSide(null); eyeS = 0.5; bFace(ben, 0.3, 0.1);
       camC(E.io(seg(lt, 0, 2.1)), [0.7, 2.75, -1.25, -0.75, 2.35, -0.55, 50], [0.6, 2.7, -1.15, -0.75, 2.35, -0.6, 46]); camFin(); } },
   { t: 23.95, set: world, mood: MOOD.night, loopin: 1,
-    upd(lt){ show(ben); crash(kf(T, [[23.95, -1000], [END, -420]])); hideSide(null); eyeS = 1.15;
+    upd(lt){ show(ben); crash(kf(T, [[23.95, -900], [END, -260]])); hideSide(null); eyeS = 1.15;
       camW(0, HOOKCAM[0], HOOKCAM[1]); camFin(); } },
 ];
 const SUBS = [{"s": 0.093, "e": 1.726, "w": [["SCHNELLER", 0.093], ["ALS", 0.568], ["DEIN", 0.784], ["BLINZELN.", 1.044]]}, {"s": 1.647, "e": 3.542, "w": [["SO", 1.647], ["SCHNELL", 1.812], ["RETTET", 2.182], ["DICH", 2.511], ["EIN", 2.757], ["AIRBAG.", 2.963]]}, {"s": 3.568, "e": 5.845, "w": [["BEN", 3.568], ["KNALLT", 3.793], ["MIT", 4.153], ["50", 4.379], ["GEGEN", 4.784], ["DIE", 5.1], ["WAND.", 5.325]]}, {"s": 5.852, "e": 7.155, "w": [["MILLISEKUNDE", 5.852], ["1:", 6.589]]}, {"s": 7.081, "e": 8.787, "w": [["SENSOREN", 7.081], ["MELDEN", 7.566], ["DEN", 7.954], ["CRASH.", 8.197]]}, {"s": 8.774, "e": 10.136, "w": [["MILLISEKUNDE", 8.774], ["15:", 9.423]]}, {"s": 10.152, "e": 11.099, "w": [["IM", 10.152], ["LENKRAD", 10.332], ["ZÜNDET", 10.738]]}, {"s": 11.099, "e": 12.341, "w": [["EINE", 11.099], ["KLEINE", 11.369], ["LADUNG.", 11.73]]}, {"s": 12.314, "e": 13.169, "w": [["DER", 12.314], ["SACK", 12.528], ["SCHIESST", 12.784]]}, {"s": 13.169, "e": 13.768, "w": [["MIT", 13.169], ["BIS", 13.383], ["ZU", 13.597]]}, {"s": 13.768, "e": 15.686, "w": [["300", 13.768], ["KM/H", 14.324], ["RAUS.", 15.179]]}, {"s": 15.661, "e": 17.072, "w": [["MILLISEKUNDE", 15.661], ["30:", 16.368]]}, {"s": 17.031, "e": 18.139, "w": [["KOMPLETT", 17.031], ["VOLL.", 17.567]]}, {"s": 18.188, "e": 18.848, "w": [["UND", 18.188], ["BEN?", 18.393]]}, {"s": 18.862, "e": 19.805, "w": [["HAT", 18.862], ["NOCH", 19.067], ["NICHT", 19.313], ["MAL", 19.6]]}, {"s": 19.805, "e": 20.546, "w": [["GEBLINZELT.", 19.805]]}, {"s": 20.52, "e": 21.77, "w": [["NA", 20.52], ["TOLL.", 20.97]], "ben": 1}, {"s": 21.914, "e": 22.621, "w": [["HINTEN", 21.914], ["ZISCHT", 22.267]]}, {"s": 22.621, "e": 23.372, "w": [["DIE", 22.621], ["LUFT", 22.842], ["RAUS,", 23.107]]}, {"s": 23.372, "e": 24.594, "w": [["UND", 23.372], ["DAS", 23.593], ["GANZE", 23.814], ["WAR…", 24.123]]}];

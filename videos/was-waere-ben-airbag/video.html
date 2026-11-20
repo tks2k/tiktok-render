@@ -361,9 +361,9 @@ const SCN = [
     upd(lt){ show(ben); crash(kf(T, [[18.15, 31], [20.35, 62, 'io']])); hideSide('R'); eyeS = 1.35; bFace(ben, -1, 0.3);
       camC(E.io(seg(lt, 0, 2.2)), [4.4, 2.9, 0.3, -0.75, 2.4, -0.3, 44], [4.0, 2.8, 0.1, -0.75, 2.4, -0.3, 40]); camFin(); } },
   { t: 20.4, set: world, mood: MOOD.night, nat: 1,
-    upd(lt){ show(ben); crash(kf(T, [[20.4, 62], [21.88, 85]])); hideSide('R'); eyeS = 0.5; bFace(ben, 0.45, 0); ben.head.rotation.y = -1.15 * E.out(seg(lt, 0.0, 0.3)); ben.head.rotation.x *= 0.3;
+    upd(lt){ show(ben); crash(kf(T, [[20.4, 62], [21.88, 85]])); hideSide('R'); eyeS = 0.5; bFace(ben, 0.45, 0); ben.head.rotation.y = -1.5 * E.out(seg(lt, 0.0, 0.3)); ben.head.rotation.x *= 0.2;
       talk = (T > 20.52 && T < 20.95) || (T > 21.0 && T < 21.6) ? 0.35 + 0.35 * Math.abs(Math.sin(T * 19)) : 0;
-      camC(E.io(seg(lt, 0, 1.4)), [3.3, 2.7, 0.2, -0.75, 2.55, -0.1, 32], [3.0, 2.68, 0.1, -0.75, 2.55, -0.1, 28]); camFin(); } },
+      camC(E.io(seg(lt, 0, 1.4)), [3.7, 2.95, 0.35, -0.75, 2.62, -0.1, 30], [3.4, 2.9, 0.25, -0.75, 2.62, -0.1, 27]); camFin(); } },
   { t: 21.88, set: world, mood: MOOD.night, hud: 'LUFT ENTWEICHT', vent: 1,
     upd(lt){ show(ben); crash(kf(T, [[21.88, 85], [23.95, 140]])); hideSide(null); eyeS = 0.5; bFace(ben, 0.3, 0.1);
       camC(E.io(seg(lt, 0, 2.1)), [0.7, 2.75, -1.25, -0.75, 2.35, -0.55, 50], [0.6, 2.7, -1.15, -0.75, 2.35, -0.6, 46]); camFin(); } },

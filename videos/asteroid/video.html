@@ -371,7 +371,7 @@ const SCN = [
       const sw = clamp01((T - 21.76) / 0.5);
       if (T > 21.76){ rag(ben, T, 0); place(ben, 0, 0.2 * (1 - sw), 1.4 * E.out(sw), Math.PI); ben.root.rotation.x = 1.4 * E.out(sw); }
       fieldTrees.forEach((tr, i) => { tr.rotation.x = T > 21.6 ? 0.35 * E.out(clamp01((T - 21.6) / 0.3)) + 0.06 * Math.sin(T * 14 + i) : 0; });
-      camL(E.io(seg(lt, 0, 7.6)), [1.6, 1.5, 3.6, -2, 1.1, -10, 50], [1.4, 1.45, 3.9, -2.2, 1.2, -10, 48]); camFin(T > 21.76 ? 0.12 * Math.exp(-(T - 21.76) * 2) : T > 17.2 ? 0.02 : 0); } },
+      camL(E.io(seg(lt, 0, 7.6)), [2.4, 1.4, 5.5, -1.5, 1.0, -10, 50], [2.2, 1.35, 5.9, -1.7, 1.1, -10, 48]); camFin(T > 21.76 ? 0.12 * Math.exp(-(T - 21.76) * 2) : T > 17.2 ? 0.02 : 0); } },
   { t: 22.8, set: room, mood: DAY, burst: 27.25, stampW: 27.4, hud: () => { const s = Math.min(150, Math.max(0, (T - 22.8) / (26.6 - 22.8) * 150)); return ['ENTFERNUNG', '50 km', 'seit Einschlag: ' + Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') + ' min']; },
     upd(lt){ show(ben); ast.visible = false; benBurn(0); sofa.visible = false; cab.visible = false; mushroom(-400, 0, -4200, 700, 2); shadowAt(0, 0, 0, 8);
       bRest(ben, T, 0); place(ben, 0.1, 0, -1.4, Math.PI); idle(ben);

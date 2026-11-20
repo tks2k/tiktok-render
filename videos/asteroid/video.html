@@ -280,7 +280,7 @@ function house(par, x, z, yaw, w, d, h, wall, roofC){
   const rim = new THREE.Mesh(new THREE.TorusGeometry(620, 70, 10, 64), mat(0x5a4636, { roughness: 1 })); rim.rotation.x = -Math.PI / 2; rim.scale.z = 0.5; rim.position.y = 4; rim.castShadow = true; rim.receiveShadow = true; crater.add(rim);
   const glow = new THREE.Mesh(new THREE.CircleGeometry(320, 48), new THREE.MeshBasicMaterial({ color: 0xff5a1a })); glow.rotation.x = -Math.PI / 2; glow.position.y = 1.2; crater.add(glow); })();
 // Asteroid
-const ast = new THREE.Mesh(new THREE.IcosahedronGeometry(50, 1), mat(0x4a3a30, { roughness: 0.9, emissive: 0xff5010, emissiveIntensity: 0.6, flatShading: true })); scene.add(ast);
+const ast = new THREE.Mesh(new THREE.IcosahedronGeometry(110, 1), mat(0x4a3a30, { roughness: 0.9, emissive: 0xff5010, emissiveIntensity: 0.6, flatShading: true })); scene.add(ast);
 const IMP = new THREE.Vector3(0, 0, 0), ADIR = new THREE.Vector3(-0.3, 0.45, -0.84).normalize();
 function astAt(d){ ast.position.copy(IMP).addScaledVector(ADIR, d); ast.rotation.set(T * 0.7, T * 0.4, 0); ast.visible = d > 0; }
 // Pilzwolke
@@ -356,10 +356,10 @@ const SCN = [
   { t: 6.96, set: dorf, mood: DAY, astGlow: 1, hud: () => ['TEMPO', '20 km/s', '72.000 km/h'],
     upd(lt){ sceneDorf(lt); camL(E.io(seg(lt, 0, 2.3)), [34, 22, 135, -14, 56, -60, 54], [30, 16, 120, 0, 30, -10, 56]); camFin(0.05 * seg(lt, 0.8, 2.3)); } },
   { t: TIMP, set: dorf, mood: DAY, hud: () => ['ENERGIE', '≈ 75 Mt', 'mehr als die stärkste Atombombe'],
-    upd(lt){ show(); benBurn(0); ast.visible = false; mushroom(0, 0, 0, 260, lt / 1.0); flashA = Math.max(0, 1 - lt * 1.4); shadowAt(0, 0, 0, 90);
-      setCam([30, 16 + lt * 30, 120 + lt * 260], [0, 40 + lt * 60, -10], 56 + lt * 10); camFin(0.6 * Math.exp(-lt * 2)); } },
+    upd(lt){ show(); benBurn(0); ast.visible = false; mushroom(0, 0, 0, 140, lt / 0.9); flashA = Math.max(0, 1 - lt * 1.4); shadowAt(0, 0, 0, 90);
+      setCam([30 + lt * 60, 16 + lt * 80, 120 + lt * 520], [0, 50 + lt * 40, -10], 56); camFin(0.6 * Math.exp(-lt * 2)); } },
   { t: 10.24, set: crater, mood: MOOD.red, ring: 1000, ringLbl: '1 km', stampX: 12.6, hud: () => ['ENTFERNUNG', '1 km', T < 12.6 ? '…' : 'Krater · nichts übrig'],
-    upd(lt){ show(); benBurn(0); ast.visible = false; mushroom(0, 0, 0, 520, 1.6 + lt * 0.1); scene.fog.far = 12000; shadowAt(0, 0, 0, 900);
+    upd(lt){ show(); benBurn(0); ast.visible = false; shroom.visible = false; scene.fog.far = 12000; shadowAt(0, 0, 0, 900);
       camL(E.io(seg(lt, 0, 4.9)), [900, 2600, 3400, 0, 0, 0, 50], [700, 3000, 2900, 0, 0, -150, 50]); camFin(); } },
   { t: 15.12, set: field, mood: DAY, flashAt: 17.2, stampX: 21.8, hud: () => ['ENTFERNUNG', '10 km', T < 17.2 ? 'Feld vor dem Dorf' : T < 19.9 ? 'Lichtblitz' : T < 21.76 ? 'Hitze: Jacke brennt' : 'Druckwelle'],
     upd(lt){ show(ben); ast.visible = false; scene.fog.far = 9000; shadowAt(0, 0, 0, 12);
@@ -371,7 +371,7 @@ const SCN = [
       const sw = clamp01((T - 21.76) / 0.5);
       if (T > 21.76){ rag(ben, T, 0); place(ben, 0, 0.2 * (1 - sw), 1.4 * E.out(sw), Math.PI); ben.root.rotation.x = 1.4 * E.out(sw); }
       fieldTrees.forEach((tr, i) => { tr.rotation.x = T > 21.6 ? 0.35 * E.out(clamp01((T - 21.6) / 0.3)) + 0.06 * Math.sin(T * 14 + i) : 0; });
-      camL(E.io(seg(lt, 0, 7.6)), [3.6, 1.7, 3.2, -1.2, 1.5, -10, 50], [3.2, 1.6, 3.6, -1.5, 1.6, -10, 48]); camFin(T > 21.76 ? 0.12 * Math.exp(-(T - 21.76) * 2) : T > 17.2 ? 0.02 : 0); } },
+      camL(E.io(seg(lt, 0, 7.6)), [1.6, 1.5, 3.6, -2, 1.1, -10, 50], [1.4, 1.45, 3.9, -2.2, 1.2, -10, 48]); camFin(T > 21.76 ? 0.12 * Math.exp(-(T - 21.76) * 2) : T > 17.2 ? 0.02 : 0); } },
   { t: 22.8, set: room, mood: DAY, burst: 27.25, stampW: 27.4, hud: () => { const s = Math.min(150, Math.max(0, (T - 22.8) / (26.6 - 22.8) * 150)); return ['ENTFERNUNG', '50 km', 'seit Einschlag: ' + Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') + ' min']; },
     upd(lt){ show(ben); ast.visible = false; benBurn(0); sofa.visible = false; cab.visible = false; mushroom(-400, 0, -4200, 700, 2); shadowAt(0, 0, 0, 8);
       bRest(ben, T, 0); place(ben, 0.1, 0, -1.4, Math.PI); idle(ben);
@@ -408,11 +408,11 @@ function glowDot(x, y, r, col, a){ if (a <= 0) return; const g = g2.createRadial
 function tag(x, y, text, col, a){ g2.save(); g2.globalAlpha = a; g2.font = `800 40px ${SANS}`; g2.textAlign = 'center'; g2.textBaseline = 'middle'; const w = g2.measureText(text).width + 40;
   g2.fillStyle = 'rgba(12,16,26,0.72)'; g2.beginPath(); g2.roundRect(x - w / 2, y - 32, w, 64, 32); g2.fill(); g2.fillStyle = col; g2.fillText(text, x, y + 1); g2.restore(); }
 const _tp = new THREE.Vector3();
-function drawAst(){ if (!ast.visible) return; const p = proj(ast.position); if (!p) return; _tp.copy(ast.position).addScaledVector(ADIR, 900); const q = proj(_tp);
+function drawAst(){ if (!ast.visible) return; const p = proj(ast.position); if (!p) return; _tp.copy(ast.position).addScaledVector(ADIR, 2500); const q = proj(_tp);
   g2.save(); g2.globalCompositeOperation = 'lighter';
   if (q){ const gr = g2.createLinearGradient(p[0], p[1], q[0], q[1]); gr.addColorStop(0, 'rgba(255,190,90,0.9)'); gr.addColorStop(1, 'rgba(255,90,20,0)'); g2.strokeStyle = gr; g2.lineCap = 'round';
     [[90, 0.25], [40, 0.6], [14, 1]].forEach(w => { g2.globalAlpha = w[1]; g2.lineWidth = w[0]; g2.beginPath(); g2.moveTo(p[0], p[1]); g2.lineTo(q[0], q[1]); g2.stroke(); }); }
-  g2.globalAlpha = 1; const r = Math.max(60, 4000 / Math.max(1, cam.position.distanceTo(ast.position)) * 60); glowDot(p[0], p[1], r * 1.6, 'rgba(255,140,40,A)', 0.9); g2.restore(); }
+  g2.globalAlpha = 1; const r = Math.max(70, 9000 / Math.max(1, cam.position.distanceTo(ast.position)) * 60); glowDot(p[0], p[1], r * 1.8, 'rgba(255,90,20,A)', 0.75); g2.restore(); }
 function drawRing(sc, lt){ const R = sc.ring, a = E.out(seg(lt, 0.6, 1.4)); if (a <= 0) return; g2.save(); g2.strokeStyle = '#ffd23c'; g2.lineWidth = 7; g2.globalAlpha = a; g2.setLineDash([26, 18]); g2.beginPath(); let first = true, top = null;
   for (let i = 0; i <= 72; i++){ const an = i / 72 * Math.PI * 2; const p = proj(_tp.set(Math.cos(an) * R, 2, Math.sin(an) * R)); if (!p) { first = true; continue; } if (first){ g2.moveTo(p[0], p[1]); first = false; } else g2.lineTo(p[0], p[1]); if (!top || p[1] < top[1]) top = p; }
   g2.stroke(); g2.restore(); if (top) tag(top[0], top[1] - 50, sc.ringLbl, '#ffd23c', a); }

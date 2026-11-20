@@ -253,7 +253,7 @@ function shadowAt(x, y, z, R){
    ========================================================= */
 const world = new THREE.Group(), space = new THREE.Group(); scene.add(world); scene.add(space);
 const SETS = [world, space];
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(2e7, 2e7), mat(0xd6e0ec, { roughness: 0.9 })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; world.add(ground);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(2e7, 2e7), mat(0xd6e0ec, { roughness: 1, envMapIntensity: 0.12 })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; world.add(ground);
 function house(par, x, z, yaw, w, d, h, wall){
   const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = yaw; par.add(g);
   const b = new THREE.Mesh(rbox(w, h, d, 0.12), mat(wall)); b.position.y = h / 2; b.castShadow = b.receiveShadow = true; g.add(b);
@@ -367,7 +367,7 @@ const SCN = [
   { t: 20.52, set: world, mood: SNOW, hud: 1,
     upd(lt){ world0(); shadowAt(0, 0, 0, 0); scene.fog.near = 1500; scene.fog.far = 9000; camL(E.io(seg(lt, 0, 4.7)), [260, 60, 200, 0, 30, -90, 50], [560, 150, 420, 0, 90, -170, 52]); camFin(); } },
   { t: 25.24, set: world, mood: MOOD.alp, hud: 1, zugTag: 1,
-    upd(lt){ world0(); shadowAt(0, 0, 0, 0); camL(E.io(seg(lt, 0, 5.2)), [9000, 4500, 14000, 2800, 1500, -1600, 46], [10500, 5200, 16000, 2800, 1600, -1700, 46]); camFin(); } },
+    upd(lt){ world0(); shadowAt(0, 0, 0, 0); camL(E.io(seg(lt, 0, 5.2)), [9000, 4500, 14000, 3700, 1500, -1900, 46], [10500, 5200, 16000, 3700, 1600, -2000, 46]); camFin(); } },
   { t: 30.52, set: world, mood: MOOD.high, hud: 1, alt: 1,
     upd(lt){ world0(); shadowAt(0, 0, 0, 0); camL(E.io(seg(lt, 0, 4.1)), [60000, 30000, 380000, 0, 50000, BZ, 44], [80000, 40000, 460000, 0, 60000, BZ, 44]); camFin(); } },
   { t: 34.68, set: space, mood: MOOD.space, hud: 1, spaceTag: 1,

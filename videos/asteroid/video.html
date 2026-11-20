@@ -341,7 +341,7 @@ const cL = new THREE.Vector3();
 let blurAmt = 0, fadeBlk = 0, T = 0, flashA = 0, redA = 0, burnK = 0, impact = null;
 function setCam(p, l, fov){ cam.position.set(p[0], p[1], p[2]); cL.set(l[0], l[1], l[2]); cam.fov = fov; cam.up.set(0, 1, 0); }
 function camL(k, a, b){ setCam([lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)], [lerp(a[3], b[3], k), lerp(a[4], b[4], k), lerp(a[5], b[5], k)], lerp(a[6], b[6], k)); }
-function camFin(sh){ cam.position.x += Math.sin(T * 0.7) * 0.02; cam.position.y += Math.sin(T * 0.9 + 1) * 0.015; if (sh){ cam.position.x += Math.sin(T * 61) * sh; cam.position.y += Math.cos(T * 47) * sh; } cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
+function camFin(sh){ cam.position.x += Math.sin(T * 0.7) * 0.02; cam.position.y += Math.sin(T * 0.9 + 1) * 0.015; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const BS = 0.56; ben.root.scale.setScalar(BS);
 const JACKET = mat(0xE8B21F);
 function benBurn(k){ burnK = k; JACKET.emissive.setRGB(1, 0.35, 0.05); JACKET.emissiveIntensity = k * 0.9; }
@@ -375,7 +375,7 @@ const SCN = [
       const sw = clamp01((T - 21.76) / 0.5);
       if (T > 21.76){ rag(ben, T, 0); place(ben, 0, 0.2 * (1 - sw), 1.4 * E.out(sw), Math.PI); ben.root.rotation.x = 1.4 * E.out(sw); }
       fieldTrees.forEach((tr, i) => { tr.rotation.x = T > 21.6 ? 0.35 * E.out(clamp01((T - 21.6) / 0.3)) + 0.06 * Math.sin(T * 14 + i) : 0; });
-      camL(E.io(seg(lt, 0, 7.6)), [2.4, 1.4, 5.5, -1.5, 1.0, -10, 50], [2.2, 1.35, 5.9, -1.7, 1.1, -10, 48]); camFin(T > 21.76 ? 0.12 * Math.exp(-(T - 21.76) * 2) : T > 17.2 ? 0.02 : 0); } },
+      camL(E.io(seg(lt, 0, 7.6)), [2.4, 1.4, 5.5, -1.5, 1.0, -10, 50], [2.2, 1.35, 5.9, -1.7, 1.1, -10, 48]); camFin(T > 21.76 ? 0.12 * Math.exp(-(T - 21.76) * 2) : 0); } },
   { t: 22.8, set: room, mood: MOOD.room, burst: 27.25, stampW: 27.4, hud: () => { const s = Math.min(150, Math.max(0, (T - 22.8) / (26.6 - 22.8) * 150)); return ['ENTFERNUNG', '50 km', 'seit Einschlag: ' + Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') + ' min']; },
     upd(lt){ show(ben); ast.visible = false; benBurn(0); sofa.visible = false; cab.visible = false; mushroom(-400, 0, -4200, 700, 2); shadowAt(0, 0, 0, 8);
       bRest(ben, T, 0); place(ben, 0.1, 0, -1.4, Math.PI); idle(ben);

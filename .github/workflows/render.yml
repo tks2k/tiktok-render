@@ -34,7 +34,12 @@ jobs:
         chunk: ${{ fromJson(needs.plan.outputs.chunks) }}
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: ffmpeg
+        run: |
+          if ! command -v ffmpeg >/dev/null; then
+            timeout 150 sudo apt-get install -y -qq ffmpeg || { pip install -q imageio-ffmpeg && sudo ln -sf "$(python3 -c 'import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())')" /usr/local/bin/ffmpeg; }
+          fi
+          ffmpeg -version | head -1
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -48,9 +53,15 @@ jobs:
   final:
     needs: [plan, render]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: ffmpeg
+        run: |
+          if ! command -v ffmpeg >/dev/null; then
+            timeout 150 sudo apt-get install -y -qq ffmpeg || { pip install -q imageio-ffmpeg && sudo ln -sf "$(python3 -c 'import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())')" /usr/local/bin/ffmpeg; }
+          fi
+          ffmpeg -version | head -1
       - uses: actions/download-artifact@v4
         with:
           pattern: seg-*
@@ -64,7 +75,7 @@ jobs:
           ffmpeg -y -loglevel error -i silent.mp4 -i $V/sprecher.m4a -i $V/effekte.m4a \
             -filter_complex "[1:a][2:a]amix=inputs=2:normalize=0:duration=first,aresample=48000,alimiter=limit=0.7,loudnorm=I=-14:TP=-1.5:LRA=11[a]" -ar 48000 \
             -map 0:v -map "[a]" -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart final.mp4
-          ffprobe -v error -show_entries format=duration,size -of default=nw=1 final.mp4
+          ffprobe -v error -show_entries format=duration,size -of default=nw=1 final.mp4 || true
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}

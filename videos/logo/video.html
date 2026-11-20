@@ -31,7 +31,7 @@ const CM = THREE.ColorManagement; if (CM){ if ('legacyMode' in CM) CM.legacyMode
 /* =========================================================
    GRUNDSETUP
    ========================================================= */
-const W = 1080, H = 1920, END = 4;
+const W = 1080, H = 1920, END = 2;
 const out = document.getElementById('out'), g2 = out.getContext('2d');
 const ui = document.getElementById('ui'), recdot = document.getElementById('recdot');
 const clamp01 = v => Math.max(0, Math.min(1, v)), lerp = (a, b, p) => a + (b - a) * p;
@@ -250,10 +250,8 @@ function setCam(p, l, fov){ cam.position.set(p[0], p[1], p[2]); cL.set(l[0], l[1
 const BS = 0.56; ben.root.scale.setScalar(BS);
 function pose(yaw, headY, smirk, brow){ show(ben); bRest(ben, 1.3, 0); place(ben, 0, 0, 0, yaw); ben.head.rotation.y = headY; ben.eyes[0].scale.y = 1; benMark(ben); ben.mouth.rotation.z = smirk; bFace(ben, brow, 0); }
 const SCN = [
-  { t: 0, set: world, mood: { bg: 0xffd23c, rim: 0xffffff }, logo: 0, upd(){ pose(0.25, -0.12, 0.18, 0.35); ben.sh[1].rotation.set(-0.3, 0, 0.5); setCam([0.8, 1.6, 5.6], [0.05, 1.42, 0], 34); } },
-  { t: 1, set: world, mood: { bg: 0x0f1630, rim: 0xff3b3b }, logo: 1, upd(){ pose(-0.2, 0.15, -0.05, -0.6); setCam([-0.75, 1.58, 5.6], [0.0, 1.42, 0], 34); } },
-  { t: 2, set: world, mood: { bg: 0x4f9be0, rim: 0xfff2c0 }, logo: 2, upd(){ pose(0.1, 0.0, 0.12, 0.9); ben.head.rotation.x = -0.25; setCam([0.35, 1.15, 5.6], [0.02, 1.45, 0], 34); } },
-  { t: 3, set: world, mood: { bg: 0x05070d, rim: 0x3dff8b }, logo: 3, upd(){ pose(0.35, -0.2, 0.08, 0.1); setCam([1.0, 1.62, 5.6], [0.05, 1.42, 0], 34); } },
+  { t: 0, set: world, mood: { bg: 0x4f9be0, rim: 0xfff2c0 }, logo: 0, upd(){ pose(0.1, 0.0, 0.12, 0.9); ben.head.rotation.x = -0.25; setCam([0.35, 1.15, 5.6], [0.02, 1.45, 0], 34); } },
+  { t: 1, set: world, mood: { bg: 0x4f9be0, rim: 0xfff2c0 }, logo: 1, upd(){ pose(0.1, 0.0, 0.12, 0.9); ben.head.rotation.x = -0.25; setCam([0.35, 1.15, 5.6], [0.02, 1.45, 0], 34); } },
 ];
 const SUBS = [];
 
@@ -275,19 +273,17 @@ function serifCap(text, age, cy, size, style, maxW, fa){
 const vig = document.createElement('canvas'); vig.width = 270; vig.height = 480;
 (function(){ const x = vig.getContext('2d'), g = x.createRadialGradient(135, 240, 120, 135, 240, 330); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.38)'); x.fillStyle = g; x.fillRect(0, 0, 270, 480); })();
 const LOGOS = [
-  { top: 'BEN', bot: 'VS. PHYSIK', fg: '#14161c', acc: '#e0262b', stroke: '#ffffff' },
-  { top: 'NARBEN', bot: 'BEN', fg: '#ffffff', acc: '#ff3b3b', stroke: '#000000' },
-  { top: 'WAS WÄRE', bot: 'WENN?', fg: '#ffffff', acc: '#ffd23c', stroke: '#0b2a55' },
-  { top: 'BEN', bot: 'SIMULIERT', fg: '#ffffff', acc: '#3dff8b', stroke: '#000000' } ];
+  { top: 'WAS WÄRE', bot: 'BEN?', fg: '#ffffff', acc: '#ffd23c', stroke: '#0b2a55' },
+  { top: 'WAS WÄRE', bot: 'BEN', fg: '#ffffff', acc: '#ffd23c', stroke: '#0b2a55' } ];
 function bigText(t, x, y, size, fill, stroke){ g2.save(); g2.font = `900 ${size}px ${SANS}`; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.lineJoin = 'round';
   g2.lineWidth = size * 0.16; g2.strokeStyle = stroke; g2.strokeText(t, x, y); g2.fillStyle = fill; g2.fillText(t, x, y); g2.restore(); }
 function draw2D(sc, lt, dur){
   g2.globalAlpha = 1; g2.globalCompositeOperation = 'source-over'; g2.drawImage(renderer.domElement, 0, 0, W, H);
   const L = LOGOS[sc.logo], cx = 540, cy = 960, R = 540;
   g2.save(); g2.lineWidth = 34; g2.strokeStyle = L.acc; g2.beginPath(); g2.arc(cx, cy, R - 40, 0, Math.PI * 2); g2.stroke(); g2.restore();
-  bigText(L.top, cx, cy - 330, sc.logo === 2 ? 104 : 120, L.fg, L.stroke);
+  bigText(L.top, cx, cy - 330, 104, L.fg, L.stroke);
   g2.save(); const bw = 640, bh = 150, by = cy + 300; g2.fillStyle = L.acc; g2.beginPath(); g2.roundRect(cx - bw / 2, by - bh / 2, bw, bh, 34); g2.fill(); g2.restore();
-  bigText(L.bot, cx, cy + 304, L.bot.length > 6 ? 96 : 118, sc.logo === 2 ? '#0b2a55' : (sc.logo === 0 ? '#ffffff' : '#000000'), sc.logo === 0 ? '#14161c' : (sc.logo === 2 ? '#ffd23c' : L.acc));
+  bigText(L.bot, cx, cy + 304, L.bot.length > 6 ? 96 : 118, '#0b2a55', '#ffd23c');
 }
 
 /* =========================================================

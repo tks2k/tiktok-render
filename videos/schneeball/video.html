@@ -232,7 +232,7 @@ function sky(stops){
   stops.forEach(s => g.addColorStop(s[0], s[1])); x.fillStyle = g; x.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
 }
 const MOOD = {
-  snow: { sky: sky([[0, '#4f84cc'], [0.6, '#a7c3e6'], [1, '#c9d8ea']]), fog: [0xdfe7f0, 60, 900] },
+  snow: { sky: sky([[0, '#4f84cc'], [0.6, '#a7c3e6'], [1, '#c9d8ea']]), fog: [0xc9d8ea, 60, 900] },
   alp:  { sky: sky([[0, '#2f62b0'], [0.6, '#8fb2df'], [1, '#c9d8ea']]), fog: [0xc9d8ea, 40000, 200000] },
   high: { sky: sky([[0, '#05081a'], [0.45, '#1c3266'], [1, '#9cbde2']]), fog: [0xa9c3e3, 600000, 4000000] },
   space:{ sky: sky([[0, '#02030a'], [1, '#070b1c']]), fog: [0x000000, 1e9, 2e9], space: 1 } };
@@ -253,7 +253,7 @@ function shadowAt(x, y, z, R){
    ========================================================= */
 const world = new THREE.Group(), space = new THREE.Group(); scene.add(world); scene.add(space);
 const SETS = [world, space];
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(2e7, 2e7), mat(0xd6e0ec, { roughness: 1, envMapIntensity: 0.12 })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; world.add(ground);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(2e7, 2e7), mat(0xc6d2e0, { roughness: 1, envMapIntensity: 0.12 })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; world.add(ground);
 function house(par, x, z, yaw, w, d, h, wall){
   const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = yaw; par.add(g);
   const b = new THREE.Mesh(rbox(w, h, d, 0.12), mat(wall)); b.position.y = h / 2; b.castShadow = b.receiveShadow = true; g.add(b);
@@ -434,6 +434,7 @@ function draw2D(sc, lt, dur){
     g2.fillStyle = '#ffffff'; g2.font = `500 108px ${SERIF}`; g2.fillText(T < 4.3 ? '–' : fmtD(T < 7.12 ? lerp(0.03, 0.1, seg(T, 4.3, 6.24)) : d), 30, 536);
     g2.fillStyle = 'rgba(240,244,250,.95)'; g2.font = `italic 34px ${SERIF}`; g2.fillText('Sekunde ' + Math.floor(n + 0.25) + ' · Volumen ×2 pro Sekunde', 34, 584); g2.restore(); }
   if (sc.hook) serifCap('Was wäre, wenn sich ein *Schneeball* jede Sekunde verdoppelt?', lt - 0.1, 560, 84, '600', 980, clamp01((dur - lt) / 0.25));
+  if (SUBS.some(s => T >= s[0] && T < s[1] + 0.12) || sc.hook){ const yb = sc.hook ? 560 : 1330, gb = g2.createLinearGradient(0, yb - 190, 0, yb + 190); gb.addColorStop(0, 'rgba(10,14,24,0)'); gb.addColorStop(0.5, 'rgba(10,14,24,0.38)'); gb.addColorStop(1, 'rgba(10,14,24,0)'); g2.fillStyle = gb; g2.fillRect(0, yb - 190, W, 380); }
   for (const s of SUBS) if (T >= s[0] && T < s[1] + 0.12) serifCap(s[2], T - s[0], 1330, 60, 'italic', 940, clamp01((s[1] + 0.12 - T) / 0.12));
   if (sc.card){
     serifCap('Wo hättest *du* dich versteckt?', lt - 0.05, 900, 88, '600');

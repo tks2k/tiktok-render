@@ -234,6 +234,7 @@ function sky(stops){
 const MOOD = { day: { sky: sky([[0, '#3a74c4'], [0.55, '#86b2e2'], [1, '#e2e8ec']]), fog: [0xd2dde6, 400, 6000] },
                red: { sky: sky([[0, '#3a3550'], [0.5, '#a0605a'], [1, '#e8b080']]), fog: [0xc89a80, 300, 5000] } };
 function setMood(m){
+  if (typeof base !== 'undefined') base.position.y = m.room ? -0.5 : 0;
   scene.background = m.sky; scene.fog.color.set(m.fog[0]); scene.fog.near = m.fog[1]; scene.fog.far = m.fog[2]; scene.environment = envDay;
   hemi.color.set(0xe4f0ff); hemi.groundColor.set(0x6e7a58); hemi.intensity = 0.95; sun.color.set(0xfff0d8); sun.intensity = 1.5;
   fill.color.set(0xbcd4ff); fill.position.set(-30, 20, 40); fill.intensity = 0.3;
@@ -351,7 +352,7 @@ function astDist(t){ return t < 6.96 ? lerp(5200, 2600, E.io(seg(t, 0, 6.96))) :
 /* =========================================================
    SZENEN (Zeiten = Sprecherspur Take 1)
    ========================================================= */
-const DAY = MOOD.day;
+const DAY = MOOD.day; MOOD.room = Object.assign({}, MOOD.day, { room: 1 });
 function sceneDorf(lt, k){ show(); shroom.visible = false; benBurn(0); astAt(astDist(T)); shadowAt(0, 0, 0, 90); scene.fog.far = 9000; }
 const SCN = [
   { t: 0, set: dorf, mood: DAY, hook: 1, astGlow: 1,
@@ -375,23 +376,23 @@ const SCN = [
       if (T > 21.76){ rag(ben, T, 0); place(ben, 0, 0.2 * (1 - sw), 1.4 * E.out(sw), Math.PI); ben.root.rotation.x = 1.4 * E.out(sw); }
       fieldTrees.forEach((tr, i) => { tr.rotation.x = T > 21.6 ? 0.35 * E.out(clamp01((T - 21.6) / 0.3)) + 0.06 * Math.sin(T * 14 + i) : 0; });
       camL(E.io(seg(lt, 0, 7.6)), [2.4, 1.4, 5.5, -1.5, 1.0, -10, 50], [2.2, 1.35, 5.9, -1.7, 1.1, -10, 48]); camFin(T > 21.76 ? 0.12 * Math.exp(-(T - 21.76) * 2) : T > 17.2 ? 0.02 : 0); } },
-  { t: 22.8, set: room, mood: DAY, burst: 27.25, stampW: 27.4, hud: () => { const s = Math.min(150, Math.max(0, (T - 22.8) / (26.6 - 22.8) * 150)); return ['ENTFERNUNG', '50 km', 'seit Einschlag: ' + Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') + ' min']; },
+  { t: 22.8, set: room, mood: MOOD.room, burst: 27.25, stampW: 27.4, hud: () => { const s = Math.min(150, Math.max(0, (T - 22.8) / (26.6 - 22.8) * 150)); return ['ENTFERNUNG', '50 km', 'seit Einschlag: ' + Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') + ' min']; },
     upd(lt){ show(ben); ast.visible = false; benBurn(0); sofa.visible = false; cab.visible = false; mushroom(-400, 0, -4200, 700, 2); shadowAt(0, 0, 0, 8);
       bRest(ben, T, 0); place(ben, 0.1, 0, -1.4, Math.PI); idle(ben);
       const b = T > 27.25; glass.forEach(g => g.visible = !b);
       shards.forEach(s => { s.visible = b; if (!b) return; const u = s.userData, q = T - 27.25; s.position.set(u.x + u.vx * q, Math.max(0.02, u.y + u.vy * q - 4.9 * q * q), WALLZ + 0.05 + u.vz * q); s.rotation.set(u.rx * q, u.ry * q, 0); });
       if (b){ const k = E.out(clamp01((T - 27.25) / 0.2)); ben.sh[0].rotation.set(-2.3 * k, 0, 0.3); ben.sh[1].rotation.set(-2.3 * k, 0, -0.3); ben.el[0].rotation.x = ben.el[1].rotation.x = -1.6 * k; ben.root.position.z = -1.4 + 0.5 * k; ben.torso.rotation.x = -0.2 * k; }
       camL(E.io(seg(lt, 0, 6.2)), [1.7, 1.75, 1.9, -0.3, 1.45, -2.8, 52], [1.5, 1.7, 1.5, -0.3, 1.5, -2.8, 50]); camFin(b ? 0.06 * Math.exp(-(T - 27.25) * 3) : 0); } },
-  { t: 29.04, set: room, mood: DAY, hud: () => ['ENTFERNUNG', '200 km', T < 30.8 ? '…' : 'Knall wie Donner · Gläser klirren'],
+  { t: 29.04, set: room, mood: MOOD.room, hud: () => ['ENTFERNUNG', '200 km', T < 30.8 ? '…' : 'Knall wie Donner · Gläser klirren'],
     upd(lt){ show(ben); ast.visible = false; benBurn(0); sofa.visible = true; cab.visible = true; shroom.visible = false; glass.forEach(g => g.visible = true); shards.forEach(s => s.visible = false); shadowAt(0, 0, 0, 8);
       bRest(ben, T, 0); place(ben, 0.2, 0, -1.25, 0); ben.body.position.y = 0.95; ben.legs[0].rotation.x = ben.legs[1].rotation.x = -1.5; ben.torso.rotation.x = 0.05; idle(ben);
       const r = T > 32.3 ? Math.max(0, 1 - (T - 32.3) / 1.8) : 0;
       glasses.forEach((g, i) => { g.rotation.z = r * 0.12 * Math.sin(T * 40 + i * 1.7); g.position.x = -0.42 + (i % 4) * 0.28 + r * 0.01 * Math.sin(T * 55 + i); });
       if (T > 30.8){ ben.head.rotation.y = -0.6 * E.out(seg(T, 30.8, 31.2)); bFace(ben, -0.5, 0.25); }
       camL(E.io(seg(lt, 0, 5.0)), [0.6, 1.45, 2.8, -0.6, 0.95, -1.6, 54], [0.5, 1.4, 2.5, -0.7, 0.95, -1.6, 52]); camFin(T > 30.8 ? 0.015 * Math.exp(-(T - 30.8) * 2) : 0); } },
-  { t: 34.08, set: room, mood: DAY, alive: 34.1, hud: () => ['ENTFERNUNG', '200 km', 'überlebt'],
+  { t: 34.08, set: room, mood: MOOD.room, alive: 34.1, hud: () => ['ENTFERNUNG', '200 km', 'überlebt'],
     upd(lt){ SCN[6].upd(lt + 5.04); const a = E.out(seg(lt, 0.2, 0.6)); ben.sh[1].rotation.set(-2.6 * a, 0, -0.3 * a); ben.el[1].rotation.x = -0.4 * a; ben.head.rotation.y = 0; bFace(ben, 0.4, 0.1); } },
-  { t: 35.12, set: room, mood: DAY, card: 1,
+  { t: 35.12, set: room, mood: MOOD.room, card: 1,
     upd(lt){ SCN[7].upd(lt + 1.04); fadeBlk = 0.62 * E.io(seg(lt, 0, 0.5)) + 0.38 * seg(lt, 4.4, 5.0); } },
 ];
 

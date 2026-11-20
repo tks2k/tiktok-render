@@ -232,8 +232,8 @@ function sky(stops){
   stops.forEach(s => g.addColorStop(s[0], s[1])); x.fillStyle = g; x.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
 }
 const MOOD = {
-  snow: { sky: sky([[0, '#5f8fcf'], [0.6, '#b8d0ea'], [1, '#eef2f7']]), fog: [0xdfe7f0, 60, 900] },
-  alp:  { sky: sky([[0, '#3d6fb8'], [0.6, '#a9c6e6'], [1, '#e9eff6']]), fog: [0xdde6f0, 15000, 90000] },
+  snow: { sky: sky([[0, '#4f84cc'], [0.6, '#a7c3e6'], [1, '#c9d8ea']]), fog: [0xdfe7f0, 60, 900] },
+  alp:  { sky: sky([[0, '#2f62b0'], [0.6, '#8fb2df'], [1, '#c9d8ea']]), fog: [0xc9d8ea, 40000, 200000] },
   high: { sky: sky([[0, '#05081a'], [0.45, '#1c3266'], [1, '#9cbde2']]), fog: [0xa9c3e3, 600000, 4000000] },
   space:{ sky: sky([[0, '#02030a'], [1, '#070b1c']]), fog: [0x000000, 1e9, 2e9], space: 1 } };
 function setMood(m){
@@ -296,8 +296,8 @@ const earthTex = (function(){ const c = document.createElement('canvas'); c.widt
   for (let i = 0; i < 26; i++){ const cx = rnd() * 512, cy = 40 + rnd() * 176, r = 14 + rnd() * 40; x.fillStyle = i % 3 ? '#4e8f3a' : '#a08a5a'; x.beginPath(); for (let k = 0; k < 9; k++){ const a = k / 9 * Math.PI * 2, rr = r * (0.6 + rnd() * 0.6); x.lineTo(cx + Math.cos(a) * rr * 1.4, cy + Math.sin(a) * rr); } x.fill(); }
   x.fillStyle = '#eef4f8'; x.fillRect(0, 0, 512, 14); x.fillRect(0, 242, 512, 14); x.globalAlpha = 0.55; for (let i = 0; i < 40; i++){ x.fillRect(rnd() * 512, rnd() * 256, 30 + rnd() * 60, 4 + rnd() * 5); }
   const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; })();
-const earth = new THREE.Mesh(new THREE.SphereGeometry(10, 48, 32), new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.8 })); earth.position.set(-12.5, 0, 0); space.add(earth);
-const ball2 = new THREE.Mesh(BALLGEO, BALLM); ball2.position.set(12.5, 0, 0); space.add(ball2);
+const earth = new THREE.Mesh(new THREE.SphereGeometry(10, 48, 32), new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.8 })); earth.position.set(-12, 10, 0); space.add(earth);
+const ball2 = new THREE.Mesh(BALLGEO, BALLM); ball2.position.set(12, 10, 0); space.add(ball2);
 
 /* =========================================================
    KAMERA
@@ -357,23 +357,23 @@ const SCN = [
   { t: 0, set: world, mood: SNOW, hook: 1,
     upd(lt){ world0(); shadowAt(0, 0, -10, 30); camL(E.io(seg(lt, 0, 4.1)), [4.2, 2.4, 8.5, 0, 1.4, -8, 50], [3.4, 2.0, 7.0, 0, 1.2, -6, 48]); camFin(); } },
   { t: 4.08, set: world, mood: SNOW, hud: 1,
-    upd(lt){ world0(); shadowAt(0, 0, 0, 6); camL(E.io(seg(lt, 0, 3)), [0.9, 1.1, 2.4, 0, 0.75, 0.2, 40], [0.6, 0.95, 1.9, 0, 0.72, 0.3, 36]); camFin(); } },
+    upd(lt){ world0(); shadowAt(0, 0, 0, 6); camL(E.io(seg(lt, 0, 3)), [1.8, 1.25, 3.4, 0, 0.8, 0.3, 40], [1.4, 1.1, 2.8, 0, 0.78, 0.35, 38]); camFin(); } },
   { t: 7.12, set: world, mood: SNOW, hud: 1,
     upd(lt){ world0(); shadowAt(0, 0, 1, 8); const z = BENZ + 0.7; setCam([3.4, 1.4, z + 1.2], [0, 0.45, z], 46); camFin(); } },
   { t: 10.84, set: world, mood: SNOW, hud: 1,
     upd(lt){ world0(); shadowAt(1, 0, 0, 14); camL(E.io(seg(lt, 0, 4.7)), [10, 2.6, 3.0, 1.0, 1.4, -0.5, 52], [13, 3.4, 4.0, 1.2, 2.6, -1.5, 56]); camFin(); } },
   { t: 15.56, set: world, mood: SNOW, hud: 1, houseTag: 1,
-    upd(lt){ world0(); shadowAt(0, 0, -25, 60); camL(E.io(seg(lt, 0, 5)), [38, 7, -62, 0, 7, -10, 52], [44, 9, -70, 0, 10, -14, 54]); camFin(); } },
+    upd(lt){ world0(); shadowAt(0, 0, -25, 60); camL(E.io(seg(lt, 0, 5)), [58, 14, 26, 0, 9, -18, 50], [64, 18, 34, 0, 12, -24, 52]); camFin(); } },
   { t: 20.52, set: world, mood: SNOW, hud: 1,
-    upd(lt){ world0(); shadowAt(0, 0, 0, 0); scene.fog.far = 4000; camL(E.io(seg(lt, 0, 4.7)), [200, 170, 130, 0, 10, -70, 50], [520, 430, 380, 0, 40, -150, 52]); camFin(); } },
+    upd(lt){ world0(); shadowAt(0, 0, 0, 0); scene.fog.near = 1500; scene.fog.far = 9000; camL(E.io(seg(lt, 0, 4.7)), [200, 170, 130, 0, 10, -70, 50], [520, 430, 380, 0, 40, -150, 52]); camFin(); } },
   { t: 25.24, set: world, mood: MOOD.alp, hud: 1, zugTag: 1,
-    upd(lt){ world0(); shadowAt(0, 0, 0, 0); camL(E.io(seg(lt, 0, 5.2)), [14000, 4200, 9000, 3200, 1600, -1800, 46], [16000, 4800, 11000, 3200, 1700, -1900, 46]); camFin(); } },
+    upd(lt){ world0(); shadowAt(0, 0, 0, 0); camL(E.io(seg(lt, 0, 5.2)), [9000, 4500, 14000, 2800, 1500, -1600, 46], [10500, 5200, 16000, 2800, 1600, -1700, 46]); camFin(); } },
   { t: 30.52, set: world, mood: MOOD.high, hud: 1, alt: 1,
     upd(lt){ world0(); shadowAt(0, 0, 0, 0); camL(E.io(seg(lt, 0, 4.1)), [60000, 30000, 380000, 0, 50000, BZ, 44], [80000, 40000, 460000, 0, 60000, BZ, 44]); camFin(); } },
   { t: 34.68, set: space, mood: MOOD.space, hud: 1, spaceTag: 1,
     upd(lt){ show(); ball.visible = false; shadowAt(0, 0, 0, 0); sun.position.set(60, 20, 40); sun.target.position.set(0, 0, 0); sun.target.updateMatrixWorld();
       earth.rotation.y = T * 0.2; const r2 = Math.max(0.05, 10 * diam(simN(T)) / 12742000); ball2.scale.setScalar(r2); ball2.rotation.y = -T * 0.15;
-      camL(E.io(seg(lt, 0, 3.8)), [0, 6, 70, 0, 0, 0, 44], [0, 3, 58, 0, 0, 0, 44]); camFin(); } },
+      camL(E.io(seg(lt, 0, 3.8)), [0, 2, 165, 0, 0, 0, 44], [0, 0, 150, 0, 0, 0, 44]); camFin(); } },
   { t: 38.56, set: space, mood: MOOD.space, card: 1,
     upd(lt){ SCN[8].upd(lt + 3.88); fadeBlk = 0.55 * E.io(seg(lt, 0, 0.5)) + 0.45 * seg(lt, 3.6, 4.2); } },
 ];
@@ -403,7 +403,7 @@ function drawTags(sc, lt){ const a = E.out(seg(lt, 0.6, 1.2));
   if (sc.alt){ for (const [h, txt] of [[10000, 'Flugzeuge · 10 km'], [100000, 'Grenze zum All · 100 km']]){ const p1 = proj(_v.set(-600000, h, BZ)), p2 = proj(_v.set(600000, h, BZ)); if (!p1 || !p2) continue;
       g2.save(); g2.globalAlpha = a; g2.strokeStyle = h > 50000 ? '#ffd23c' : 'rgba(255,255,255,.85)'; g2.lineWidth = 5; g2.setLineDash([24, 16]); g2.beginPath(); g2.moveTo(p1[0], p1[1]); g2.lineTo(p2[0], p2[1]); g2.stroke(); g2.restore();
       const y = lerp(p1[1], p2[1], 0.8); tag(W * 0.8, y - 42, txt, h > 50000 ? '#ffd23c' : '#ffffff', a); } }
-  if (sc.spaceTag){ const e = proj(_v.set(-12.5, -12.5, 0)); if (e) tag(e[0], e[1] + 10, 'Erde', '#9fd0ff', a); const b = proj(_v.set(12.5, -Math.max(2.5, ball2.scale.x + 2.5), 0)); if (b) tag(b[0], b[1] + 10, 'Schneeball', '#ffd23c', a); }
+  if (sc.spaceTag){ const e = proj(_v.set(-12, -2.5, 0)); if (e) tag(e[0], e[1] + 10, 'Erde', '#9fd0ff', a); const b = proj(_v.set(12, -2.5, 0)); if (b) tag(b[0], b[1] + 10, 'Schneeball', '#ffd23c', a); }
 }
 
 /* =========================================================

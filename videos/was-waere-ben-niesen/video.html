@@ -349,7 +349,7 @@ const SCN = [
       bRest(kumpel, T, 3); place(kumpel, 0.9, 0, 2.5, PI + 0.25); kumpel.sh[0].rotation.set(-1.95, 0, 0.15); kumpel.el[0].rotation.x = -0.35; bFace(kumpel, 0.4, 0.3); kumpel.head.rotation.y = 0.2;
       feather.visible = true; const h = wpos(kumpel.el[0], new THREE.Vector3()); h.y -= 0.45; h.lerp(new THREE.Vector3(0, 2.4, 0.9), 0.45);
       const w = Math.sin(T * 9) * 0.18; feather.position.copy(h); feather.lookAt(0.05 + w, 2.58, 0.72); feather.rotateX(PI / 2);
-      camW(E.io(seg(lt, 0, 2.3)), [-3.6, 2.9, 3.4, 0.2, 2.5, 0.9, 36], [-3.3, 2.85, 3.1, 0.2, 2.5, 0.9, 34]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.3)), [-2.3, 2.85, 4.4, 0.35, 2.45, 1.1, 42], [-2.1, 2.8, 4.1, 0.35, 2.45, 1.1, 40]); camFin(); } },
   { t: 4.6, set: world, mood: MOOD.room, hud: () => T > 4.75 ? ['EINATMEN', 'TIEF LUFT HOLEN'] : null,
     upd(lt){ show(ben); dT = T; feather.visible = false; spray(0); const inh = E.io(seg(T, 4.7, 6.4)); benFace(T, 0.6, inh, 0); eyeS = lerp(0.8, 0.55, inh);
       camW(E.io(seg(lt, 0, 2.0)), [2.4, 2.4, 5.6, 0, 2.3, 0.2, 40], [2.2, 2.35, 5.0, 0, 2.35, 0.2, 38]); camFin(); } },
@@ -362,10 +362,10 @@ const SCN = [
   { t: 11.0, set: world, mood: MOOD.room, hud: () => T > TS ? [DOTS(40000 * E.out(seg(T, TS, TS + 1.6))), 'TRÖPFCHEN'] : null,
     upd(lt){ show(ben); dT = T; feather.visible = false; const s = Math.max(0, T - TS); const sn = E.out(seg(T, TS - 0.05, TS + 0.15)) * (1 - 0.6 * seg(T, TS + 0.8, TS + 2));
       benFace(T, 0, 1 - E.out(seg(T, TS - 0.1, TS + 0.1)), sn); eyeS = 0.08; spray(s, MOUTH, 1, 40, 0);
-      camW(E.io(seg(lt, 0, 2.6)), [6.5, 3.0, 2.2, 0, 2.5, 2.2, 46], [7.5, 3.2, 3.0, 0, 2.5, 3.0, 50]); camFin(0.06 * imp(TS)); } },
+      camW(E.io(seg(lt, 0, 2.6)), [6.5, 3.0, 2.0, 0, 2.4, 1.4, 50], [7.4, 3.2, 2.6, 0, 2.4, 1.9, 54]); camFin(0.06 * imp(TS)); } },
   { t: 13.6, set: world, mood: MOOD.room, hud: () => T > 13.75 ? ['8 METER', 'SO WEIT FLIEGT DIE WOLKE'] : null,
     upd(lt){ show(ben); dT = T; feather.visible = false; const s = T - TS; benFace(T, 0, 0, 0.25); eyeS = 0.6; spray(s, MOUTH, 1, 40, 0); rulerK = E.out(seg(T, 13.75, 14.3));
-      camW(E.io(seg(lt, 0, 2.5)), [16, 9, 6, 0.5, 2.2, 8.6, 54], [15.4, 8.6, 6.4, 0.5, 2.2, 8.8, 54]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.5)), [3.6, 5.2, -6.0, 0.6, 1.6, 9.0, 56], [3.4, 5.0, -5.6, 0.6, 1.6, 9.0, 56]); camFin(); } },
   { t: 16.1, set: world, mood: MOOD.room, hud: () => T > 16.3 ? ['ARMBEUGE', 'FÄNGT DIE TRÖPFCHEN AB'] : null,
     upd(lt){ show(pro); dT = T; feather.visible = false; bRest(pro, T, 2); place(pro, 0, 0, 0, 0); const up = E.io(seg(T, 16.3, 16.8));
       aimArm(pro, up); pro.head.rotation.x = 0.35 * E.out(seg(T, 16.95, 17.1)) - 0.25 * up * (1 - seg(T, 16.95, 17.05));

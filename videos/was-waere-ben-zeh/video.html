@@ -326,21 +326,21 @@ const SCN = [
       camW(E.io(seg(lt, 0, 3.6)), [3.6, 2.9, 6.8, -0.3, 1.8, 0.4, 42], [3.3, 2.8, 6.2, -0.3, 1.8, 0.4, 40]); camFin(0.05 * imp(7.6)); } },
   { t: 8.9, set: world, mood: MOOD.room, hud: () => T > 9.0 ? ['30 M/S', 'SCHNELLE NERVENBAHN'] : null,
     upd(lt){ dT = T; hurt(T, 1); painFace(1, 0.8); xrK = E.out(seg(T, 8.9, 9.2)); toeGlow = 0.6; const c = (T - 9.2) / 1.1; fastF = T > 9.2 ? c - Math.floor(c) : -1; brainK = fastF >= 0 && fastF > 0.9 ? (fastF - 0.9) * 10 : 0;
-      camW(E.io(seg(lt, 0, 4.1)), [1.4, 2.3, 8.8, -0.2, 1.9, 0, 40], [1.3, 2.3, 8.2, -0.2, 1.9, 0, 39]); camFin(); } },
+      camW(E.io(seg(lt, 0, 4.1)), [1.6, 2.0, 9.6, -0.2, 1.55, 0, 44], [1.5, 2.0, 9.0, -0.2, 1.55, 0, 43]); camFin(); } },
   { t: 13.0, set: world, mood: MOOD.room, hud: () => T > 13.2 ? ['ZWEITE WELLE', 'SIE KOMMT NOCH'] : null,
     upd(lt){ dT = T; hurt(T, 0.6); const relief = E.io(seg(T, 13.0, 13.6)) * (1 - E.out(seg(T, 14.3, 14.5)));
       eyeS = lerp(1.45, 0.8, relief); bFace(ben, lerp(-1, 0.3, relief), lerp(0.8, 0.1, relief)); ben.head.rotation.x = 0.05;
-      camW(E.io(seg(lt, 0, 1.9)), [0.7, 2.95, 3.6, 0, 2.7, 0, 34], [0.65, 2.92, 3.3, 0, 2.7, 0, 32]); camFin(); } },
+      camW(E.io(seg(lt, 0, 1.9)), [0.8, 2.75, 5.0, 0, 2.55, 0, 34], [0.75, 2.75, 4.6, 0, 2.55, 0, 33]); camFin(); } },
   { t: 14.9, set: world, mood: MOOD.room, hud: () => T < 18.0 ? ['1–2 M/S', 'LANGSAME FASERN'] : (T < 19.85 ? ['DUMPFER SCHMERZ', 'ANKUNFT NACH ' + fmt(1.6 * clamp01((T - 14.9) / 5), 1) + ' S'] : ['AUA!', 'NACH 1,6 SEKUNDEN']),
     upd(lt){ dT = T; hurt(T, 0.6); eyeS = 1.3; bFace(ben, -0.8, 0.3); xrK = E.out(seg(T, 14.9, 15.2)); slowF = clamp01((T - 14.9) / 5); toeGlow = 0.4 + 0.3 * Math.sin(T * 5);
       const hit = E.out(seg(T, 19.85, 20.0)); brainK = T > 19.85 ? Math.exp(-(T - 19.85) * 2) : 0; if (hit > 0){ painFace(hit, 1.2 * hit); hurt(T, 0.6 + 0.4 * hit); }
-      camW(E.io(seg(lt, 0, 6.0)), [1.3, 2.4, 8.6, -0.2, 1.9, 0, 40], [1.0, 2.5, 7.2, -0.2, 2.0, 0, 38]); camFin(0.05 * imp(19.85)); } },
+      camW(E.io(seg(lt, 0, 6.0)), [1.6, 2.0, 9.6, -0.2, 1.55, 0, 44], [1.2, 2.1, 8.0, -0.2, 1.65, 0, 42]); camFin(0.05 * imp(19.85)); } },
   { t: 20.9, set: world, mood: MOOD.room, hud: () => T > 21.7 ? ['HÜPF-ALARM', 'EINMAL QUER DURCHS ZIMMER'] : null,
     upd(lt){ dT = T; bRest(ben, T, 0); const a = lt * 1.3, hp = Math.abs(Math.sin(lt * 9));
       place(ben, 3.0 * Math.sin(a), 0.35 * hp, 2.0 - 2.0 * Math.cos(a), a + PI * 0.5 * 0.4);
       ben.legs[0].rotation.x = -1.2; ben.legs[1].rotation.x = 0.1 - 0.2 * hp; ben.torso.rotation.x = 0.35; ben.sh[0].rotation.set(-1.1, 0, 0.1); ben.sh[1].rotation.set(-1.1, 0, -0.1); ben.el[0].rotation.x = -0.5; ben.el[1].rotation.x = -0.5;
       ben.head.rotation.x = 0.2; painFace(1, 0.9); toeGlow = 0.5;
-      camW(E.io(seg(lt, 0, 2.1)), [8.5, 5.0, 11.0, 0.8, 1.6, 1.8, 48], [8.0, 4.8, 10.4, 0.8, 1.6, 1.8, 47]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.1)), [6.0, 5.4, 14.5, 0, 1.4, 2.0, 52], [5.6, 5.2, 13.8, 0, 1.4, 2.0, 51]); camFin(); } },
   { t: 23.0, set: world, mood: MOOD.room, loopin: 1,
     upd(lt){ dT = T - END; walkAt(T - END); camW(0, HOOK[0], HOOK[1]); camFin(); } },
 ];

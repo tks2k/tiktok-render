@@ -383,7 +383,7 @@ function placeCar(tau){
   setRail(s.rail);
   // Reifenqualm nach der Landung
   for (let i = 0; i < 70; i++){ const tb = TL + i * (TI - TL + 0.25) / 70, age = tau - tb;
-    if (age <= 0 || tau < TL){ smoke.sc[i] = 0; continue; }
+    if (age <= 0 || tau < TL || tau > 2){ smoke.sc[i] = 0; continue; }
     const st = carState(tb), w = rearWheelPos(st, i % 2 ? 1 : -1); smoke.x[i] = w[0] + Math.sin(i) * 0.6; smoke.z[i] = w[1]; smoke.y[i] = hz(w[1]) + 0.8 + age * 2.2;
     smoke.sc[i] = (0.8 + age * 7) * clamp01(1 - age / 2.2); }
   smoke.flush(0);
@@ -431,7 +431,7 @@ const _v = new THREE.Vector3();
 function camCar(p, a, b){ car.updateMatrixWorld(true); camW(p, a, b); _v.copy(cam.position); car.localToWorld(_v); cam.position.copy(_v); _v.copy(cL); car.localToWorld(_v); cL.copy(_v); }
 function camFin(sh){ cam.position.x += Math.sin(T * 0.7) * 0.03; cam.position.y += Math.sin(T * 0.9 + 1) * 0.02; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const imp = at => T >= at ? Math.exp(-(T - at) * 3) : 0;
-function hookCam(){ cam.position.set(car.position.x - 15, car.position.y + 2.6, car.position.z - 3); cL.set(car.position.x, car.position.y + 0.6, car.position.z - 6); cam.fov = 48; }
+function hookCam(){ cam.position.set(car.position.x - 13, car.position.y + 5.5, car.position.z - 8); cL.set(car.position.x, car.position.y + 1.0, car.position.z - 0.5); cam.fov = 46; }
 
 /* =========================================================
    SZENEN (Zeiten = Sprecherspur, Tempo 1.15)

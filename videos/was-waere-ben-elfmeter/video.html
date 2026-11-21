@@ -310,7 +310,7 @@ function dive(r, x0, d, dir){
   r.legs[0].rotation.set(0, 0, -0.15 * f); r.legs[1].rotation.set(0, 0, 0.25 * f); r.torso.rotation.x = 0.05;
 }
 // Schütze: Anlauf von S0 zum Standbein neben dem Ball, Schuss bei tau = 0
-const S0 = [-4.2, 30.5], S1 = [-0.75, SPOT + 0.9], RUN = 0.9;
+const S0 = [-2.6, 30.0], S1 = [-0.75, SPOT + 0.9], RUN = 0.9;
 function shoot(tau){
   const r = shooter; bRest(r, T, 1); const u = clamp01(1 + tau / RUN);
   const x = lerp(S0[0], S1[0], u), z = lerp(S0[1], S1[1], u), yaw = Math.atan2(S1[0] - S0[0], S1[1] - S0[1]);
@@ -339,7 +339,7 @@ let rulerK = 0, barsK = 0, tauShow = 0, gapK = 0, arrowK = 0;
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.03; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.02; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const imp = at => T >= at ? Math.exp(-(T - at) * 3) : 0;
-const HOOK = [[5.0, 5.2, 40.0, 0.3, 2.4, 0, 34], [4.7, 5.0, 38.6, 0.3, 2.4, 0, 33]];
+const HOOK = [[-1.0, 6.0, 42.0, 0.5, 2.4, 0, 36], [-0.9, 5.8, 40.8, 0.5, 2.4, 0, 35]];
 const BT = [5.6, 1.1];    // Bens Ecke (flach links unten)
 const PT = [-5.4, 2.3];   // Profi-Schuss (wird gehalten)
 const HUDT = s => s.toFixed(2).replace('.', ',') + ' S';
@@ -359,7 +359,7 @@ const SCN = [
   { t: 6.45, set: world, mood: MOOD.day, hud: () => [HUDT(tauShow), 'BALL UNTERWEGS · ZEITLUPE'],
     upd(lt){ show(ben, shooter); dT = T; const tau = (T - 6.75) * 0.17; tauShow = clamp01(tau / TF) * TF; shoot(tau); ballAt(tau, BT[0], BT[1], 0);
       if (tau < 0.25) ready(ben, 0, T); else dive(ben, 0, (tau - 0.25) / 0.55, 1);
-      camW(E.io(seg(lt, 0, 2.45)), [4.0, 3.6, 32.5, 1.5, 1.8, 6, 34], [3.8, 3.5, 31.8, 1.5, 1.8, 6, 33]); camFin(0.05 * imp(8.75)); } },
+      camW(E.io(seg(lt, 0, 2.45)), [1.0, 3.4, 31.5, 1.8, 1.8, 6, 36], [1.0, 3.3, 30.8, 1.8, 1.8, 6, 35]); camFin(0.05 * imp(8.75)); } },
   { t: 8.9, set: world, mood: MOOD.day, hud: () => T < 11.65 ? (T > 9.0 ? ['0,25 S', 'BEN BRAUCHT ZUM REAGIEREN'] : null) : ['0,08 S', 'BLEIBEN FÜR DEN SPRUNG'],
     upd(lt){ show(ben, shooter); dT = T; const tau = T < 11.6 ? (T - 9.1) * 0.1 : 0.25 + (T - 11.6) * 0.06; tauShow = Math.max(0, tau); barsK = E.out(seg(T, 9.0, 9.3)); gapK = E.out(seg(T, 11.65, 11.95));
       shoot(tau); ballAt(tau, BT[0], BT[1], 0);
@@ -370,7 +370,7 @@ const SCN = [
       shoot(tau); ballAt(tau, PT[0], PT[1], 1);
       if (tau < -0.18) ready(pro, 0, T); else dive(pro, 0, (tau + 0.18) / 0.55, -1);
       arrowK = T > 17.1 ? E.out(seg(T, 17.1, 17.4)) * (1 - seg(T, 18.1, 18.3)) : 0;
-      camW(E.io(seg(lt, 0, 5.0)), [5.0, 4.8, 35, -0.8, 2.4, 0, 38], [4.6, 4.6, 33.5, -0.8, 2.4, 0, 37]); camFin(0.04 * imp(18.15)); } },
+      camW(E.io(seg(lt, 0, 5.0)), [2.0, 5.0, 35.5, -1.5, 2.4, 0, 38], [1.9, 4.8, 34.0, -1.5, 2.4, 0, 37]); camFin(0.04 * imp(18.15)); } },
   { t: 18.5, set: world, mood: MOOD.day,
     upd(lt){ show(ben, shooter); dT = T; ready(ben, 0, T); shoot(-RUN); ballAt(0); eyeS = 1.2; ben.head.rotation.y = 0.12 * Math.sin(T * 2); bFace(ben, 0.3, 0);
       if (T > 19.15){ ben.sh[0].rotation.set(-0.15, 0, -0.25); ben.sh[1].rotation.set(-0.15, 0, 0.25); ben.el[0].rotation.x = -0.2; ben.el[1].rotation.x = -0.2; }

@@ -385,7 +385,7 @@ const SCN = [
   { t: 6.3, set: world, mood: MOOD.day, hud: () => T < 8.35 ? (T > 6.55 ? ['50 KM/H', 'AUFPRALL · ZEITLUPE'] : null) : (T > 8.6 ? ['KEINE ZEIT', 'ZUM AUSWEICHEN'] : null),
     upd(lt){ show(ben); dT = T;
       if (T < TR){ const tau = lerp(1.30, TC, (T - 6.3) / (TR - 6.3)); benFall(tau); speedK = 1; splash(0); ripple(0); }
-      else { const s = (T - TR) * 0.3; benFlat(s, lerp(0.3, 0.12, E.out(seg(s, 0, 0.5)))); splash(s, 0, ZC, 0); ripple(s * 1.4, 0, ZC, 1); }
+      else { const s = (T - TR) * 0.3; benFlat(s, lerp(0.34, 0.24, E.out(seg(s, 0, 0.9)))); splash(s, 0, ZC, 0); ripple(s * 1.4, 0, ZC, 1); }
       camW(E.io(seg(lt, 0, 4.9)), [7.6, 1.7, 1.2, 0, 1.9, -3.6, 46], [7.0, 1.5, 0.8, 0, 1.6, -3.6, 44]); camFin(0.08 * imp(TR)); } },
   { t: 11.2, set: world, mood: MOOD.day, hud: () => T > 11.45 ? ['WIE EINE WAND', 'FÜR BENS BAUCH'] : null,
     upd(lt){ show(ben); dT = T; benFlat(1, 0.06 + 0.03 * Math.sin(T * 2)); splash(0); ripple(1.2 + lt * 0.4, 0, ZC, 1);
@@ -401,7 +401,7 @@ const SCN = [
       const s = tau > TE ? (tau - TE) / KD : 0; splash(s * 0.6, 0, Z0 + 2.0 * TE, 1); ripple(s * 0.8, 0, Z0 + 2.0 * TE, 0);
       if (T > 17.25){ dotK = E.out(seg(T, 17.25, 17.5)); dotP = [0, 0.05, Z0 + 2.0 * TE]; }
       const fy = Math.max(1.4, Math.min(cy, 21)); cam.position.set(17, fy + 1.0, -1.5); cL.set(0, fy - 0.2, -6.0); cam.fov = 48; camFin(); } },
-  { t: 19.1, set: world, mood: MOOD.day, hud: () => T < 19.75 ? (T > 19.25 ? ['BEN?', ''] : null) : ['GANZE FLÄCHE', 'FLACH DRAUF'],
+  { t: 19.1, set: world, mood: MOOD.day, hud: () => T < 19.8 ? null : ['GANZE FLÄCHE', 'FLACH DRAUF'],
     upd(lt){ show(ben); dT = T; bRest(ben, T, 0); atCenter(ben, 0, 0.02 + 0.03 * Math.sin(T * 2), ZC, -PI / 2);
       ben.sh[0].rotation.set(0.2, 0, -1.45); ben.sh[1].rotation.set(0.2, 0, 1.45); ben.legs[0].rotation.z = -0.25; ben.legs[1].rotation.z = 0.25; ben.head.rotation.x = 0.35;
       bellyM.opacity = 0.75; eyeS = 0.3; bFace(ben, -0.6, 0.15); ripple(2.6, 0, ZC, 1); splash(0); areaK = E.out(seg(T, 19.8, 20.1));

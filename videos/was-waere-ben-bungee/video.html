@@ -245,15 +245,15 @@ function setMood(m){
    Brücke verläuft entlang x, Sprungplattform ragt nach +z, Kante z = 6.2
    ========================================================= */
 const world = new THREE.Group(); scene.add(world);
-const DECK = 100, EDGE = 6.2, ANK = [0, DECK + 0.05, 5.2];
+const DECK = 100, EDGE = 11.2, ANK = [0, DECK + 0.05, 10.2];
 (function(){
   const conc = mat(0xc9c4ba, { roughness: 0.9 }), steel = mat(0xb8bec8, { roughness: 0.35, metalness: 0.6 }), red = mat(0xc8352e, { roughness: 0.5 });
   P(world, new THREE.BoxGeometry(260, 4, 12), conc, 0, DECK - 2, 0);                      // Fahrbahn
-  [-1, 1].forEach(s => { rod(world, steel, [-130, DECK + 2.2, s * 5.8], [130, DECK + 2.2, s * 5.8], 0.1); for (let x = -128; x <= 128; x += 4) rod(world, steel, [x, DECK, s * 5.8], [x, DECK + 2.2, s * 5.8], 0.06); });
+  [-1, 1].forEach(s => { const segs = s < 0 ? [[-130, 130]] : [[-130, -2.6], [2.6, 130]]; segs.forEach(([a, b]) => rod(world, steel, [a, DECK + 2.2, s * 5.8], [b, DECK + 2.2, s * 5.8], 0.1)); for (let x = -128; x <= 128; x += 4) if (s < 0 || Math.abs(x) > 2.6) rod(world, steel, [x, DECK, s * 5.8], [x, DECK + 2.2, s * 5.8], 0.06); rod(world, steel, [2.6, DECK, 5.8], [2.6, DECK + 2.2, 5.8], 0.08); rod(world, steel, [-2.6, DECK, 5.8], [-2.6, DECK + 2.2, 5.8], 0.08); });
   [-48, 48].forEach(x => P(world, new THREE.BoxGeometry(8, DECK + 10, 8), conc, x, DECK / 2 - 7, 0)); // Pfeiler
   // Sprungplattform (ragt über das Geländer hinaus)
-  P(world, new THREE.BoxGeometry(5, 0.5, 6.6), mat(0x8a8f98, { roughness: 0.7 }), 0, DECK - 0.25, 2.9);
-  [-1, 1].forEach(s => { rod(world, red, [s * 2.4, DECK, 0], [s * 2.4, DECK + 2.4, 0], 0.08); rod(world, red, [s * 2.4, DECK, 5.6], [s * 2.4, DECK + 2.4, 5.6], 0.08); rod(world, red, [s * 2.4, DECK + 2.4, 0], [s * 2.4, DECK + 2.4, 5.6], 0.08); });
+  P(world, new THREE.BoxGeometry(5, 0.5, 5.2), mat(0x8a8f98, { roughness: 0.7 }), 0, DECK - 0.25, 8.6); P(world, new THREE.BoxGeometry(4.6, 1.6, 4.4), mat(0x6f747c, { roughness: 0.8 }), 0, DECK - 1.3, 7.0);
+  [-1, 1].forEach(s => { rod(world, red, [s * 2.4, DECK, 5.0], [s * 2.4, DECK + 2.4, 5.0], 0.08); rod(world, red, [s * 2.4, DECK, 10.6], [s * 2.4, DECK + 2.4, 10.6], 0.08); rod(world, red, [s * 2.4, DECK + 2.4, 5.0], [s * 2.4, DECK + 2.4, 10.6], 0.08); });
   P(world, new THREE.BoxGeometry(0.9, 0.5, 0.9), mat(0x30343c), ANK[0], DECK + 0.25, ANK[2] - 0.6);   // Anker
   // Tal: Felshänge links/rechts, Fluss dazwischen
   const rock = mat(0x7d7466, { roughness: 0.95 }), grass = mat(0x4f8a3e, { roughness: 0.95 });
@@ -328,7 +328,7 @@ let blurAmt = 0, fadeBlk = 0, T = 0, flashA = 0, eyeS = 1, talk = 0, scanK = [0,
 let rulerK = 0, markK = 0, tpShow = 0, gK = 0;
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.03; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.02; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
-const HOOK = [[6.5, 104.5, 15.5, 0, 92, 2, 54], [6.1, 104.3, 14.6, 0, 92, 2, 52]];
+const HOOK = [[9.5, 105.5, 28.5, 0, 96, 8, 50], [9.0, 105.2, 27.2, 0, 96, 8, 48]];
 const fmt = (v, n) => v.toFixed(n).replace('.', ',');
 
 /* =========================================================
@@ -346,17 +346,17 @@ const SCN = [
   { t: 9.36, set: world, mood: MOOD.day, hud: () => T < 13.4 ? ['SEIL SPANNT SICH', 'LÄNGE ' + Math.round(Math.max(20, drop(tpShow) / 2)) + ' M'] : ['BIS ZU 3 G', 'BREMSKRAFT · ' + fmt(Math.max(0, (drop(tpShow) - 40) / 10 - 1), 1) + ' G'],
     upd(lt){ dT = T; const tp = TP(T); tpShow = tp; const [y, z] = benJump(tp); gK = T > 13.4 ? 1 : 0;
       if (T < 13.4){ cam.position.set(14, y + 3, z + 14); cL.set(0, y - 1.5, z); cam.fov = 52; }
-      else { const hy = y - 3.0; cam.position.set(3.2, hy + 0.6, z + 6.5); cL.set(0, hy, z); cam.fov = 40; bFace(ben, -1, 0.9); eyeS = 0.5; }
+      else { const hy = y - 3.0; cam.position.set(3.2, hy + 0.6, z - 6.5); cL.set(0, hy, z); cam.fov = 40; bFace(ben, -1, 0.9); eyeS = 0.5; }
       camFin(0.04 * gK * clamp01((drop(tp) - 60) / 20)); } },
   { t: 16.05, set: world, mood: MOOD.day, hud: () => T > 16.3 ? ['STILLSTAND', '≈ 8 M ÜBER DEM WASSER'] : null,
     upd(lt){ dT = T; const tp = TP(T); tpShow = tp; const [y, z] = benJump(tp); eyeS = 1.2; bFace(ben, 0.2, 0.3);
       camW(E.io(seg(lt, 0, 2.8)), [9, 3.5, z + 16, 0, 15, z, 50], [8.4, 3.2, z + 15, 0, 15.5, z, 48]); camFin(); } },
   { t: 18.84, set: world, mood: MOOD.day, hud: () => T > 19.0 ? ['ZURÜCK NACH OBEN', ''] : null,
-    upd(lt){ dT = T; const tp = TP(T); tpShow = tp; const [y, z] = benJump(tp); camW(0, [40, 40, z + 40, 0, 46, z, 58], [40, 40, z + 40, 0, 46, z, 58]); camFin(); } },
+    upd(lt){ dT = T; const tp = TP(T); tpShow = tp; const [y, z] = benJump(tp); cam.position.set(14, y + 1, z + 15); cL.set(0, y - 1.5, z); cam.fov = 52; camFin(); } },
   { t: 20.6, set: world, mood: MOOD.day, hud: () => T > 21.7 ? ['NOCHMAL!', 'BEN WILL WIEDER'] : null,
     upd(lt){ dT = T; bRest(ben, T, 0); place(ben, 0, DECK, EDGE - 1.6, 0); const b = Math.abs(Math.sin(T * 7)); ben.body.position.y = 1 + 0.12 * b;
       ben.sh[0].rotation.set(-2.6, 0, -0.3); ben.sh[1].rotation.set(-2.6, 0, 0.3); ben.el[0].rotation.x = -0.4; ben.el[1].rotation.x = -0.4; eyeS = 1.45; bFace(ben, -0.4, 0.6);
-      cord(new THREE.Vector3(0, DECK + 0.2, EDGE - 1.6), 0); camW(E.io(seg(lt, 0, 2.0)), [4.5, 103.2, 14.5, 0, 101.8, 4.6, 44], [4.2, 103.1, 13.6, 0, 101.8, 4.6, 42]); camFin(); } },
+      cord(new THREE.Vector3(0, DECK + 0.2, EDGE - 1.6), 0); camW(E.io(seg(lt, 0, 2.0)), [4.5, 103.2, 19.5, 0, 101.8, 9.6, 44], [4.2, 103.1, 18.6, 0, 101.8, 9.6, 42]); camFin(); } },
   { t: 22.6, set: world, mood: MOOD.day, loopin: 1,
     upd(lt){ dT = T - END; benEdge(T - END); cord(new THREE.Vector3(0, DECK + 0.2, EDGE - 0.45), 0); camW(0, HOOK[0], HOOK[1]); camFin(); } },
 ];
@@ -414,7 +414,7 @@ function drawRuler(a){ if (a <= 0) return; const X = 5.5, Z = EDGE, t = wp(X, DE
   g2.strokeStyle = '#0b1220'; g2.lineWidth = 16; g2.beginPath(); g2.moveTo(t[0], t[1]); g2.lineTo(ex, ey); g2.stroke(); g2.strokeStyle = '#ffd23c'; g2.lineWidth = 8; g2.stroke();
   for (let k = 0; k <= 10; k++){ if (k / 10 > a + 1e-3) continue; const q = wp(X, DECK - k * 10, Z); if (!q) continue; const L = k % 5 ? 16 : 30; g2.strokeStyle = '#0b1220'; g2.lineWidth = 10; g2.beginPath(); g2.moveTo(q[0] - L, q[1]); g2.lineTo(q[0] + L, q[1]); g2.stroke(); g2.strokeStyle = '#ffd23c'; g2.lineWidth = 5; g2.stroke(); }
   const m = wp(X, DECK / 2, Z); if (a > 0.5) txt('50 M', m[0] + 40, m[1], 66, '#ffd23c', 'left'); g2.restore(); }
-function drawMark(a){ if (a <= 0) return; const l = wp(-9, DECK - L0, 9), r = wp(9, DECK - L0, 9); if (!l || !r) return;
+function drawMark(a){ if (a <= 0) return; const l = wp(-9, DECK - L0, EDGE + 3), r = wp(9, DECK - L0, EDGE + 3); if (!l || !r) return;
   g2.save(); g2.globalAlpha = a; g2.setLineDash([30, 18]); g2.lineWidth = 12; g2.strokeStyle = '#0b1220'; g2.beginPath(); g2.moveTo(0, l[1] + (r[1] - l[1]) * (0 - l[0]) / (r[0] - l[0])); g2.lineTo(W, l[1] + (r[1] - l[1]) * (W - l[0]) / (r[0] - l[0])); g2.stroke();
   g2.lineWidth = 6; g2.strokeStyle = '#ffd23c'; g2.stroke(); g2.setLineDash([]); const yy = l[1] + (r[1] - l[1]) * (120 - l[0]) / (r[0] - l[0]); txt('20 M', 70, yy - 40, 52, '#ffd23c', 'left'); g2.restore(); }
 const vig = document.createElement('canvas'); vig.width = 270; vig.height = 480;

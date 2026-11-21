@@ -451,7 +451,7 @@ const SCN = [
   { t: 11.3, set: towerSet, mood: MOOD.day, hud: () => ['157 M', 'SO HART WIE EIN STURZ AUS'], tower: 1,
     upd(lt){ show(ben); useParent(towerSet); benSeated(0); const tp = Math.min(lt * 2.0, 5.66), y = Math.max(0, TH - 0.5 * G * tp * tp);
       car.position.set(48, y, 0); car.rotation.set(-0.12 * Math.sin(lt * 0.9), 0.4, 0.06 * Math.sin(lt * 1.3), 'YXZ'); curTau = 0; towerH = y;
-      flashA = lt > 2.82 && lt < 2.9 ? 0.4 : 0; const cy = lerp(TH - 30, 45, E.io(clamp01(lt / 2.85))); cam.position.set(48 + 150, cy + 8, 150); cL.set(22, cy - 6, 0); cam.fov = 46; camFin(0.1 * imp(11.3 + 2.83)); } },
+      flashA = lt > 2.82 && lt < 2.9 ? 0.4 : 0; cam.position.set(330, 150, 260); cL.set(30, 138, 0); cam.fov = 46; camFin(0.1 * imp(11.3 + 2.83)); } },
   { t: 14.3, set: world, mood: MOOD.xray, hud: () => T >= 17.45 ? ['NACKENSCHUTZ', 'HÄLT DEN KOPF'] : (T >= 16.4 ? ['6-PUNKT-GURT', 'HÄLT BEN IM SITZ'] : (T >= 15.37 ? ['ÜBERROLLKÄFIG', 'SCHÜTZT DIE KABINE'] : null)),
     upd(lt){ show(ben); placeCar(1.05 + (T - 14.3) * 0.04); benSeated(curTau); eyeS = 1.2;
       scanK = [T >= 15.37 ? 1 : 0, T >= 16.4 ? 1 : 0, T >= 17.45 ? 1 : 0];
@@ -520,6 +520,7 @@ function drawHud(h){
   g2.font = `900 40px ${SANS}`; g2.lineWidth = 10; g2.strokeText(h[1], W / 2, 500); g2.fillStyle = '#ffd23c'; g2.fillText(h[1], W / 2, 500);
   g2.restore();
 }
+function drawCarRing(){ const p = proj(wpos(car, new THREE.Vector3()).add(new THREE.Vector3(0, 1.5, 0))); if (!p) return; g2.save(); g2.strokeStyle = '#ffd23c'; g2.lineWidth = 8; g2.shadowColor = 'rgba(0,0,0,.6)'; g2.shadowBlur = 10; g2.beginPath(); g2.arc(p[0], p[1], 58, 0, 7); g2.stroke(); g2.restore(); }
 function drawRuler(){
   const x = 120, y0 = 1480, y1 = 620, m = Math.max(0, towerH) / TH * 157; g2.save(); g2.lineCap = 'round';
   g2.strokeStyle = 'rgba(11,18,32,.85)'; g2.lineWidth = 18; g2.beginPath(); g2.moveTo(x, y0); g2.lineTo(x, y1); g2.stroke();
@@ -536,7 +537,7 @@ function draw2D(sc, lt, dur){
   g2.globalAlpha = 1; g2.globalCompositeOperation = 'source-over'; g2.drawImage(vig, 0, 0, W, H);
   if (flashA > 0){ g2.fillStyle = `rgba(255,250,240,${Math.min(1, flashA)})`; g2.fillRect(0, 0, W, H); }
   if (fadeBlk > 0){ g2.fillStyle = `rgba(0,0,0,${fadeBlk})`; g2.fillRect(0, 0, W, H); }
-  if (sc.tower) drawRuler();
+  if (sc.tower){ drawRuler(); drawCarRing(); }
   if (sc.hud) drawHud(sc.hud());
   if (sc.hook) drawHook(clamp01((dur - lt) / 0.15), 1);
   if (sc.loopin){ const k = clamp01((T - (END - 0.14)) / 0.14); drawHook(k, 1 + 0.25 * (1 - k)); }

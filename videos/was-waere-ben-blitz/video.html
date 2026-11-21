@@ -270,6 +270,7 @@ const world = new THREE.Group(); scene.add(world);
 })();
 // Regen: wenige, langsame Schlieren (kein Flackern)
 const rain = Inst(360, [{ g: new THREE.BoxGeometry(0.03, 1.6, 0.03), m: new THREE.MeshBasicMaterial({ color: 0x9fb4d8, transparent: true, opacity: 0.35, depthWrite: false }), noShadow: 1 }]); world.add(rain.g);
+const SETS = [world];
 function updRain(){ for (let i = 0; i < 360; i++){ const x = -40 + hsh(i) * 80, z = -40 + hsh(i + 1) * 80, sp = 9; const y = 30 - ((T * sp + hsh(i + 2) * 30) % 30); rain.x[i] = x; rain.z[i] = z; rain.y[i] = y; rain.lean[i] = 0.08; } rain.flush(0); }
 
 /* =========================================================

@@ -336,7 +336,7 @@ const _v = new THREE.Vector3();
 function camCar(p, a, b){ car.updateMatrixWorld(true); camW(p, a, b); _v.copy(cam.position); car.localToWorld(_v); cam.position.copy(_v); _v.copy(cL); car.localToWorld(_v); cL.copy(_v); }
 function camFin(sh){ cam.position.x += Math.sin(T * 0.7) * 0.03; cam.position.y += Math.sin(T * 0.9 + 1) * 0.02; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const imp = at => T >= at ? Math.exp(-(T - at) * 3) : 0;
-const HOOK = [[-9.5, 2.4, -11, -0.3, 2.4, 0.2, 52], [-9.0, 2.3, -10.4, -0.3, 2.6, 0.2, 50]];
+const HOOK = [[-15, 3.2, -15, 0, 5.6, 0.5, 56], [-14.2, 3.1, -14.2, 0, 5.4, 0.5, 54]];
 const STRIKE = 0.0;
 
 /* =========================================================
@@ -354,7 +354,7 @@ const SCN = [
       camCar(E.io(seg(lt, 0, 3.2)), [-9.5, 6.5, -6.5, 0, 1.9, 0.4, 44], [-8.6, 5.8, -5.6, 0, 1.9, 0.4, 42]); camFin(); } },
   { t: 9.2, set: world, mood: MOOD.storm, hud: () => T >= 12.0 ? ['FALSCH!', 'NICHT DIE REIFEN'] : null,
     upd(lt){ show(ben); benSeated(); eyeS = 1; tireK = E.out(seg(T, 9.5, 10.0)); xK = E.out(seg(T, 11.95, 12.25));
-      camCar(E.io(seg(lt, 0, 3.6)), [-11, 1.6, 0.4, 0, 0.9, 0.3, 40], [-10.2, 1.7, 0.4, 0, 0.9, 0.3, 40]); camFin(0.05 * imp(11.97)); } },
+      camCar(E.io(seg(lt, 0, 3.6)), [-17, 2.6, -11, 0, 0.9, 0.3, 38], [-16, 2.5, -10.4, 0, 0.9, 0.3, 38]); camFin(0.05 * imp(11.97)); } },
   { t: 12.8, set: world, mood: MOOD.xray, hud: () => T > 13.0 ? ['AUSSEN HERUM', 'DIREKT IN DEN BODEN'] : null,
     upd(lt){ show(ben); benSeated(); eyeS = 1.1; flowK = 1; flowPhase = lt; groundK = E.out(seg(T, 15.0, 15.6));
       camCar(E.io(seg(lt, 0, 4.1)), [-10.5, 4.8, -8.5, 0, 1.6, 0.4, 46], [-9.6, 4.2, -7.4, 0, 1.6, 0.4, 44]); camFin(); } },

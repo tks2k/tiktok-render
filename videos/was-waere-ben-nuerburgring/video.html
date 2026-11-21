@@ -431,7 +431,7 @@ const _v = new THREE.Vector3();
 function camCar(p, a, b){ car.updateMatrixWorld(true); camW(p, a, b); _v.copy(cam.position); car.localToWorld(_v); cam.position.copy(_v); _v.copy(cL); car.localToWorld(_v); cL.copy(_v); }
 function camFin(sh){ cam.position.x += Math.sin(T * 0.7) * 0.03; cam.position.y += Math.sin(T * 0.9 + 1) * 0.02; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const imp = at => T >= at ? Math.exp(-(T - at) * 3) : 0;
-function hookCam(){ const look = new THREE.Vector3(-2.5, 4.5, -8).lerp(car.position, 0.55); cam.position.set(-19, 9.5, -16); cL.copy(look); cam.fov = 50; }
+function hookCam(){ cam.position.set(car.position.x - 15, car.position.y + 2.6, car.position.z - 3); cL.set(car.position.x, car.position.y + 0.6, car.position.z - 6); cam.fov = 48; }
 
 /* =========================================================
    SZENEN (Zeiten = Sprecherspur, Tempo 1.15)
@@ -455,7 +455,7 @@ const SCN = [
   { t: 14.3, set: world, mood: MOOD.xray, hud: () => T >= 17.45 ? ['NACKENSCHUTZ', 'HÄLT DEN KOPF'] : (T >= 16.4 ? ['6-PUNKT-GURT', 'HÄLT BEN IM SITZ'] : (T >= 15.37 ? ['ÜBERROLLKÄFIG', 'SCHÜTZT DIE KABINE'] : null)),
     upd(lt){ show(ben); placeCar(1.05 + (T - 14.3) * 0.04); benSeated(curTau); eyeS = 1.2;
       scanK = [T >= 15.37 ? 1 : 0, T >= 16.4 ? 1 : 0, T >= 17.45 ? 1 : 0];
-      camCar(E.io(seg(lt, 0, 5)), [-6.8, 3.4, 0.9, -0.6, 2.3, 0.6, 44], [-6.0, 3.1, 0.4, -0.6, 2.4, 0.6, 38]); camFin(); } },
+      camCar(E.io(seg(lt, 0, 5)), [-6.2, 3.3, -2.8, -0.75, 2.45, 0.6, 44], [-5.4, 3.1, -2.4, -0.75, 2.5, 0.6, 40]); camFin(); } },
   { t: 19.3, set: world, mood: MOOD.day, hud: () => ['LEITPLANKE', 'SCHLUCKT DIE WUCHT'],
     upd(lt){ show(ben); placeCar(1.07 + (T - 19.3) * 0.12); benSeated(curTau); eyeS = 1;
       camW(E.io(seg(lt, 0, 2.3)), [-1, 5.5, ZR - 16, 9.5, 1.6, ZR, 46], [0, 4.6, ZR - 13, 9.5, 1.6, ZR, 42]); camFin(); } },
@@ -463,11 +463,11 @@ const SCN = [
     upd(lt){ show(ben); placeCar(3); eyeS = null;
       if (ben.root.parent !== car) car.add(ben.root); bRest(ben, T, 0);
       const op = E.io(seg(lt, 0, 0.4)), sl = E.io(seg(lt, 0.3, 1.0)), up = E.io(seg(lt, 1.0, 1.5));
-      doorPivot.rotation.y = -1.05 * op; belts.visible = lt < 0.3;
+      doorPivot.rotation.y = -1.5 * op; belts.visible = lt < 0.3;
       place(ben, lerp(-0.75, -2.7, sl) + lerp(0, -0.7, up), 0, 0.75 - 0.4 * sl, PI + PI / 2 * sl);
       ben.body.position.y = lerp(1.03, 1.0, up); ben.legs[0].rotation.x = lerp(-1.5, 0, up); ben.legs[1].rotation.x = lerp(-1.5, 0, up); ben.torso.rotation.x = lerp(0.08, 0, up);
       idle(ben); const look = bump(lt, 1.5, 2.3); ben.head.rotation.y = 0.9 * look;
-      camCar(E.io(seg(lt, 0, 2.4)), [-10.5, 3.6, -2.2, -3.2, 2.4, 0.4, 42], [-9.4, 3.3, -1.6, -3.3, 2.5, 0.4, 38]); camFin(); } },
+      camCar(E.io(seg(lt, 0, 2.4)), [-11.5, 3.7, 1.9, -3.2, 2.4, 0.3, 40], [-10.5, 3.4, 1.6, -3.3, 2.5, 0.3, 36]); camFin(); } },
   { t: 24.0, set: world, mood: MOOD.day, loopin: 1,
     upd(lt){ show(ben); doorPivot.rotation.y = 0; placeCar(0.02 - (END - T) * 0.95); benSeated(curTau); eyeS = 1.2; hookCam(); camFin(); } },
 ];

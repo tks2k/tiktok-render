@@ -280,7 +280,7 @@ const pro = boxer({ top: 0x3cae6a, pants: 0x1f2a44, shoe: 0x1c1c22, hair: 0x8a5a
 kumpel.head.rotation.order = 'YXZ';
 // Feder
 const feather = new THREE.Group(); world.add(feather);
-{ const vane = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), mat(0xfaf6ee, { roughness: 0.9 })); vane.scale.set(0.14, 0.55, 0.03); vane.position.y = 0.55; feather.add(vane);
+{ const vane = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), mat(0xfaf6ee, { roughness: 0.9 })); vane.scale.set(0.2, 0.6, 0.12); vane.position.y = 0.55; feather.add(vane);
   const q = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 1.2, 6), mat(0xd8cfbf)); q.position.y = 0.5; feather.add(q); }
 // Tröpfchen (feste Größe, kein Pixelrauschen) + Nebelbällchen
 const ND = 520, NM = 46;

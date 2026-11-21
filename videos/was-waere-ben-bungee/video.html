@@ -384,10 +384,10 @@ function boldLines(words, cy, size, maxW, act, pop, col){
 }
 function fitSize(text, size, maxW){ g2.font = `900 ${size}px ${SANS}`; const w = g2.measureText(text).width; return w > maxW ? size * maxW / w : size; }
 function drawHook(a, sc){
-  if (a <= 0) return; g2.save(); g2.globalAlpha = a; g2.drawImage(band, 0, 340, W, 520);
+  if (a <= 0) return; g2.save(); g2.globalAlpha = a; g2.drawImage(band, 0, 640, W, 520);
   const s1 = fitSize('BEN SPRINGT', 130, 900), s2 = fitSize('BUNGEE', 130, 860);
-  g2.translate(W / 2, 600); g2.scale(sc, sc); g2.translate(-W / 2, -600);
-  boldLines(['BEN', 'SPRINGT'], 535, s1, 960, -1, 0); boldLines(['BUNGEE'], 670, s2, 900, -1, 0, '#ffd23c');
+  g2.translate(W / 2, 900); g2.scale(sc, sc); g2.translate(-W / 2, -900);
+  boldLines(['BEN', 'SPRINGT'], 835, s1, 960, -1, 0); boldLines(['BUNGEE'], 970, s2, 900, -1, 0, '#ffd23c');
   g2.restore();
 }
 function drawSubs(){

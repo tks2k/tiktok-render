@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Was wäre Ben? – Bungee</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#out{width:min(100vw,56.25vh);width:min(100vw,calc(100dvh*9/16));height:auto;aspect-ratio:9/16;display:block}
+#ui{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.62);color:#fff;text-align:center;padding:24px}
+#ui.hidden{display:none}
+#ui h1{font:italic 700 28px Georgia,"Times New Roman",serif;margin:0 0 4px;line-height:1.2;max-width:360px}
+#ui p{margin:0 0 6px;opacity:.85;font-size:14px;max-width:330px;line-height:1.35}
+button{font:800 17px system-ui,-apple-system,sans-serif;padding:14px 22px;border-radius:14px;border:0;min-width:270px;cursor:pointer}
+.b1{background:#E8B21F;color:#000}.b2{background:#E0262B;color:#fff}.b3{background:#3bd16f;color:#000}
+#recdot{position:fixed;top:10px;right:12px;color:#ff3b3b;font:800 13px system-ui;display:none;text-shadow:0 0 4px #000}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script>window.THREE||document.write('<script src="https://unpkg.com/three@0.149.0/build/three.min.js"><\/script>')</script>
+</head>
+<body>
+<div id="wrap"><canvas id="out" width="1080" height="1920"></canvas></div>
+<div id="recdot">● REC</div>
+<div id="ui"></div>
+<script>
+(function(){
+if (!window.THREE){ document.getElementById('ui').innerHTML = '<h1>3D-Engine konnte nicht geladen werden</h1><p>Bitte mit Internetverbindung in Safari, Chrome oder Edge öffnen.</p>'; return; }
+const CM = THREE.ColorManagement; if (CM){ if ('legacyMode' in CM) CM.legacyMode = false; if ('enabled' in CM) CM.enabled = true; }
+
+/* =========================================================
+   GRUNDSETUP
+   ========================================================= */
+const W = 1080, H = 1920, END = 23.1;
+const out = document.getElementById('out'), g2 = out.getContext('2d');
+const ui = document.getElementById('ui'), recdot = document.getElementById('recdot');
+const clamp01 = v => Math.max(0, Math.min(1, v)), lerp = (a, b, p) => a + (b - a) * p;
+const seg = (t, a, b) => clamp01((t - a) / (b - a));
+const bump = (t, a, b) => (t <= a || t >= b) ? 0 : Math.pow(Math.sin(Math.PI * (t - a) / (b - a)), 2);
+const E = {
+  io: p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
+  out: p => 1 - Math.pow(1 - p, 3),
+  back: p => { const c = 1.70158; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); },
+};
+function aLerp(a, b, p){ let d = b - a; d = Math.atan2(Math.sin(d), Math.cos(d)); return a + d * p; }
+let seed = 5;
+function rnd(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance', logarithmicDepthBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H, false);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xffffff, 30, 140);
+const cam = new THREE.PerspectiveCamera(36, W / H, 0.2, 3000); scene.add(cam);
+const hemi = new THREE.HemisphereLight(0xffffff, 0x888888, 0.6); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03; sun.shadow.camera.near = 1; sun.shadow.camera.far = 220;
+scene.add(sun); scene.add(sun.target);
+const fill = new THREE.DirectionalLight(0xffffff, 0.25); scene.add(fill);
+
+// Umgebungslicht-Reflexionen (Tag / Nacht)
+let envDay = null, envNight = null;
+try {
+  const pm = new THREE.PMREMGenerator(renderer);
+  const mkEnv = (top, bot, lamp) => {
+    const s = new THREE.Scene(), geo = new THREE.SphereGeometry(50, 24, 12), pos = geo.attributes.position;
+    const col = new Float32Array(pos.count * 3), cT = new THREE.Color(top), cB = new THREE.Color(bot), c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++){ c.copy(cB).lerp(cT, clamp01(pos.getY(i) / 100 + 0.5)); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    s.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ side: THREE.BackSide, vertexColors: true })));
+    const b = new THREE.Mesh(new THREE.BoxGeometry(34, 2, 34), new THREE.MeshBasicMaterial({ color: lamp })); b.position.set(12, 40, 14); s.add(b);
+    return pm.fromScene(s, 0.04).texture;
+  };
+  envDay = mkEnv(0xdfe8f5, 0x8a8078, 0xffffff); envNight = mkEnv(0x1c2c58, 0x0a1020, 0x6f8fd8);
+} catch (e) { envDay = envNight = null; }
+
+/* =========================================================
+   BAUSTEINE: abgerundete Boxen, Materialien, Instanzen
+   ========================================================= */
+const geoCache = {};
+function rbox(w, h, d, r, sg){
+  r = r === undefined ? 0.06 : r; sg = sg || 2;
+  const key = [w, h, d, r, sg].join(','); if (geoCache[key]) return geoCache[key];
+  r = Math.min(r, w / 2 - 1e-3, h / 2 - 1e-3, d / 2 - 1e-3);
+  const n = 2 * sg + 1, g = new THREE.BoxGeometry(w, h, d, n, n, n), p = g.attributes.position, nm = g.attributes.normal;
+  const half = [w / 2, h / 2, d / 2], v = [0, 0, 0], inn = [0, 0, 0];
+  for (let i = 0; i < p.count; i++){
+    v[0] = p.getX(i); v[1] = p.getY(i); v[2] = p.getZ(i);
+    for (let a = 0; a < 3; a++){
+      const hh = half[a], idx = Math.round((v[a] + hh) / (2 * hh / n)), lo = idx <= sg, k = lo ? idx : n - idx;
+      v[a] = (lo ? -1 : 1) * (hh - r * (k / sg)); inn[a] = Math.max(-(hh - r), Math.min(hh - r, v[a]));
+    }
+    let dx = v[0] - inn[0], dy = v[1] - inn[1], dz = v[2] - inn[2]; const len = Math.hypot(dx, dy, dz) || 1; dx /= len; dy /= len; dz /= len;
+    p.setXYZ(i, inn[0] + dx * r, inn[1] + dy * r, inn[2] + dz * r); nm.setXYZ(i, dx, dy, dz);
+  }
+  return geoCache[key] = g;
+}
+const mats = {};
+function mat(c, o){ const k = c + (o ? JSON.stringify(o) : ''); return mats[k] || (mats[k] = new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.62, metalness: 0, envMapIntensity: 0.55 }, o || {}))); }
+const GOLD = mat(0xe2b23a, { roughness: 0.3, metalness: 0.4, envMapIntensity: 1.2 });
+const BLACK = mat(0x17171c, { roughness: 0.3 }), WHITEB = new THREE.MeshBasicMaterial({ color: 0xffffff });
+function P(par, geo, m, x, y, z){ const me = new THREE.Mesh(geo, m); me.position.set(x || 0, y || 0, z || 0); me.castShadow = true; me.receiveShadow = true; par.add(me); return me; }
+function rod(par, m, a, b, r){
+  const A = new THREE.Vector3(a[0], a[1], a[2]), B = new THREE.Vector3(b[0], b[1], b[2]), d = B.clone().sub(A), L = d.length();
+  const me = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 8), m); me.position.copy(A).add(B).multiplyScalar(0.5);
+  me.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); me.castShadow = true; par.add(me); return me;
+}
+const _E = new THREE.Euler(), _Q = new THREE.Quaternion(), _P = new THREE.Vector3(), _S = new THREE.Vector3(), _B = new THREE.Matrix4(), _T = new THREE.Matrix4();
+function Inst(n, defs, s){
+  const o = { g: new THREE.Group(), n, x: new Float32Array(n), y: new Float32Array(n), z: new Float32Array(n), yaw: new Float32Array(n), lean: new Float32Array(n), sc: new Float32Array(n).fill(s || 1) };
+  const parts = defs.map(d => {
+    const im = new THREE.InstancedMesh(d.g, d.m, n); im.castShadow = !d.noShadow; im.receiveShadow = !d.noShadow; im.frustumCulled = false; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    const off = new THREE.Matrix4(); if (d.rz) off.makeRotationZ(d.rz); off.setPosition(d.x || 0, d.y || 0, d.z || 0); o.g.add(im); return { im, off, dyn: d.dyn };
+  });
+  o.parts = parts;
+  o.flush = function(t){
+    for (let i = 0; i < n; i++){
+      _E.set(o.lean[i], o.yaw[i], 0, 'YXZ'); _Q.setFromEuler(_E); _P.set(o.x[i], o.y[i], o.z[i]); _S.setScalar(Math.max(1e-4, o.sc[i])); _B.compose(_P, _Q, _S);
+      for (const p of parts){ _T.multiplyMatrices(_B, p.dyn ? p.dyn(i, t) : p.off); p.im.setMatrixAt(i, _T); }
+    }
+    for (const p of parts) p.im.instanceMatrix.needsUpdate = true;
+  };
+  return o;
+}
+function crowdDefs(o){
+  const bh = o.bh || 1.9, d = [];
+  d.push({ g: rbox(1.0, bh, 0.64, 0.1, 1), m: mat(o.body), y: bh / 2 });
+  if (o.belt) d.push({ g: rbox(1.04, 0.12, 0.68, 0.03, 1), m: o.belt, y: bh * 0.45 });
+  if (o.stripe) d.push({ g: rbox(0.13, bh * 0.86, 0.04, 0.015, 1), m: mat(o.stripe), x: 0.24, y: bh * 0.52, z: 0.325 });
+  d.push({ g: rbox(0.98, 0.86, 0.92, 0.12, 1), m: mat(0xf2c6a2), y: bh + 0.4 });
+  d.push({ g: rbox(1.05, 0.3, 0.99, 0.1, 1), m: o.top, y: bh + 0.8, z: -0.01 });
+  if (o.crest) d.push({ g: rbox(0.17, 0.24, 0.62, 0.06, 1), m: mat(0xc8281e), y: bh + 1.05 });
+  [-1, 1].forEach(s => {
+    d.push({ g: rbox(0.12, 0.17, 0.05, 0.02, 1), m: BLACK, x: s * 0.21, y: bh + 0.42, z: 0.455 });
+    d.push({ g: rbox(0.27, 0.075, 0.07, 0.025, 1), m: mat(0x2e1a10), x: s * 0.21, y: bh + 0.6, z: 0.46, rz: s * 0.24 * (o.angry || 0) });
+  });
+  d.push({ g: rbox(0.16, 0.25, 0.17, 0.06, 1), m: mat(0xe8b592), y: bh + 0.33, z: 0.5 });
+  return d;
+}
+const LEGION = { body: 0xc8281e, belt: GOLD, top: GOLD, crest: 1, angry: 0.6 };
+const SENATOR = { body: 0xefece6, stripe: 0x8a2a3a, top: mat(0x3a2416), angry: 1 };
+
+/* =========================================================
+   FIGUREN MIT ELLBOGEN (Boxer, Ben, Ringrichter)
+   ========================================================= */
+function boxer(o){
+  const skin = mat(o.skin || 0xf2c6a2), hairM = mat(o.hair || 0x3a2416), topM = o.top ? mat(o.top) : skin;
+  const root = new THREE.Group(), body = new THREE.Group(); root.rotation.order = 'YXZ'; body.position.y = 1.0; root.add(body);
+  const legs = [], sh = [], el = [], eyes = [], brw = [];
+  [-1, 1].forEach(s => {
+    const lg = new THREE.Group(); lg.position.x = s * 0.26; body.add(lg);
+    P(lg, rbox(0.44, 0.86, 0.46, 0.07), o.pants ? mat(o.pants) : skin, 0, -0.42, 0);
+    P(lg, rbox(0.5, 0.2, 0.66, 0.07), mat(o.shoe || 0x1c1c22), 0, -0.9, 0.08); if (o.sole) P(lg, rbox(0.52, 0.06, 0.68, 0.02, 1), mat(o.sole), 0, -0.98, 0.08);
+    legs.push(lg);
+  });
+  const torso = new THREE.Group(); body.add(torso);
+  P(torso, rbox(1.0, 1.05, 0.56, 0.09), topM, 0, 0.52, 0);
+  P(torso, rbox(1.08, 0.42, 0.64, 0.08), mat(o.shorts || o.pants || 0x222222), 0, 0, 0);
+  if (o.band) P(torso, rbox(1.1, 0.12, 0.66, 0.03, 1), mat(o.band), 0, 0.17, 0);
+  if (o.trim){ P(torso, rbox(0.05, 0.86, 0.02, 0.008, 1), mat(o.trim), 0, 0.58, 0.285); P(torso, rbox(1.03, 0.1, 0.59, 0.03, 1), mat(o.trim), 0, 0.24, 0); P(torso, rbox(0.86, 0.24, 0.3, 0.08), topM, 0, 1.0, -0.33); }
+  if (o.refStripes) for (let k = -2; k <= 2; k++) P(torso, rbox(0.07, 0.8, 0.02, 0.008, 1), mat(0x15151a), k * 0.19, 0.62, 0.285);
+  [-1, 1].forEach(s => {
+    const a = new THREE.Group(); a.position.set(s * 0.67, 0.92, 0); torso.add(a); P(a, rbox(0.31, 0.56, 0.36, 0.07), topM, 0, -0.2, 0);
+    const e = new THREE.Group(); e.position.y = -0.46; a.add(e); P(e, rbox(0.29, 0.5, 0.34, 0.07), topM, 0, -0.2, 0);
+    if (o.trim) P(e, rbox(0.31, 0.08, 0.36, 0.03, 1), mat(o.trim), 0, -0.42, 0);
+    if (o.glove){ P(e, rbox(0.46, 0.46, 0.46, 0.16), mat(o.glove, { roughness: 0.4 }), 0, -0.62, 0.02); P(e, rbox(0.36, 0.12, 0.38, 0.04, 1), mat(0xf4f4f4), 0, -0.4, 0); }
+    else P(e, rbox(0.3, 0.28, 0.34, 0.08), skin, 0, -0.56, 0);
+    sh.push(a); el.push(e);
+  });
+  P(torso, rbox(0.38, 0.2, 0.38, 0.05, 1), skin, 0, 1.09, 0);
+  const head = new THREE.Group(); head.position.y = 1.13; torso.add(head);
+  P(head, rbox(1.12, 1.0, 1.02, 0.13), skin, 0, 0.55, 0);
+  P(head, rbox(1.19, 0.32, 1.09, 0.1), hairM, 0, 1.0, -0.01); P(head, rbox(1.19, 0.5, 0.34, 0.1), hairM, 0, 0.78, -0.39);
+  if (o.headband) P(head, rbox(1.16, 0.15, 1.06, 0.04, 1), mat(o.headband), 0, 0.8, 0);
+  [-1, 1].forEach(s => {
+    P(head, rbox(0.09, 0.22, 0.18, 0.04, 1), skin, s * 0.59, 0.46, -0.04);
+    const e = P(head, rbox(0.15, 0.21, 0.06, 0.03, 1), BLACK, s * 0.25, 0.56, 0.5); P(e, rbox(0.06, 0.07, 0.03, 0.01, 1), WHITEB, 0.03, 0.05, 0.022); eyes.push(e);
+    brw.push(P(head, rbox(0.31, 0.09, 0.08, 0.035, 1), mat(0x2a1a10), s * 0.25, 0.79, 0.52));
+  });
+  const c = new THREE.Color(o.skin || 0xf2c6a2).multiplyScalar(0.9);
+  P(head, rbox(0.18, 0.31, 0.2, 0.07), new THREE.MeshStandardMaterial({ color: c, roughness: 0.62, envMapIntensity: 0.55 }), 0, 0.45, 0.58);
+  const mouth = P(head, rbox(0.25, 0.06, 0.04, 0.02, 1), mat(0x6a2018), 0.02, 0.2, 0.512);
+  return { root, body, torso, head, sh, el, legs, eyes, brows: brw, mouth };
+}
+function place(r, x, y, z, yaw){ r.root.position.set(x, y, z); r.root.rotation.set(0, yaw, 0); }
+function bRest(r, t, k){
+  r.body.position.set(0, 1, 0); r.body.rotation.set(0, 0, 0); r.torso.rotation.set(0, 0, 0); r.head.rotation.set(0, 0, 0);
+  r.sh[0].rotation.set(0, 0, -0.07); r.sh[1].rotation.set(0, 0, 0.07); r.el[0].rotation.set(-0.1, 0, 0); r.el[1].rotation.set(-0.1, 0, 0);
+  r.legs[0].rotation.set(0, 0, 0); r.legs[1].rotation.set(0, 0, 0); r.mouth.scale.set(1, 1, 1); r.mouth.rotation.z = 0;
+  const b = Math.sin(t * 2.1 + k); r.torso.scale.y = 1 + b * 0.012; r.head.position.y = 1.13 + b * 0.012;
+  const ph = (t + k * 1.37) % 3.4, bl = ph < 0.14 ? Math.abs(Math.cos(Math.PI * ph / 0.14)) : 1; r.eyes.forEach(e => e.scale.y = Math.max(0.08, bl));
+  bFace(r, 0, 0);
+}
+function bFace(r, m, open){ r.brows[0].rotation.z = -0.32 * m; r.brows[1].rotation.z = 0.32 * m; const y = 0.79 + (m < 0 ? -m * 0.05 : -m * 0.015); r.brows[0].position.y = y; r.brows[1].position.y = y; r.mouth.scale.y = 1 + open * 4; }
+function guard(r, t, k){
+  const b = Math.sin(t * 7 + k); r.body.position.y = 0.93 + Math.abs(b) * 0.06; r.torso.rotation.set(0.12, 0.4, 0); r.head.rotation.y = -0.35;
+  r.legs[0].rotation.set(-0.3, 0, -0.12); r.legs[1].rotation.set(0.35, 0, 0.12);
+  r.sh[0].rotation.set(-1.0, 0, 0.15); r.el[0].rotation.x = -1.75; r.sh[1].rotation.set(-0.85, 0, -0.15); r.el[1].rotation.x = -1.85;
+}
+function strike(r, p, i){
+  if (p <= 0) return;
+  r.sh[i].rotation.x = lerp(r.sh[i].rotation.x, -1.57, p); r.sh[i].rotation.z = lerp(r.sh[i].rotation.z, 0, p); r.el[i].rotation.x = lerp(r.el[i].rotation.x, -0.03, p);
+  r.torso.rotation.y += (i ? -0.85 : 0.3) * p; r.torso.rotation.x += 0.1 * p; r.body.position.z += 0.3 * p; r.legs[1].rotation.x += 0.2 * p;
+}
+function pc(lt, t0, hold){ hold = hold || 0.14; const x = lt - t0; if (x <= 0) return 0; if (x < 0.09) return E.out(x / 0.09); if (x < 0.09 + hold) return 1; if (x < 0.35 + hold) return 1 - E.io((x - 0.09 - hold) / 0.26); return 0; }
+function rag(r, t, k){
+  r.body.position.y = 1; r.torso.rotation.set(-0.2, 0, 0); r.head.rotation.set(-0.3, 0, 0);
+  r.sh[0].rotation.set(Math.sin(t * 9 + k) * 0.6, 0, -2.0); r.sh[1].rotation.set(Math.cos(t * 8 + k) * 0.6, 0, 2.0); r.el[0].rotation.x = -0.5; r.el[1].rotation.x = -0.5;
+  r.legs[0].rotation.set(Math.sin(t * 10 + k) * 0.7, 0, -0.45); r.legs[1].rotation.set(-Math.sin(t * 10 + k) * 0.7, 0, 0.45); bFace(r, -1, 1);
+}
+function idle(r){ r.sh[0].rotation.set(0.05, 0, -0.1); r.sh[1].rotation.set(0.05, 0, 0.1); }
+function wlk(r, ph, a){ const s = Math.sin(ph); r.legs[0].rotation.x = s * 0.75 * a; r.legs[1].rotation.x = -s * 0.75 * a; r.sh[0].rotation.x = -s * 0.7 * a; r.sh[1].rotation.x = s * 0.7 * a; r.el[0].rotation.x = -0.9 * a; r.el[1].rotation.x = -0.9 * a; r.body.position.y = 1 + (Math.abs(Math.cos(ph)) * 0.08 - 0.03) * a; r.torso.rotation.x = 0.15 * a; }
+const hsh = n => { const x = Math.sin(n * 127.1 + 11.7) * 43758.5453; return x - Math.floor(x); };
+/* =========================================================
+   FIGUREN
+   ========================================================= */
+const SK = 0xE9C3A0;
+const ben = boxer({ top: 0xE8B21F, trim: 0xC4920F, pants: 0x1F2A44, shoe: 0xf2f2f2, sole: 0x9a9a9a, hair: 0x3A2616, skin: SK });
+const ALL = [ben]; scene.add(ben.root);
+function show(){ ALL.forEach(r => r.root.visible = false); for (let i = 0; i < arguments.length; i++) arguments[i].root.visible = true; }
+function sit(r, seatY){ r.body.position.y = seatY + 0.18; r.legs[0].rotation.x = -1.5; r.legs[1].rotation.x = -1.5; r.torso.rotation.x = 0.08; }
+const PI = Math.PI, V3 = new THREE.Vector3(), _w = new THREE.Vector3();
+function wpos(o, v){ o.updateWorldMatrix(true, false); return (v || _w).setFromMatrixPosition(o.matrixWorld); }
+function anchor(par, x, y, z){ const o = new THREE.Object3D(); o.position.set(x, y, z); par.add(o); return o; }
+
+/* =========================================================
+   STIMMUNGEN
+   ========================================================= */
+function sky(stops){
+  const c = document.createElement('canvas'); c.width = 4; c.height = 256; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
+  stops.forEach(s => g.addColorStop(s[0], s[1])); x.fillStyle = g; x.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+}
+const MOOD = { day: { sky: sky([[0, '#2c78d0'], [0.6, '#8cc2ee'], [1, '#e6f2ff']]), fog: [0xcfe3f3, 220, 1100], hemi: [0xeaf4ff, 0x5a6a48, 0.85], sun: [0xfff0d8, 1.25], env: 1 } };
+const SR = 60; { const c = sun.shadow.camera; c.left = -SR; c.right = SR; c.top = SR; c.bottom = -SR; c.near = 1; c.far = 400; c.updateProjectionMatrix(); }
+sun.target.position.set(0, 60, 0); sun.position.set(-60, 180, 70);
+function setMood(m){
+  scene.background = m.sky; scene.fog.color.set(m.fog[0]); scene.fog.near = m.fog[1]; scene.fog.far = m.fog[2]; scene.environment = m.env ? envDay : envNight;
+  hemi.color.set(m.hemi[0]); hemi.groundColor.set(m.hemi[1]); hemi.intensity = m.hemi[2]; sun.color.set(m.sun[0]); sun.intensity = m.sun[1];
+  fill.color.set(0xffffff); fill.intensity = 0.3; fill.position.set(40, 80, 80);
+}
+
+/* =========================================================
+   SET: BRÜCKE ÜBER EINEM FLUSSTAL (1 m = 2 Einheiten). Wasser y = 0, Fahrbahn-Oberkante y = 100 (50 m)
+   Brücke verläuft entlang x, Sprungplattform ragt nach +z, Kante z = 6.2
+   ========================================================= */
+const world = new THREE.Group(); scene.add(world);
+const DECK = 100, EDGE = 6.2, ANK = [0, DECK + 0.05, 5.2];
+(function(){
+  const conc = mat(0xc9c4ba, { roughness: 0.9 }), steel = mat(0xb8bec8, { roughness: 0.35, metalness: 0.6 }), red = mat(0xc8352e, { roughness: 0.5 });
+  P(world, new THREE.BoxGeometry(260, 4, 12), conc, 0, DECK - 2, 0);                      // Fahrbahn
+  [-1, 1].forEach(s => { rod(world, steel, [-130, DECK + 2.2, s * 5.8], [130, DECK + 2.2, s * 5.8], 0.1); for (let x = -128; x <= 128; x += 4) rod(world, steel, [x, DECK, s * 5.8], [x, DECK + 2.2, s * 5.8], 0.06); });
+  [-48, 48].forEach(x => P(world, new THREE.BoxGeometry(8, DECK + 10, 8), conc, x, DECK / 2 - 7, 0)); // Pfeiler
+  // Sprungplattform (ragt über das Geländer hinaus)
+  P(world, new THREE.BoxGeometry(5, 0.5, 6.6), mat(0x8a8f98, { roughness: 0.7 }), 0, DECK - 0.25, 2.9);
+  [-1, 1].forEach(s => { rod(world, red, [s * 2.4, DECK, 0], [s * 2.4, DECK + 2.4, 0], 0.08); rod(world, red, [s * 2.4, DECK, 5.6], [s * 2.4, DECK + 2.4, 5.6], 0.08); rod(world, red, [s * 2.4, DECK + 2.4, 0], [s * 2.4, DECK + 2.4, 5.6], 0.08); });
+  P(world, new THREE.BoxGeometry(0.9, 0.5, 0.9), mat(0x30343c), ANK[0], DECK + 0.25, ANK[2] - 0.6);   // Anker
+  // Tal: Felshänge links/rechts, Fluss dazwischen
+  const rock = mat(0x7d7466, { roughness: 0.95 }), grass = mat(0x4f8a3e, { roughness: 0.95 });
+  [-1, 1].forEach(s => { const sh = new THREE.Shape(); sh.moveTo(30, -6); sh.lineTo(36, 2); sh.lineTo(92, DECK - 4); sh.lineTo(520, DECK - 4); sh.lineTo(520, -6); sh.closePath();
+    const g = new THREE.ExtrudeGeometry(sh, { depth: 900, bevelEnabled: false }); const mm = new THREE.Mesh(g, rock); mm.scale.x = s; mm.position.z = -450; mm.receiveShadow = true; mm.castShadow = true; world.add(mm);
+    P(world, new THREE.BoxGeometry(430, 1, 900), grass, s * 306, DECK - 3.5, 0); });
+  P(world, new THREE.BoxGeometry(80, 6, 900), mat(0x6b6453), 0, -9, 0);                      // Flussbett
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(74, 900), new THREE.MeshStandardMaterial({ color: 0x2f7fa6, roughness: 0.12, metalness: 0.1, envMapIntensity: 1.3 })); water.rotation.x = -PI / 2; water.position.y = 0; world.add(water);
+  const N = 260, trees = Inst(N, [{ g: new THREE.CylinderGeometry(0.6, 0.8, 6, 6), m: mat(0x5a3e28), y: 3, noShadow: 1 }, { g: new THREE.ConeGeometry(4.2, 13, 8), m: mat(0x2f6b34, { roughness: 0.9 }), y: 11, noShadow: 1 }]);
+  for (let i = 0; i < N; i++){ const s = i % 2 ? 1 : -1; trees.x[i] = s * (100 + hsh(i * 2.1) * 260); trees.z[i] = -420 + hsh(i * 3.7) * 840; trees.y[i] = DECK - 3; trees.sc[i] = 1 + hsh(i) * 0.7; trees.yaw[i] = hsh(i + 3) * 6; }
+  trees.flush(0); world.add(trees.g);
+})();
+const SETS = [world];
+// Bungee-Seil: Röhre wird pro Bild neu aufgebaut (schlaff = Schlaufe, straff = gerade)
+const cordM = new THREE.MeshStandardMaterial({ color: 0x1f3f8f, roughness: 0.5, emissive: 0xffc21a, emissiveIntensity: 0 });
+let cordMesh = null; const _ca = new THREE.Vector3(), _cb = new THREE.Vector3();
+function cord(ank, tight){
+  if (cordMesh){ world.remove(cordMesh); cordMesh.geometry.dispose(); }
+  const a = new THREE.Vector3(ANK[0], ANK[1], ANK[2]), b = ank.clone(), pts = [a];
+  const D = a.y - b.y;
+  if (D < 39.5){ const lo = Math.min(a.y, b.y) - (40 - Math.max(0, D)) / 2 * 0.95;
+    pts.push(new THREE.Vector3(0.2, DECK + 0.15, EDGE + 0.15)); pts.push(new THREE.Vector3(0.5, lerp(DECK, lo, 0.55), (EDGE + b.z) / 2 + 0.6)); pts.push(new THREE.Vector3(0.6, lo, (EDGE + b.z) / 2 + 0.9)); pts.push(new THREE.Vector3(0.3, lerp(lo, b.y, 0.5), b.z + 0.3)); }
+  else pts.push(new THREE.Vector3(0.1, DECK + 0.15, EDGE + 0.15));
+  pts.push(b);
+  cordMesh = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.16, 8, false), cordM); cordMesh.castShadow = true; world.add(cordMesh);
+  cordM.emissiveIntensity = tight * 0.55;
+}
+
+/* =========================================================
+   BEN (Narbe, Fußschlaufen) + Physik
+   ========================================================= */
+const SCAR = new THREE.Group(); ben.head.add(SCAR); ben.head.rotation.order = 'YXZ';
+(function(){ const m = mat(0xa8463f, { roughness: 0.7 }); const s = new THREE.Mesh(rbox(0.075, 0.72, 0.03, 0.012, 1), m); s.position.set(0.25, 0.55, 0.522); s.rotation.z = -0.13; SCAR.add(s);
+  for (const y of [0.36, 0.55, 0.74]){ const c = new THREE.Mesh(rbox(0.16, 0.035, 0.03, 0.01, 1), m); c.position.set(0.25 + (y - 0.55) * 0.13, y, 0.528); c.rotation.z = -0.13; SCAR.add(c); } })();
+ben.legs.forEach(lg => P(lg, rbox(0.54, 0.2, 0.56, 0.06), mat(0xd23a2e, { roughness: 0.5 }), 0, -0.72, 0));
+// Fall: g = 19.62 E/s², Seil 40 E (20 m), Dehnung bis 80 E (40 m); k so, dass Gleichgewicht bei +10 E -> Bremsen bis 3 g
+const G = 19.62, L0 = 40, T0 = Math.sqrt(2 * L0 / G), V0 = G * T0, OM = Math.sqrt(G / 10), AMP = Math.sqrt(100 + (V0 / OM) * (V0 / OM)), PH0 = Math.asin(-10 / AMP), TB = T0 + (PI / 2 - PH0) / OM;
+function drop(tp){ if (tp <= T0) return 0.5 * G * tp * tp; const tau = tp - T0; let x = AMP * Math.sin(OM * tau + PH0); if (tp > TB) x *= Math.exp(-0.45 * (tp - TB)); return Math.max(24, 50 + x); }
+function speed(tp){ const h = 0.004; return Math.abs(drop(tp + h) - drop(tp - h)) / (2 * h) / 2 * 3.6; }   // km/h
+const ZF = tp => EDGE - 0.45 + 3.5 * (1 - Math.exp(-tp * 1.3));
+function benEdge(t){
+  bRest(ben, t, 0); place(ben, 0, DECK, EDGE - 0.45, 0); const w = Math.sin(t * 4.2);
+  ben.root.rotation.set(0.05 + 0.04 * w, 0, 0); ben.sh[0].rotation.set(-0.2, 0, -1.25 - 0.3 * w); ben.sh[1].rotation.set(-0.2, 0, 1.25 - 0.3 * w); ben.torso.rotation.z = 0.06 * w;
+  ben.head.rotation.x = 0.45; eyeS = 1.4; bFace(ben, -0.8, 0.2);
+}
+function benJump(tp){
+  bRest(ben, T, 0); const d = drop(tp), p = PI * E.io(seg(tp, 0.05, 0.9)), y = DECK - d, z = ZF(tp);
+  ben.root.position.set(0, y, z); ben.root.rotation.set(p, 0, 0);
+  const sp = E.out(seg(tp, 0.05, 0.5)), low = E.io(seg(tp, TB - 0.4, TB));
+  ben.sh[0].rotation.set(lerp(-0.2, -2.9, low), 0, lerp(-1.35 * sp, -0.15, low)); ben.sh[1].rotation.set(lerp(-0.2, -2.9, low), 0, lerp(1.35 * sp, 0.15, low));
+  ben.el[0].rotation.x = -0.15; ben.el[1].rotation.x = -0.15; ben.legs[0].rotation.z = -0.05; ben.legs[1].rotation.z = 0.05;
+  eyeS = 1.45; bFace(ben, -1, 0.7 * sp);
+  cord(new THREE.Vector3(0, y + 0.3 * Math.cos(p), z), clamp01((d - L0) / 6) * (tp < TB + 1.2 ? 1 : 0));
+  return [y, z, d];
+}
+// Videozeit -> physikalische Zeit (Zeitlupe)
+function TP(T){
+  if (T < 3.4) return 0;
+  if (T < 7.7) return (T - 3.4) * (T0 / 4.3);
+  if (T < 9.4) return T0 + (T - 7.7) * 0.08;
+  const a = T0 + 1.7 * 0.08;
+  if (T < 16.05) return a + (T - 9.4) * (TB - a) / 6.65;
+  if (T < 18.84) return TB + (T - 16.05) * 0.02;
+  return TB + 2.79 * 0.02 + (T - 18.84) * 0.9;
+}
+
+/* =========================================================
+   KAMERA
+   ========================================================= */
+const cL = new THREE.Vector3();
+let blurAmt = 0, fadeBlk = 0, T = 0, flashA = 0, eyeS = 1, talk = 0, scanK = [0, 0, 0], dT = 0;
+let rulerK = 0, markK = 0, tpShow = 0, gK = 0;
+function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
+function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.03; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.02; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
+const HOOK = [[6.5, 104.5, 15.5, 0, 92, 2, 54], [6.1, 104.3, 14.6, 0, 92, 2, 52]];
+const fmt = (v, n) => v.toFixed(n).replace('.', ',');
+
+/* =========================================================
+   SZENEN (Zeiten = Sprecherspur nach Tempo 1,12)
+   ========================================================= */
+const SCN = [
+  { t: 0, set: world, mood: MOOD.day, hook: 1,
+    upd(lt){ dT = T; benEdge(T); cord(new THREE.Vector3(0, DECK + 0.2, EDGE - 0.45), 0); camW(E.io(seg(lt, 0, 1.65)), HOOK[0], HOOK[1]); camFin(); } },
+  { t: 1.65, set: world, mood: MOOD.day, hud: () => T > 1.8 ? ['50 METER', 'ÜBER DEM FLUSS'] : null,
+    upd(lt){ dT = T; benEdge(T); cord(new THREE.Vector3(0, DECK + 0.2, EDGE - 0.45), 0); rulerK = E.out(seg(T, 1.8, 2.5));
+      camW(E.io(seg(lt, 0, 1.75)), [96, 50, 64, 0, 52, 6, 62], [92, 50, 61, 0, 52, 6, 61]); camFin(); } },
+  { t: 3.4, set: world, mood: MOOD.day, hud: () => T < 5.6 ? ['20 M FREIER FALL', 'SEIL NOCH LOCKER'] : [Math.round(speed(tpShow)) + ' KM/H', 'NACH ' + fmt(Math.min(tpShow, T0), 1) + ' S FREIEM FALL'],
+    upd(lt){ dT = T; const tp = TP(T); tpShow = tp; const [y, z] = benJump(tp); markK = E.out(seg(T, 3.6, 4.0));
+      const cy = Math.min(DECK + 2, y + 1.5); cam.position.set(13, cy + 2.5, z + 11); cL.set(0, y - 1.2, z); cam.fov = 50; camFin(); } },
+  { t: 9.36, set: world, mood: MOOD.day, hud: () => T < 13.4 ? ['SEIL SPANNT SICH', 'LÄNGE ' + Math.round(Math.max(20, drop(tpShow) / 2)) + ' M'] : ['BIS ZU 3 G', 'BREMSKRAFT · ' + fmt(Math.max(0, (drop(tpShow) - 40) / 10 - 1), 1) + ' G'],
+    upd(lt){ dT = T; const tp = TP(T); tpShow = tp; const [y, z] = benJump(tp); gK = T > 13.4 ? 1 : 0;
+      if (T < 13.4){ cam.position.set(14, y + 3, z + 14); cL.set(0, y - 1.5, z); cam.fov = 52; }
+      else { const hy = y - 3.0; cam.position.set(3.2, hy + 0.6, z + 6.5); cL.set(0, hy, z); cam.fov = 40; bFace(ben, -1, 0.9); eyeS = 0.5; }
+      camFin(0.04 * gK * clamp01((drop(tp) - 60) / 20)); } },
+  { t: 16.05, set: world, mood: MOOD.day, hud: () => T > 16.3 ? ['STILLSTAND', '≈ 8 M ÜBER DEM WASSER'] : null,
+    upd(lt){ dT = T; const tp = TP(T); tpShow = tp; const [y, z] = benJump(tp); eyeS = 1.2; bFace(ben, 0.2, 0.3);
+      camW(E.io(seg(lt, 0, 2.8)), [9, 3.5, z + 16, 0, 15, z, 50], [8.4, 3.2, z + 15, 0, 15.5, z, 48]); camFin(); } },
+  { t: 18.84, set: world, mood: MOOD.day, hud: () => T > 19.0 ? ['ZURÜCK NACH OBEN', ''] : null,
+    upd(lt){ dT = T; const tp = TP(T); tpShow = tp; const [y, z] = benJump(tp); camW(0, [40, 40, z + 40, 0, 46, z, 58], [40, 40, z + 40, 0, 46, z, 58]); camFin(); } },
+  { t: 20.6, set: world, mood: MOOD.day, hud: () => T > 21.7 ? ['NOCHMAL!', 'BEN WILL WIEDER'] : null,
+    upd(lt){ dT = T; bRest(ben, T, 0); place(ben, 0, DECK, EDGE - 1.6, 0); const b = Math.abs(Math.sin(T * 7)); ben.body.position.y = 1 + 0.12 * b;
+      ben.sh[0].rotation.set(-2.6, 0, -0.3); ben.sh[1].rotation.set(-2.6, 0, 0.3); ben.el[0].rotation.x = -0.4; ben.el[1].rotation.x = -0.4; eyeS = 1.45; bFace(ben, -0.4, 0.6);
+      cord(new THREE.Vector3(0, DECK + 0.2, EDGE - 1.6), 0); camW(E.io(seg(lt, 0, 2.0)), [4.5, 103.2, 14.5, 0, 101.8, 4.6, 44], [4.2, 103.1, 13.6, 0, 101.8, 4.6, 42]); camFin(); } },
+  { t: 22.6, set: world, mood: MOOD.day, loopin: 1,
+    upd(lt){ dT = T - END; benEdge(T - END); cord(new THREE.Vector3(0, DECK + 0.2, EDGE - 0.45), 0); camW(0, HOOK[0], HOOK[1]); camFin(); } },
+];
+const SUBS = [{"s": 1.661, "e": 3.214, "w": [["FÜNFZIG", 1.661], ["METER", 2.036], ["ÜBER", 2.357], ["DEM", 2.571], ["FLUSS.", 2.768]]}, {"s": 3.357, "e": 4.571, "w": [["DIE", 3.357], ["ERSTEN", 3.446], ["ZWANZIG", 3.732], ["METER:", 4.054]]}, {"s": 4.571, "e": 5.625, "w": [["FREIER", 4.571], ["FALL.", 5.071]]}, {"s": 5.714, "e": 6.554, "w": [["ZWEI", 5.714], ["SEKUNDEN,", 5.911]]}, {"s": 6.554, "e": 7.411, "w": [["DANN", 6.554], ["HAT", 6.732], ["ER", 6.839], ["ÜBER", 7.161]]}, {"s": 7.411, "e": 9.286, "w": [["SIEBZIG", 7.411], ["KM/H", 7.75], ["DRAUF.", 8.696]]}, {"s": 9.357, "e": 10.768, "w": [["JETZT", 9.357], ["SPANNT", 9.696], ["SICH", 9.911], ["DAS", 10.089], ["SEIL.", 10.25]]}, {"s": 10.768, "e": 12.036, "w": [["ES", 10.768], ["DEHNT", 10.946], ["SICH", 11.161], ["AUF", 11.304], ["DAS", 11.429], ["DOPPELTE", 11.607]]}, {"s": 12.036, "e": 13.348, "w": [["UND", 12.036], ["BREMST", 12.304], ["BEN", 12.696], ["AB.", 12.839]]}, {"s": 13.411, "e": 14.143, "w": [["DABEI", 13.411], ["DRÜCKT", 13.589], ["ES", 13.804], ["MIT", 14.0]]}, {"s": 14.143, "e": 15.982, "w": [["BIS", 14.143], ["ZU", 14.304], ["DREIFACHEM", 14.482], ["KÖRPERGEWICHT.", 15.107]]}, {"s": 16.054, "e": 16.857, "w": [["GANZ", 16.054], ["UNTEN:", 16.268]]}, {"s": 16.857, "e": 17.696, "w": [["STILLSTAND,", 16.857]]}, {"s": 17.696, "e": 18.795, "w": [["KURZ", 17.696], ["ÜBER", 17.857], ["DEM", 18.107], ["WASSER.", 18.232]]}, {"s": 18.839, "e": 19.929, "w": [["DANN", 18.839], ["SCHLEUDERT", 19.125], ["IHN", 19.482], ["DAS", 19.607], ["SEIL", 19.75]]}, {"s": 19.929, "e": 20.893, "w": [["WIEDER", 19.929], ["NACH", 20.107], ["OBEN…", 20.304]]}, {"s": 20.929, "e": 21.696, "w": [["UND", 20.929], ["BEN?", 21.125]]}, {"s": 21.714, "e": 22.679, "w": [["WILL", 21.714], ["GLEICH", 21.875], ["NOCHMAL.", 22.125]]}];
+
+function proj(v){ V3.copy(v).project(cam); return V3.z < 1 ? [(V3.x + 1) / 2 * W, (1 - V3.y) / 2 * H] : null; }
+function benMark(){ if (eyeS !== null) ben.eyes[0].scale.y = eyeS; ben.eyes[1].scale.y = 0.12; ben.eyes[1].position.y = 0.53; }
+/* =========================================================
+   TEXT (neues Format: fett, Großbuchstaben, aktives Wort gelb)
+   ========================================================= */
+const SANS = '"Arial Black", "Helvetica Neue", Arial, system-ui, sans-serif', SERIF = SANS;
+const band = document.createElement('canvas'); band.width = 8; band.height = 512;
+(function(){ const x = band.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, 'rgba(10,14,24,0)'); g.addColorStop(0.5, 'rgba(10,14,24,0.42)'); g.addColorStop(1, 'rgba(10,14,24,0)'); x.fillStyle = g; x.fillRect(0, 0, 8, 512); })();
+function boldLines(words, cy, size, maxW, act, pop, col){
+  g2.save(); g2.font = `900 ${size}px ${SANS}`; g2.textBaseline = 'middle'; g2.lineJoin = 'round';
+  const spc = size * 0.28, lines = [[]]; let lw = 0;
+  words.forEach((w, i) => { const wd = g2.measureText(w).width; if (lw + wd > maxW && lines[lines.length - 1].length){ lines.push([]); lw = 0; } lines[lines.length - 1].push({ w, wd, i }); lw += wd + spc; });
+  const lh = size * 1.12, y0 = cy - (lines.length - 1) * lh / 2;
+  lines.forEach((ln, li) => { const tw = ln.reduce((a, b) => a + b.wd, 0) + spc * (ln.length - 1); let x = W / 2 - tw / 2;
+    ln.forEach(tk => { const on = tk.i === act, s = on ? 1 + 0.08 * pop : 1, y = y0 + li * lh;
+      g2.save(); g2.translate(x + tk.wd / 2, y); g2.scale(s, s);
+      g2.lineWidth = size * 0.2; g2.strokeStyle = '#0b1220'; g2.strokeText(tk.w, -tk.wd / 2, 0);
+      g2.fillStyle = on ? '#ffd23c' : (col || '#ffffff'); g2.fillText(tk.w, -tk.wd / 2, 0); g2.restore(); x += tk.wd + spc; }); });
+  g2.restore();
+}
+function fitSize(text, size, maxW){ g2.font = `900 ${size}px ${SANS}`; const w = g2.measureText(text).width; return w > maxW ? size * maxW / w : size; }
+function drawHook(a, sc){
+  if (a <= 0) return; g2.save(); g2.globalAlpha = a; g2.drawImage(band, 0, 340, W, 520);
+  const s1 = fitSize('BEN SPRINGT', 130, 900), s2 = fitSize('BUNGEE', 130, 860);
+  g2.translate(W / 2, 600); g2.scale(sc, sc); g2.translate(-W / 2, -600);
+  boldLines(['BEN', 'SPRINGT'], 535, s1, 960, -1, 0); boldLines(['BUNGEE'], 670, s2, 900, -1, 0, '#ffd23c');
+  g2.restore();
+}
+function drawSubs(){
+  let cur = null; for (const s of SUBS) if (T >= s.s && T < s.e) cur = s; if (!cur) return;
+  let act = 0; cur.w.forEach((w, i) => { if (T >= w[1]) act = i; });
+  const pop = clamp01(1 - (T - cur.w[act][1]) / 0.18), age = T - cur.s, a = E.out(clamp01(age / 0.08));
+  g2.save(); g2.globalAlpha = a; g2.drawImage(band, 0, 1060, W, 400);
+  const yy = 1260 + (1 - a) * 14;
+  if (cur.ben){ boldLines(cur.w.map(w => w[0]), yy, 112, 880, act, pop, '#ffffff'); g2.font = `900 34px ${SANS}`; g2.textAlign = 'center'; g2.fillStyle = '#ffd23c'; g2.strokeStyle = '#0b1220'; g2.lineWidth = 8; g2.strokeText('— BEN', W / 2, yy + 100); g2.fillText('— BEN', W / 2, yy + 100); }
+  else boldLines(cur.w.map(w => w[0]), yy, 78, 880, act, pop);
+  g2.restore();
+}
+function drawHud(h){
+  if (!h) return; g2.save(); g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.lineJoin = 'round';
+  const big = fitSize(h[0], 140, 880); g2.font = `900 ${big}px ${SANS}`; g2.lineWidth = 24; g2.strokeStyle = '#0b1220'; g2.strokeText(h[0], W / 2, 400); g2.fillStyle = '#ffffff'; g2.fillText(h[0], W / 2, 400);
+  if (h[1]){ g2.font = `900 40px ${SANS}`; g2.lineWidth = 10; g2.strokeText(h[1], W / 2, 500); g2.fillStyle = '#ffd23c'; g2.fillText(h[1], W / 2, 500); }
+  g2.restore();
+}
+function glowDot(x, y, r, col, a){ if (a <= 0) return; const g = g2.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, 'rgba(255,255,255,' + Math.min(1, a) + ')'); g.addColorStop(0.25, col.replace('A', Math.min(1, a) * 0.9)); g.addColorStop(1, col.replace('A', 0)); g2.fillStyle = g; g2.fillRect(x - r, y - r, 2 * r, 2 * r); }
+function wp(x, y, z){ return proj(new THREE.Vector3(x, y, z)); }
+function txt(s, x, y, size, col, al){ g2.font = `900 ${size}px ${SANS}`; g2.textAlign = al || 'center'; g2.textBaseline = 'middle'; g2.lineJoin = 'round'; g2.lineWidth = size * 0.22; g2.strokeStyle = '#0b1220'; g2.strokeText(s, x, y); g2.fillStyle = col; g2.fillText(s, x, y); }
+function drawRuler(a){ if (a <= 0) return; const X = 5.5, Z = EDGE, t = wp(X, DECK, Z), b = wp(X, 0, Z); if (!t || !b) return;
+  g2.save(); g2.lineCap = 'round'; const ex = lerp(t[0], b[0], a), ey = lerp(t[1], b[1], a);
+  g2.strokeStyle = '#0b1220'; g2.lineWidth = 16; g2.beginPath(); g2.moveTo(t[0], t[1]); g2.lineTo(ex, ey); g2.stroke(); g2.strokeStyle = '#ffd23c'; g2.lineWidth = 8; g2.stroke();
+  for (let k = 0; k <= 10; k++){ if (k / 10 > a + 1e-3) continue; const q = wp(X, DECK - k * 10, Z); if (!q) continue; const L = k % 5 ? 16 : 30; g2.strokeStyle = '#0b1220'; g2.lineWidth = 10; g2.beginPath(); g2.moveTo(q[0] - L, q[1]); g2.lineTo(q[0] + L, q[1]); g2.stroke(); g2.strokeStyle = '#ffd23c'; g2.lineWidth = 5; g2.stroke(); }
+  const m = wp(X, DECK / 2, Z); if (a > 0.5) txt('50 M', m[0] + 40, m[1], 66, '#ffd23c', 'left'); g2.restore(); }
+function drawMark(a){ if (a <= 0) return; const l = wp(-9, DECK - L0, 9), r = wp(9, DECK - L0, 9); if (!l || !r) return;
+  g2.save(); g2.globalAlpha = a; g2.setLineDash([30, 18]); g2.lineWidth = 12; g2.strokeStyle = '#0b1220'; g2.beginPath(); g2.moveTo(0, l[1] + (r[1] - l[1]) * (0 - l[0]) / (r[0] - l[0])); g2.lineTo(W, l[1] + (r[1] - l[1]) * (W - l[0]) / (r[0] - l[0])); g2.stroke();
+  g2.lineWidth = 6; g2.strokeStyle = '#ffd23c'; g2.stroke(); g2.setLineDash([]); const yy = l[1] + (r[1] - l[1]) * (120 - l[0]) / (r[0] - l[0]); txt('20 M', 70, yy - 40, 52, '#ffd23c', 'left'); g2.restore(); }
+const vig = document.createElement('canvas'); vig.width = 270; vig.height = 480;
+(function(){ const x = vig.getContext('2d'), g = x.createRadialGradient(135, 240, 120, 135, 240, 330); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.38)'); x.fillStyle = g; x.fillRect(0, 0, 270, 480); })();
+function draw2D(sc, lt, dur){
+  g2.globalAlpha = 1; g2.globalCompositeOperation = 'source-over'; g2.drawImage(renderer.domElement, 0, 0, W, H);
+  g2.globalAlpha = 1; g2.globalCompositeOperation = 'source-over'; g2.drawImage(vig, 0, 0, W, H);
+  if (flashA > 0){ g2.fillStyle = `rgba(255,250,240,${Math.min(1, flashA)})`; g2.fillRect(0, 0, W, H); }
+  if (fadeBlk > 0){ g2.fillStyle = `rgba(0,0,0,${fadeBlk})`; g2.fillRect(0, 0, W, H); }
+  drawRuler(rulerK); if (markK > 0 && curS && T < 9.36) drawMark(markK);
+  if (sc.hud) drawHud(sc.hud());
+  if (sc.hook) drawHook(clamp01((dur - lt) / 0.15), 1);
+  if (sc.loopin){ const k = clamp01((T - (END - 0.14)) / 0.14); drawHook(k, 1 + 0.25 * (1 - k)); }
+  if (!sc.hook) drawSubs();
+}
+
+/* =========================================================
+   ABLAUF
+   ========================================================= */
+let curI = -1, curS = SCN[0], curLt = 0;
+function step(){
+  let i = 0; while (i < SCN.length - 1 && T >= SCN[i + 1].t) i++;
+  const sc = SCN[i];
+  if (i !== curI){ curI = i; SETS.forEach(s => s.visible = s === sc.set); setMood(sc.mood); if (sc.enter) sc.enter(); }
+  blurAmt = 0; fadeBlk = 0; flashA = 0; ben.mouth.rotation.z = 0; ben.root.rotation.z = 0;
+  talk = 0; rulerK = markK = gK = 0; ben.root.rotation.set(0, 0, 0); curS = sc; curLt = T - sc.t; sc.upd(curLt); benMark();
+  if (T >= END && !ended) finish();
+}
+let vTrack = null;
+function frame(){
+  renderer.render(scene, cam);
+  draw2D(curS, curLt, (curI < SCN.length - 1 ? SCN[curI + 1].t : END) - curS.t);
+  if (recording && vTrack) vTrack.requestFrame();
+}
+let playing = false, startMs = 0, ended = false, rec = null, chunks = [], recording = false, videoBlob = null;
+function reset(){ T = 0; curI = -1; ended = false; hv = hp = hl = ''; hvT = hpT = hlT = -9; step(); }
+function loop(now){
+  requestAnimationFrame(loop);
+  if (exporting) return;
+  if (playing){ T = Math.min((now - startMs) / 1000, END + 0.3); step(); }
+  frame();
+}
+function startRec(){
+  if (!out.captureStream || typeof MediaRecorder === 'undefined'){ ui.innerHTML = '<p>Aufnahme wird von diesem Browser nicht unterstützt.</p>'; ui.classList.remove('hidden'); return false; }
+  let stream; try { stream = out.captureStream(0); vTrack = stream.getVideoTracks()[0]; if (!vTrack || !vTrack.requestFrame) throw 0; } catch (e) { stream = out.captureStream(30); vTrack = null; }
+  const types = ['video/mp4', 'video/mp4;codecs=avc1', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  const mime = types.find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
+  try { rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 10000000 } : {}); } catch (e) { rec = new MediaRecorder(stream); }
+  chunks = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  rec.onstop = () => { vTrack = null; videoBlob = new Blob(chunks, { type: rec.mimeType || mime || 'video/webm' }); recording = false; recdot.style.display = 'none'; showUI('end'); };
+  rec.start(); recording = true; recdot.style.display = 'block'; return true;
+}
+/* Bild-für-Bild-Export: H.264 über WebCodecs + eigener MP4-Schreiber (kein Echtzeit-Mitschnitt) */
+function mp4Build(samples, avcC, w, h, fps){
+  const enc = new TextEncoder();
+  const u32 = n => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255], u16 = n => [(n >> 8) & 255, n & 255];
+  const cat = arrs => { let L = 0; arrs.forEach(a => L += a.length); const o = new Uint8Array(L); let p = 0; arrs.forEach(a => { o.set(a, p); p += a.length; }); return o; };
+  const box = (type, ...parts) => { const body = cat(parts.map(p => p instanceof Uint8Array ? p : new Uint8Array(p))); return cat([new Uint8Array(u32(body.length + 8)), enc.encode(type), body]); };
+  const full = (type, ver, flags, ...parts) => box(type, [ver, (flags >> 16) & 255, (flags >> 8) & 255, flags & 255], ...parts);
+  const n = samples.length, dur = n, MAT = [].concat(u32(0x10000), u32(0), u32(0), u32(0), u32(0x10000), u32(0), u32(0), u32(0), u32(0x40000000));
+  // Reihenfolge der Anzeige (falls der Encoder B-Bilder liefert)
+  let shift = 0; const off = samples.map((s, i) => { const d = s.pts - i; if (-d > shift) shift = -d; return d; }); const needCtts = off.some(d => d !== 0);
+  const sync = []; samples.forEach((s, i) => { if (s.key) sync.push(i + 1); });
+  const stsd = full('stsd', 0, 0, u32(1), box('avc1', [0, 0, 0, 0, 0, 0], u16(1), u16(0), u16(0), u32(0), u32(0), u32(0), u16(w), u16(h), u32(0x480000), u32(0x480000), u32(0), u16(1), new Uint8Array(32), u16(24), [255, 255], box('avcC', avcC)));
+  const stbl = stco => box('stbl', stsd,
+    full('stts', 0, 0, u32(1), u32(n), u32(1)),
+    needCtts ? full('ctts', 0, 0, u32(n), cat(off.map(d => new Uint8Array(u32(1).concat(u32(d + shift)))))) : new Uint8Array(0),
+    full('stss', 0, 0, u32(sync.length), cat(sync.map(i => new Uint8Array(u32(i))))),
+    full('stsc', 0, 0, u32(1), u32(1), u32(n), u32(1)),
+    full('stsz', 0, 0, u32(0), u32(n), cat(samples.map(s => new Uint8Array(u32(s.data.length))))),
+    full('stco', 0, 0, u32(1), u32(stco)));
+  const moov = stco => box('moov',
+    full('mvhd', 0, 0, u32(0), u32(0), u32(fps), u32(dur), u32(0x10000), u16(0x100), u16(0), u32(0), u32(0), MAT, new Uint8Array(24), u32(2)),
+    box('trak',
+      full('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(dur), u32(0), u32(0), u16(0), u16(0), u16(0), u16(0), MAT, u32(w << 16), u32(h << 16)),
+      box('mdia',
+        full('mdhd', 0, 0, u32(0), u32(0), u32(fps), u32(dur), u16(0x55c4), u16(0)),
+        full('hdlr', 0, 0, u32(0), enc.encode('vide'), u32(0), u32(0), u32(0), enc.encode('Video\0')),
+        box('minf', full('vmhd', 0, 1, u16(0), u16(0), u16(0), u16(0)), box('dinf', full('dref', 0, 0, u32(1), full('url ', 0, 1))), stbl(stco)))));
+  const ftyp = box('ftyp', enc.encode('isom'), u32(0x200), enc.encode('isomiso2avc1mp41'));
+  const mv = moov(ftyp.length + moov(0).length + 8);
+  let L = 0; samples.forEach(s => L += s.data.length);
+  return new Blob([ftyp, mv, new Uint8Array(u32(L + 8)), enc.encode('mdat')].concat(samples.map(s => s.data)), { type: 'video/mp4' });
+}
+async function exportMP4(canvas, total, fps, renderAt, onProgress){
+  const w = canvas.width, h = canvas.height; let cfg = null;
+  for (const codec of ['avc1.640028', 'avc1.4d0028', 'avc1.42002a', 'avc1.42e028']){
+    const c = { codec, width: w, height: h, bitrate: 12000000, framerate: fps, avc: { format: 'avc' } };
+    try { const r = await VideoEncoder.isConfigSupported(c); if (r && r.supported){ cfg = c; break; } } catch (e) {}
+  }
+  if (!cfg) throw new Error('H.264 wird nicht unterstützt');
+  const samples = []; let avcC = null, err = null; const usPer = 1e6 / fps;
+  const enc = new VideoEncoder({
+    output: (chunk, meta) => {
+      if (meta && meta.decoderConfig && meta.decoderConfig.description && !avcC){ const d = meta.decoderConfig.description; avcC = new Uint8Array(d.buffer ? d.buffer.slice(d.byteOffset, d.byteOffset + d.byteLength) : d); }
+      const data = new Uint8Array(chunk.byteLength); chunk.copyTo(data); samples.push({ data, key: chunk.type === 'key', pts: Math.round(chunk.timestamp / usPer) });
+    },
+    error: e => { err = e; },
+  });
+  enc.configure(cfg);
+  for (let i = 0; i < total; i++){
+    if (err) throw err;
+    renderAt(i);
+    const vf = new VideoFrame(canvas, { timestamp: Math.round(i * usPer), duration: Math.round(usPer) });
+    enc.encode(vf, { keyFrame: i % 60 === 0 }); vf.close();
+    while (enc.encodeQueueSize > 2) await new Promise(r => setTimeout(r, 4));
+    if (i % 3 === 0){ onProgress && onProgress(i / total); await new Promise(r => setTimeout(r, 0)); }
+  }
+  await enc.flush(); enc.close(); if (err) throw err;
+  if (!avcC || !samples.length) throw new Error('Encoder hat keine Daten geliefert');
+  return mp4Build(samples, avcC, w, h, fps);
+}
+let exporting = false;
+async function doExport(){
+  reset(); exporting = true; playing = false; videoBlob = null; ui.classList.remove('hidden');
+  ui.innerHTML = '<h1>Video wird erstellt …</h1><p id="prog" style="font-size:34px;font-weight:800;opacity:1">0 %</p><p>Bild für Bild in voller Qualität. Bitte die Seite offen lassen und den Bildschirm nicht sperren.</p>';
+  const pr = document.getElementById('prog');
+  try {
+    videoBlob = await exportMP4(out, Math.floor(END * 30), 30, i => { T = i / 30; step(); frame(); }, p => { pr.textContent = Math.round(p * 100) + ' %'; });
+    exporting = false; ended = true; showUI('end');
+  } catch (e) {
+    exporting = false; showUI('start');
+    const m = document.createElement('p'); m.style.color = '#ffb3a0'; m.textContent = 'Export hat nicht geklappt (' + (e && e.message ? e.message : e) + '). Du kannst stattdessen „Aufnehmen“ nutzen.'; ui.appendChild(m);
+  }
+}
+let claudeDL = null;
+try { if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { claudeDL = d; }).catch(() => {}); } catch (e) {}
+async function saveVideo(){
+  if (!videoBlob) return;
+  const fname = `was-waere-ben-bungee.${videoBlob.type.includes('mp4') ? 'mp4' : 'webm'}`;
+  if (claudeDL){ try { await claudeDL.save({ filename: fname, data: videoBlob }); return; } catch (e) { if (e && e.code === 'declined') return; } }
+  const file = new File([videoBlob], fname, { type: videoBlob.type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })){ try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+}
+function finish(){ ended = true; playing = false; if (recording && rec) setTimeout(() => rec.stop(), 300); else showUI('end'); }
+function begin(withRec){
+  reset(); if (withRec){ videoBlob = null; if (!startRec()) return; }
+  ui.classList.add('hidden'); playing = true; startMs = performance.now();
+}
+function showUI(mode){
+  ui.classList.remove('hidden');
+  if (mode === 'start'){
+    ui.innerHTML = `<h1>Was wäre Ben? – Bungee</h1><p>9:16 · 1080 × 1920 · ca. 23 s · Sprecher-Spur (ElevenLabs, „Take 1 – Sprecher Airbag“) ab 0:00 drunterlegen</p>
+      <button class="b1" id="bPlay">▶ Abspielen</button>
+      ${window.VideoEncoder ? '<button class="b3" id="bExp">💾 Als MP4-Video exportieren</button><p style="font-size:12px;opacity:.7">Der Export rechnet jedes Bild einzeln. Das Ergebnis läuft flüssig, auch wenn das Handy langsam ist.</p>' : ''}
+      <button class="b2" id="bRec">⏺ Live aufnehmen${window.VideoEncoder ? ' (Notlösung)' : ' &amp; speichern'}</button>`;
+  } else {
+    if (videoBlob && !videoBlob._url) videoBlob._url = URL.createObjectURL(videoBlob);
+    ui.innerHTML = `<h1>Fertig!</h1>
+      ${videoBlob ? `<video src="${videoBlob._url}" controls playsinline muted style="max-height:38vh;max-width:80vw;border-radius:12px;background:#000"></video><button class="b3" id="bSave">💾 Video speichern</button>` : ''}
+      <button class="b1" id="bPlay">↺ Nochmal ansehen</button>${window.VideoEncoder ? '<button class="b2" id="bExp">💾 Neu exportieren</button>' : '<button class="b2" id="bRec">⏺ Aufnehmen &amp; speichern</button>'}`;
+  }
+  const bp = document.getElementById('bPlay'), br = document.getElementById('bRec'), bs = document.getElementById('bSave');
+  bp && (bp.onclick = () => begin(false)); br && (br.onclick = () => begin(true)); bs && (bs.onclick = saveVideo); const be = document.getElementById('bExp'); be && (be.onclick = doExport);
+}
+reset(); showUI('start'); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

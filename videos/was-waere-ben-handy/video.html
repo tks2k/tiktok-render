@@ -320,10 +320,10 @@ function screenTex(){
 }
 const SCRN = new THREE.MeshBasicMaterial({ map: screenTex() });
 function makePhone(par, centered){
-  const g = new THREE.Group(), m = new THREE.Group(); g.add(m); m.position.y = centered ? 0 : 0.025; par.add(g);
-  P(m, rbox(0.34, 0.05, 0.66, 0.02), mat(0x1b1e26, { roughness: 0.35, metalness: 0.3 }), 0, 0, 0);
+  const g = new THREE.Group(), m = new THREE.Group(); g.add(m); m.position.y = centered ? 0 : 0.03; par.add(g);
+  P(m, rbox(0.4, 0.06, 0.78, 0.02), mat(0x1b1e26, { roughness: 0.35, metalness: 0.3 }), 0, 0, 0);
   P(m, rbox(0.12, 0.02, 0.14, 0.01, 1), mat(0x2c313c, { roughness: 0.3 }), -0.08, 0.03, -0.22);
-  const s = new THREE.Mesh(new THREE.PlaneGeometry(0.31, 0.62), SCRN); s.rotation.x = PI / 2; s.position.y = -0.0265; m.add(s);
+  const s = new THREE.Mesh(new THREE.PlaneGeometry(0.37, 0.74), SCRN); s.rotation.x = PI / 2; s.position.y = -0.0315; m.add(s);
   const L = new THREE.PointLight(0x9cc6ff, 1.5, 2.6, 1.5); L.position.set(0, -0.22, 0); m.add(L); g.light = L;
   return g;
 }
@@ -334,7 +334,7 @@ const RY = MT + 0.28, HT = 0.4, PT = -0.40, GAP = 0.36;
 function lieBen(t){ bRest(ben, t, 0); ben.root.position.set(0, RY, 0); ben.root.rotation.set(-PI / 2, 0, 0); ben.head.rotation.x = HT; }
 const NOSE = new THREE.Vector3(), HOLD = new THREE.Vector3(), HAND0 = [new THREE.Vector3(), new THREE.Vector3()];
 (function(){ lieBen(0); ben.root.updateMatrixWorld(true); ben.head.localToWorld(NOSE.set(0, 0.58, 0.67)); HOLD.copy(NOSE); HOLD.y += GAP;
-  PH.position.copy(HOLD); PH.rotation.set(PT, 0, 0); PH.updateMatrixWorld(true); PH.localToWorld(HAND0[0].set(-0.25, 0.025, 0.2)); PH.localToWorld(HAND0[1].set(0.25, 0.025, 0.2)); })();
+  PH.position.copy(HOLD); PH.rotation.set(PT, 0, 0); PH.updateMatrixWorld(true); PH.localToWorld(HAND0[0].set(-0.29, 0.03, 0.24)); PH.localToWorld(HAND0[1].set(0.29, 0.03, 0.24)); })();
 const POLE = [new THREE.Vector3(-1, -0.4, 0.7), new THREE.Vector3(1, -0.4, 0.7)];
 const T_SLIP = 6.97, T_HIT = 12.6, FALL = 0.247;
 const tReal = () => clamp01((T - T_SLIP) / (T_HIT - T_SLIP)) * FALL;
@@ -352,7 +352,7 @@ function benPhone(lift, t){
   const open = E.out(seg(t, T_SLIP - 0.05, T_SLIP + 0.35)), grab = Math.max(E.io(seg(t, T_HIT + 0.15, T_HIT + 2.0)), lift > 0 ? 1 : 0);
   for (let i = 0; i < 2; i++){ const s = i ? 1 : -1;
     const fr = _ih.copy(HAND0[i]); fr.x += s * 0.07 * open; fr.y -= 0.03 * open;
-    const on = PH.localToWorld(new THREE.Vector3(0.25 * s, 0.025, 0.2));
+    const on = PH.localToWorld(new THREE.Vector3(0.29 * s, 0.03, 0.24));
     ik(ben, i, t < T_SLIP ? HAND0[i] : fr.clone().lerp(on, grab), POLE[i]); }
 }
 
@@ -365,20 +365,20 @@ let dimK = 0, raceK = 0, ringK = 0, brainK = 0, weightK = 0, noseK = 0, xrK = 0;
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.012; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.008; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const imp = at => T >= at ? Math.exp(-(T - at) * 3) : 0;
-const HOOK = [[1.4, 4.3, 2.6, 0, 2.35, -2.35, 40], [1.25, 4.15, 2.25, 0, 2.35, -2.35, 38]];
+const HOOK = [[1.2, 4.3, 2.4, 0, 2.35, -2.4, 46], [1.1, 4.15, 2.1, 0, 2.35, -2.4, 44]];
 const fmt = (v, n) => v.toFixed(n).replace('.', ',');
 function benHold(t){ show(ben); lieBen(t); benPhone(0, t); eyeS = 1; bFace(ben, 0.15, 0); }
 function painBen(k){ eyeS = lerp(1, 0.1, k); bFace(ben, -1.0 * k, 0.9 * k); }
 
 /* Profi: liegt auf der linken Seite, Kopf Richtung +x, Gesicht Richtung +z */
-const PRX = -1.5, PRY = MT + 0.83, P2C = new THREE.Vector3(1.1, 2.0, 0.98), P2H = new THREE.Vector3(0.85, 1.9, 0.98), P2R = new THREE.Vector3(0.95, 1.4, 0.7);
+const PRX = -1.5, PRY = MT + 0.83, P2C = new THREE.Vector3(1.1, 2.0, 0.98), P2H = new THREE.Vector3(0.81, 1.9, 0.98), P2R = new THREE.Vector3(0.95, 1.4, 0.7);
 function proScene(){
   show(pro); bRest(pro, T, 2); pro.root.position.set(PRX, PRY, 0); pro.root.rotation.set(0, 0, -PI / 2);
   pro.sh[1].rotation.set(-PI / 2, 0, 0); pro.el[1].rotation.set(0, 0, 0);
-  const TS = 20.9, TL = TS + 0.194, tf = T - TS;
+  const TS = 20.9, TL = TS + 0.178, tf = T - TS;
   if (T < TS){ PH2.position.copy(P2C); PH2.rotation.set(PI / 2, 0, 0); }
   else if (T < TL){ PH2.position.set(P2C.x, P2C.y - 9.81 * tf * tf, P2C.z); PH2.rotation.set(PI / 2, 0, 0); }
-  else { const ph = PI / 2 * Math.pow(seg(T, TL, TL + 0.28), 2), B = MT + 0.2; PH2.position.set(P2C.x, B + 0.33 * Math.cos(ph) + 0.025 * Math.sin(ph), P2C.z + 0.33 * Math.sin(ph)); PH2.rotation.set(PI / 2 + ph, 0, 0); }
+  else { const ph = PI / 2 * Math.pow(seg(T, TL, TL + 0.28), 2), B = MT + 0.2; PH2.position.set(P2C.x, B + 0.39 * Math.cos(ph) + 0.03 * Math.sin(ph), P2C.z + 0.39 * Math.sin(ph)); PH2.rotation.set(PI / 2 + ph, 0, 0); }
   PH2.light.intensity = 1.3;
   const rel = E.io(seg(T, 21.0, 21.9)), hand = P2H.clone().lerp(P2R, rel); if (T >= TS) hand.x -= 0.05 * E.out(seg(T, TS, TS + 0.3));
   ik(pro, 0, hand, new THREE.Vector3(0, -1, 0.4));
@@ -393,28 +393,28 @@ const SCN = [
     upd(lt){ dT = T; benHold(T); PH.light.intensity = 1.5 + 1.2 * imp(0.25) * (T > 0.25 ? 1 : 0); camW(E.io(seg(lt, 0, 2.9)), HOOK[0], HOOK[1]); camFin(); } },
   { t: 2.9, set: world, mood: MOOD.night, hud: () => T > 3.3 ? ['30 CM', 'ÜBER DEM GESICHT'] : null,
     upd(lt){ dT = T; benHold(T); dimK = E.out(seg(T, 3.2, 3.6)) * (1 - seg(T, 5.3, 5.5));
-      camW(E.io(seg(lt, 0, 2.6)), [5.2, 3.0, -3.6, 0, 2.35, -2.4, 34], [4.9, 2.95, -3.5, 0, 2.35, -2.4, 33]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.6)), [6.2, 2.7, -2.3, 0, 2.3, -2.4, 44], [5.9, 2.65, -2.3, 0, 2.3, -2.4, 43]); camFin(); } },
   { t: 5.5, set: world, mood: MOOD.night, hud: () => T > T_SLIP ? ['ZEITLUPE', '23× LANGSAMER'] : null,
     upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); eyeS = 1; bFace(ben, 0.15 - 0.4 * seg(T, T_SLIP, T_SLIP + 0.4), 0.3 * seg(T, T_SLIP, T_SLIP + 0.4));
-      camW(E.io(seg(lt, 0, 2.05)), [3.3, 1.95, -0.4, 0, 2.45, -2.3, 34], [3.0, 1.95, -0.55, 0, 2.45, -2.3, 33]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.05)), [3.6, 1.9, 0.2, 0, 2.45, -2.3, 44], [3.3, 1.9, 0.0, 0, 2.45, -2.3, 43]); camFin(); } },
   { t: 7.55, set: world, mood: MOOD.night, hud: () => [fmt(tReal(), 2) + ' S', 'FALLZEIT'],
     upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); eyeS = 1; bFace(ben, -0.25, 0.3); raceK = E.out(seg(T, 7.7, 8.0));
-      camW(E.io(seg(lt, 0, 1.85)), [4.4, 2.6, -3.4, 0, 2.35, -2.4, 32], [4.1, 2.55, -3.3, 0, 2.35, -2.4, 31]); camFin(); } },
+      camW(E.io(seg(lt, 0, 1.85)), [5.4, 2.6, -2.6, 0, 2.35, -2.4, 40], [5.1, 2.55, -2.6, 0, 2.35, -2.4, 39]); camFin(); } },
   { t: 9.4, set: world, mood: MOOD.night, hud: () => [fmt(tReal(), 2) + ' S', 'GEHIRN REAGIERT …'],
     upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); eyeS = 1; bFace(ben, -0.25, 0.3); raceK = 1; xrK = E.out(seg(T, 9.4, 9.8));
-      camW(E.io(seg(lt, 0, 3.0)), [1.5, 4.2, 1.8, 0, 2.4, -2.4, 34], [1.3, 4.0, 1.4, 0, 2.4, -2.4, 33]); camFin(); } },
+      camW(E.io(seg(lt, 0, 3.0)), [1.4, 4.4, 2.2, 0, 2.4, -2.4, 44], [1.2, 4.2, 1.8, 0, 2.4, -2.4, 43]); camFin(); } },
   { t: 12.4, set: world, mood: MOOD.night, hud: () => T > T_HIT ? ['8,7 KM/H', 'AUFPRALL – ZU SPÄT!'] : [fmt(tReal(), 2) + ' S', 'GEHIRN REAGIERT …'],
     upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); const hk = T > T_HIT ? 1 : 0; painBen(hk * (0.6 + 0.4 * Math.exp(-(T - T_HIT) * 2)));
       if (!hk){ eyeS = 1; bFace(ben, -0.25, 0.3); } raceK = 1 - seg(T, 13.2, 13.5); ringK = hk * clamp01(1 - (T - T_HIT) / 0.9); flashA = hk && T < T_HIT + 0.08 ? 0.3 : 0;
-      camW(E.io(seg(lt, 0, 3.0)), [4.0, 2.5, -3.6, 0, 2.3, -2.4, 30], [3.6, 2.45, -3.45, 0, 2.3, -2.4, 29]); camFin(0.06 * imp(T_HIT)); } },
+      camW(E.io(seg(lt, 0, 3.0)), [4.8, 2.5, -2.7, 0, 2.3, -2.4, 38], [4.4, 2.45, -2.65, 0, 2.3, -2.4, 37]); camFin(0.06 * imp(T_HIT)); } },
   { t: 15.4, set: world, mood: MOOD.night, hud: () => ['≈ 100 N', 'WIE 10 KILO AUF DER NASE'],
     upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); painBen(0.85 + 0.15 * Math.sin(T * 6)); noseK = E.out(seg(T, 15.5, 15.9)) * (1 - seg(T, 19.1, 19.4)); weightK = E.out(seg(T, 17.4, 17.8)) * (1 - seg(T, 19.1, 19.4));
-      camW(E.io(seg(lt, 0, 4.0)), [0.9, 4.0, 0.8, 0, 2.2, -2.45, 30], [0.8, 3.85, 0.5, 0, 2.2, -2.45, 29]); camFin(); } },
+      camW(E.io(seg(lt, 0, 4.0)), [0.9, 4.3, 1.4, 0, 2.2, -2.45, 38], [0.8, 4.1, 1.0, 0, 2.2, -2.45, 37]); camFin(); } },
   { t: 19.4, set: world2, mood: MOOD.night, hud: () => ['PROFI-TRICK', 'AUF DER SEITE LIEGEN'],
-    upd(lt){ dT = T; proScene(); camW(E.io(seg(lt, 0, 2.9)), [1.3, 2.6, 6.0, 0.9, 1.8, 0.3, 30], [1.25, 2.55, 5.7, 0.9, 1.8, 0.3, 29]); camFin(); } },
+    upd(lt){ dT = T; proScene(); camW(E.io(seg(lt, 0, 2.9)), [2.6, 3.3, 5.6, 1.0, 1.8, 0.3, 44], [2.5, 3.2, 5.3, 1.0, 1.8, 0.3, 43]); camFin(); } },
   { t: 22.3, set: world, mood: MOOD.night, hud: () => T > 22.45 ? ['RUNDE 2', 'NICHTS GELERNT'] : null,
     upd(lt){ dT = T; show(ben); lieBen(T); const lf = E.io(seg(T, 22.95, 23.7)); benPhone(lf); painBen(0.5 * (1 - lf));
-      camW(E.io(seg(lt, 0, 1.6)), [2.4, 4.6, 2.8, 0, 2.35, -2.35, 40], [2.2, 4.45, 2.5, 0, 2.35, -2.35, 39]); camFin(); } },
+      camW(E.io(seg(lt, 0, 1.6)), [2.3, 4.7, 3.0, 0, 2.35, -2.4, 46], [2.1, 4.55, 2.7, 0, 2.35, -2.4, 45]); camFin(); } },
   { t: 23.9, set: world, mood: MOOD.night, loopin: 1,
     upd(lt){ dT = T - END; benHold(T - END); camW(0, HOOK[0], HOOK[1]); camFin(); } },
 ];

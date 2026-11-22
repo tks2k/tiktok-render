@@ -390,7 +390,7 @@ function proScene(){
    ========================================================= */
 const SCN = [
   { t: 0, set: world, mood: MOOD.night, hook: 1,
-    upd(lt){ dT = T; benHold(T); PH.light.intensity = 1.5 + 1.2 * imp(0.25) * (T > 0.25 ? 1 : 0); camW(E.io(seg(lt, 0, 2.9)), HOOK[0], HOOK[1]); camFin(); } },
+    upd(lt){ dT = T; benHold(T); PH.light.intensity = 1.5; camW(E.io(seg(lt, 0, 2.9)), HOOK[0], HOOK[1]); camFin(); } },
   { t: 2.9, set: world, mood: MOOD.night, hud: () => T > 3.3 ? ['30 CM', 'ÜBER DEM GESICHT'] : null,
     upd(lt){ dT = T; benHold(T); dimK = E.out(seg(T, 3.2, 3.6)) * (1 - seg(T, 5.3, 5.5));
       camW(E.io(seg(lt, 0, 2.6)), [6.2, 2.7, -2.3, 0, 2.3, -2.4, 44], [5.9, 2.65, -2.3, 0, 2.3, -2.4, 43]); camFin(); } },

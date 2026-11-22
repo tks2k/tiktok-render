@@ -344,7 +344,7 @@ const SCN = [
   { t: 18.1, set: world, mood: MOOD.park, hud: () => ['PROFI-TRICK', T < 20.1 ? 'BAUCH + BEINE ANSPANNEN' : 'MEHR BLUT BLEIBT IM KOPF'],
     upd(lt){ dT = T; riders(T); const th = lerp(TH_A + 0.1, 0.7, seg(T, 18.1, 21.6)), d = dAt(th) + 2.45; train(d); gNow = gAt(d - 2.45); squash(ben, 0.8); eyeS = 0.3; bFace(ben, -0.9, 0.1);
       const k = E.out(seg(T, 18.6, 19.2)); squash(pro, 0.8 * (1 - 0.4 * k)); bFace(pro, -0.7, 0.05); pro.eyes.forEach(e => e.scale.y = lerp(0.4, 0.75, k)); pro.torso.rotation.x = 0.12 * k; pro.sh[0].rotation.set(-0.6, 0, -0.35); pro.sh[1].rotation.set(-0.6, 0, 0.35); pro.el[0].rotation.x = -1.4; pro.el[1].rotation.x = -1.4;
-      proK = E.out(seg(T, 18.7, 19.1)); camCar(CAR2, E.io(seg(lt, 0, 3.5)), [3.4, 2.1, 0.9, 0, 1.8, 0.2, 44], [3.1, 2.0, 0.8, 0, 1.8, 0.2, 43]); camFinCar(CAR2); } },
+      proK = E.out(seg(T, 18.7, 19.1)); camCar(CAR2, E.io(seg(lt, 0, 3.5)), [3.8, 2.6, 0.9, 0, 2.35, 0.2, 44], [3.5, 2.5, 0.8, 0, 2.35, 0.2, 43]); camFinCar(CAR2); } },
   { t: 21.6, set: world, mood: MOOD.park, hud: () => T > 21.75 ? ['RUNDE 2', 'ARME HOCH!'] : null,
     upd(lt){ dT = T; riders(T); armsUp(ben, E.io(seg(T, 22.15, 22.95))); eyeS = 1; bFace(ben, 0.6, 0.7 * seg(T, 22.15, 22.95)); train(dRun(T - END));
       camCar(CAR1, E.io(seg(lt, 0, 2.9)), [-2.2, 3.0, 6.4, 0, 1.9, 0, 46], HOOK[0]); camFinCar(CAR1); } },

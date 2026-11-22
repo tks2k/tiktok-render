@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Was wäre Ben? – Handy</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#out{width:min(100vw,56.25vh);width:min(100vw,calc(100dvh*9/16));height:auto;aspect-ratio:9/16;display:block}
+#ui{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.62);color:#fff;text-align:center;padding:24px}
+#ui.hidden{display:none}
+#ui h1{font:italic 700 28px Georgia,"Times New Roman",serif;margin:0 0 4px;line-height:1.2;max-width:360px}
+#ui p{margin:0 0 6px;opacity:.85;font-size:14px;max-width:330px;line-height:1.35}
+button{font:800 17px system-ui,-apple-system,sans-serif;padding:14px 22px;border-radius:14px;border:0;min-width:270px;cursor:pointer}
+.b1{background:#E8B21F;color:#000}.b2{background:#E0262B;color:#fff}.b3{background:#3bd16f;color:#000}
+#recdot{position:fixed;top:10px;right:12px;color:#ff3b3b;font:800 13px system-ui;display:none;text-shadow:0 0 4px #000}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script>window.THREE||document.write('<script src="https://unpkg.com/three@0.149.0/build/three.min.js"><\/script>')</script>
+</head>
+<body>
+<div id="wrap"><canvas id="out" width="1080" height="1920"></canvas></div>
+<div id="recdot">● REC</div>
+<div id="ui"></div>
+<script>
+(function(){
+if (!window.THREE){ document.getElementById('ui').innerHTML = '<h1>3D-Engine konnte nicht geladen werden</h1><p>Bitte mit Internetverbindung in Safari, Chrome oder Edge öffnen.</p>'; return; }
+const CM = THREE.ColorManagement; if (CM){ if ('legacyMode' in CM) CM.legacyMode = false; if ('enabled' in CM) CM.enabled = true; }
+
+/* =========================================================
+   GRUNDSETUP
+   ========================================================= */
+const W = 1080, H = 1920, END = 24.5;
+const out = document.getElementById('out'), g2 = out.getContext('2d');
+const ui = document.getElementById('ui'), recdot = document.getElementById('recdot');
+const clamp01 = v => Math.max(0, Math.min(1, v)), lerp = (a, b, p) => a + (b - a) * p;
+const seg = (t, a, b) => clamp01((t - a) / (b - a));
+const bump = (t, a, b) => (t <= a || t >= b) ? 0 : Math.pow(Math.sin(Math.PI * (t - a) / (b - a)), 2);
+const E = {
+  io: p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
+  out: p => 1 - Math.pow(1 - p, 3),
+  back: p => { const c = 1.70158; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); },
+};
+function aLerp(a, b, p){ let d = b - a; d = Math.atan2(Math.sin(d), Math.cos(d)); return a + d * p; }
+let seed = 5;
+function rnd(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance', logarithmicDepthBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H, false);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xffffff, 30, 140);
+const cam = new THREE.PerspectiveCamera(36, W / H, 0.2, 3000); scene.add(cam);
+const hemi = new THREE.HemisphereLight(0xffffff, 0x888888, 0.6); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03; sun.shadow.camera.near = 1; sun.shadow.camera.far = 220;
+scene.add(sun); scene.add(sun.target);
+const fill = new THREE.DirectionalLight(0xffffff, 0.25); scene.add(fill);
+
+// Umgebungslicht-Reflexionen (Tag / Nacht)
+let envDay = null, envNight = null;
+try {
+  const pm = new THREE.PMREMGenerator(renderer);
+  const mkEnv = (top, bot, lamp) => {
+    const s = new THREE.Scene(), geo = new THREE.SphereGeometry(50, 24, 12), pos = geo.attributes.position;
+    const col = new Float32Array(pos.count * 3), cT = new THREE.Color(top), cB = new THREE.Color(bot), c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++){ c.copy(cB).lerp(cT, clamp01(pos.getY(i) / 100 + 0.5)); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    s.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ side: THREE.BackSide, vertexColors: true })));
+    const b = new THREE.Mesh(new THREE.BoxGeometry(34, 2, 34), new THREE.MeshBasicMaterial({ color: lamp })); b.position.set(12, 40, 14); s.add(b);
+    return pm.fromScene(s, 0.04).texture;
+  };
+  envDay = mkEnv(0xdfe8f5, 0x8a8078, 0xffffff); envNight = mkEnv(0x1c2c58, 0x0a1020, 0x6f8fd8);
+} catch (e) { envDay = envNight = null; }
+
+/* =========================================================
+   BAUSTEINE: abgerundete Boxen, Materialien, Instanzen
+   ========================================================= */
+const geoCache = {};
+function rbox(w, h, d, r, sg){
+  r = r === undefined ? 0.06 : r; sg = sg || 2;
+  const key = [w, h, d, r, sg].join(','); if (geoCache[key]) return geoCache[key];
+  r = Math.min(r, w / 2 - 1e-3, h / 2 - 1e-3, d / 2 - 1e-3);
+  const n = 2 * sg + 1, g = new THREE.BoxGeometry(w, h, d, n, n, n), p = g.attributes.position, nm = g.attributes.normal;
+  const half = [w / 2, h / 2, d / 2], v = [0, 0, 0], inn = [0, 0, 0];
+  for (let i = 0; i < p.count; i++){
+    v[0] = p.getX(i); v[1] = p.getY(i); v[2] = p.getZ(i);
+    for (let a = 0; a < 3; a++){
+      const hh = half[a], idx = Math.round((v[a] + hh) / (2 * hh / n)), lo = idx <= sg, k = lo ? idx : n - idx;
+      v[a] = (lo ? -1 : 1) * (hh - r * (k / sg)); inn[a] = Math.max(-(hh - r), Math.min(hh - r, v[a]));
+    }
+    let dx = v[0] - inn[0], dy = v[1] - inn[1], dz = v[2] - inn[2]; const len = Math.hypot(dx, dy, dz) || 1; dx /= len; dy /= len; dz /= len;
+    p.setXYZ(i, inn[0] + dx * r, inn[1] + dy * r, inn[2] + dz * r); nm.setXYZ(i, dx, dy, dz);
+  }
+  return geoCache[key] = g;
+}
+const mats = {};
+function mat(c, o){ const k = c + (o ? JSON.stringify(o) : ''); return mats[k] || (mats[k] = new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.62, metalness: 0, envMapIntensity: 0.55 }, o || {}))); }
+const GOLD = mat(0xe2b23a, { roughness: 0.3, metalness: 0.4, envMapIntensity: 1.2 });
+const BLACK = mat(0x17171c, { roughness: 0.3 }), WHITEB = new THREE.MeshBasicMaterial({ color: 0xffffff });
+function P(par, geo, m, x, y, z){ const me = new THREE.Mesh(geo, m); me.position.set(x || 0, y || 0, z || 0); me.castShadow = true; me.receiveShadow = true; par.add(me); return me; }
+function rod(par, m, a, b, r){
+  const A = new THREE.Vector3(a[0], a[1], a[2]), B = new THREE.Vector3(b[0], b[1], b[2]), d = B.clone().sub(A), L = d.length();
+  const me = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 8), m); me.position.copy(A).add(B).multiplyScalar(0.5);
+  me.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); me.castShadow = true; par.add(me); return me;
+}
+const _E = new THREE.Euler(), _Q = new THREE.Quaternion(), _P = new THREE.Vector3(), _S = new THREE.Vector3(), _B = new THREE.Matrix4(), _T = new THREE.Matrix4();
+function Inst(n, defs, s){
+  const o = { g: new THREE.Group(), n, x: new Float32Array(n), y: new Float32Array(n), z: new Float32Array(n), yaw: new Float32Array(n), lean: new Float32Array(n), sc: new Float32Array(n).fill(s || 1) };
+  const parts = defs.map(d => {
+    const im = new THREE.InstancedMesh(d.g, d.m, n); im.castShadow = !d.noShadow; im.receiveShadow = !d.noShadow; im.frustumCulled = false; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    const off = new THREE.Matrix4(); if (d.rz) off.makeRotationZ(d.rz); off.setPosition(d.x || 0, d.y || 0, d.z || 0); o.g.add(im); return { im, off, dyn: d.dyn };
+  });
+  o.parts = parts;
+  o.flush = function(t){
+    for (let i = 0; i < n; i++){
+      _E.set(o.lean[i], o.yaw[i], 0, 'YXZ'); _Q.setFromEuler(_E); _P.set(o.x[i], o.y[i], o.z[i]); _S.setScalar(Math.max(1e-4, o.sc[i])); _B.compose(_P, _Q, _S);
+      for (const p of parts){ _T.multiplyMatrices(_B, p.dyn ? p.dyn(i, t) : p.off); p.im.setMatrixAt(i, _T); }
+    }
+    for (const p of parts) p.im.instanceMatrix.needsUpdate = true;
+  };
+  return o;
+}
+function crowdDefs(o){
+  const bh = o.bh || 1.9, d = [];
+  d.push({ g: rbox(1.0, bh, 0.64, 0.1, 1), m: mat(o.body), y: bh / 2 });
+  if (o.belt) d.push({ g: rbox(1.04, 0.12, 0.68, 0.03, 1), m: o.belt, y: bh * 0.45 });
+  if (o.stripe) d.push({ g: rbox(0.13, bh * 0.86, 0.04, 0.015, 1), m: mat(o.stripe), x: 0.24, y: bh * 0.52, z: 0.325 });
+  d.push({ g: rbox(0.98, 0.86, 0.92, 0.12, 1), m: mat(0xf2c6a2), y: bh + 0.4 });
+  d.push({ g: rbox(1.05, 0.3, 0.99, 0.1, 1), m: o.top, y: bh + 0.8, z: -0.01 });
+  if (o.crest) d.push({ g: rbox(0.17, 0.24, 0.62, 0.06, 1), m: mat(0xc8281e), y: bh + 1.05 });
+  [-1, 1].forEach(s => {
+    d.push({ g: rbox(0.12, 0.17, 0.05, 0.02, 1), m: BLACK, x: s * 0.21, y: bh + 0.42, z: 0.455 });
+    d.push({ g: rbox(0.27, 0.075, 0.07, 0.025, 1), m: mat(0x2e1a10), x: s * 0.21, y: bh + 0.6, z: 0.46, rz: s * 0.24 * (o.angry || 0) });
+  });
+  d.push({ g: rbox(0.16, 0.25, 0.17, 0.06, 1), m: mat(0xe8b592), y: bh + 0.33, z: 0.5 });
+  return d;
+}
+const LEGION = { body: 0xc8281e, belt: GOLD, top: GOLD, crest: 1, angry: 0.6 };
+const SENATOR = { body: 0xefece6, stripe: 0x8a2a3a, top: mat(0x3a2416), angry: 1 };
+
+/* =========================================================
+   FIGUREN MIT ELLBOGEN (Boxer, Ben, Ringrichter)
+   ========================================================= */
+function boxer(o){
+  const skin = mat(o.skin || 0xf2c6a2), hairM = mat(o.hair || 0x3a2416), topM = o.top ? mat(o.top) : skin;
+  const root = new THREE.Group(), body = new THREE.Group(); root.rotation.order = 'YXZ'; body.position.y = 1.0; root.add(body);
+  const legs = [], sh = [], el = [], eyes = [], brw = [];
+  [-1, 1].forEach(s => {
+    const lg = new THREE.Group(); lg.position.x = s * 0.26; body.add(lg);
+    P(lg, rbox(0.44, 0.86, 0.46, 0.07), o.pants ? mat(o.pants) : skin, 0, -0.42, 0);
+    P(lg, rbox(0.5, 0.2, 0.66, 0.07), mat(o.shoe || 0x1c1c22), 0, -0.9, 0.08); if (o.sole) P(lg, rbox(0.52, 0.06, 0.68, 0.02, 1), mat(o.sole), 0, -0.98, 0.08);
+    legs.push(lg);
+  });
+  const torso = new THREE.Group(); body.add(torso);
+  P(torso, rbox(1.0, 1.05, 0.56, 0.09), topM, 0, 0.52, 0);
+  P(torso, rbox(1.08, 0.42, 0.64, 0.08), mat(o.shorts || o.pants || 0x222222), 0, 0, 0);
+  if (o.band) P(torso, rbox(1.1, 0.12, 0.66, 0.03, 1), mat(o.band), 0, 0.17, 0);
+  if (o.trim){ P(torso, rbox(0.05, 0.86, 0.02, 0.008, 1), mat(o.trim), 0, 0.58, 0.285); P(torso, rbox(1.03, 0.1, 0.59, 0.03, 1), mat(o.trim), 0, 0.24, 0); P(torso, rbox(0.86, 0.24, 0.3, 0.08), topM, 0, 1.0, -0.33); }
+  if (o.refStripes) for (let k = -2; k <= 2; k++) P(torso, rbox(0.07, 0.8, 0.02, 0.008, 1), mat(0x15151a), k * 0.19, 0.62, 0.285);
+  [-1, 1].forEach(s => {
+    const a = new THREE.Group(); a.position.set(s * 0.67, 0.92, 0); torso.add(a); P(a, rbox(0.31, 0.56, 0.36, 0.07), topM, 0, -0.2, 0);
+    const e = new THREE.Group(); e.position.y = -0.46; a.add(e); P(e, rbox(0.29, 0.5, 0.34, 0.07), topM, 0, -0.2, 0);
+    if (o.trim) P(e, rbox(0.31, 0.08, 0.36, 0.03, 1), mat(o.trim), 0, -0.42, 0);
+    if (o.glove){ P(e, rbox(0.46, 0.46, 0.46, 0.16), mat(o.glove, { roughness: 0.4 }), 0, -0.62, 0.02); P(e, rbox(0.36, 0.12, 0.38, 0.04, 1), mat(0xf4f4f4), 0, -0.4, 0); }
+    else P(e, rbox(0.3, 0.28, 0.34, 0.08), skin, 0, -0.56, 0);
+    sh.push(a); el.push(e);
+  });
+  P(torso, rbox(0.38, 0.2, 0.38, 0.05, 1), skin, 0, 1.09, 0);
+  const head = new THREE.Group(); head.position.y = 1.13; torso.add(head);
+  P(head, rbox(1.12, 1.0, 1.02, 0.13), skin, 0, 0.55, 0);
+  P(head, rbox(1.19, 0.32, 1.09, 0.1), hairM, 0, 1.0, -0.01); P(head, rbox(1.19, 0.5, 0.34, 0.1), hairM, 0, 0.78, -0.39);
+  if (o.headband) P(head, rbox(1.16, 0.15, 1.06, 0.04, 1), mat(o.headband), 0, 0.8, 0);
+  [-1, 1].forEach(s => {
+    P(head, rbox(0.09, 0.22, 0.18, 0.04, 1), skin, s * 0.59, 0.46, -0.04);
+    const e = P(head, rbox(0.15, 0.21, 0.06, 0.03, 1), BLACK, s * 0.25, 0.56, 0.5); P(e, rbox(0.06, 0.07, 0.03, 0.01, 1), WHITEB, 0.03, 0.05, 0.022); eyes.push(e);
+    brw.push(P(head, rbox(0.31, 0.09, 0.08, 0.035, 1), mat(0x2a1a10), s * 0.25, 0.79, 0.52));
+  });
+  const c = new THREE.Color(o.skin || 0xf2c6a2).multiplyScalar(0.9);
+  P(head, rbox(0.18, 0.31, 0.2, 0.07), new THREE.MeshStandardMaterial({ color: c, roughness: 0.62, envMapIntensity: 0.55 }), 0, 0.45, 0.58);
+  const mouth = P(head, rbox(0.25, 0.06, 0.04, 0.02, 1), mat(0x6a2018), 0.02, 0.2, 0.512);
+  return { root, body, torso, head, sh, el, legs, eyes, brows: brw, mouth };
+}
+function place(r, x, y, z, yaw){ r.root.position.set(x, y, z); r.root.rotation.set(0, yaw, 0); }
+function bRest(r, t, k){
+  r.body.position.set(0, 1, 0); r.body.rotation.set(0, 0, 0); r.torso.rotation.set(0, 0, 0); r.head.rotation.set(0, 0, 0);
+  r.sh[0].rotation.set(0, 0, -0.07); r.sh[1].rotation.set(0, 0, 0.07); r.el[0].rotation.set(-0.1, 0, 0); r.el[1].rotation.set(-0.1, 0, 0);
+  r.legs[0].rotation.set(0, 0, 0); r.legs[1].rotation.set(0, 0, 0); r.mouth.scale.set(1, 1, 1); r.mouth.rotation.z = 0;
+  const b = Math.sin(t * 2.1 + k); r.torso.scale.y = 1 + b * 0.012; r.head.position.y = 1.13 + b * 0.012;
+  const ph = (t + k * 1.37) % 3.4, bl = ph < 0.14 ? Math.abs(Math.cos(Math.PI * ph / 0.14)) : 1; r.eyes.forEach(e => e.scale.y = Math.max(0.08, bl));
+  bFace(r, 0, 0);
+}
+function bFace(r, m, open){ r.brows[0].rotation.z = -0.32 * m; r.brows[1].rotation.z = 0.32 * m; const y = 0.79 + (m < 0 ? -m * 0.05 : -m * 0.015); r.brows[0].position.y = y; r.brows[1].position.y = y; r.mouth.scale.y = 1 + open * 4; }
+function guard(r, t, k){
+  const b = Math.sin(t * 7 + k); r.body.position.y = 0.93 + Math.abs(b) * 0.06; r.torso.rotation.set(0.12, 0.4, 0); r.head.rotation.y = -0.35;
+  r.legs[0].rotation.set(-0.3, 0, -0.12); r.legs[1].rotation.set(0.35, 0, 0.12);
+  r.sh[0].rotation.set(-1.0, 0, 0.15); r.el[0].rotation.x = -1.75; r.sh[1].rotation.set(-0.85, 0, -0.15); r.el[1].rotation.x = -1.85;
+}
+function strike(r, p, i){
+  if (p <= 0) return;
+  r.sh[i].rotation.x = lerp(r.sh[i].rotation.x, -1.57, p); r.sh[i].rotation.z = lerp(r.sh[i].rotation.z, 0, p); r.el[i].rotation.x = lerp(r.el[i].rotation.x, -0.03, p);
+  r.torso.rotation.y += (i ? -0.85 : 0.3) * p; r.torso.rotation.x += 0.1 * p; r.body.position.z += 0.3 * p; r.legs[1].rotation.x += 0.2 * p;
+}
+function pc(lt, t0, hold){ hold = hold || 0.14; const x = lt - t0; if (x <= 0) return 0; if (x < 0.09) return E.out(x / 0.09); if (x < 0.09 + hold) return 1; if (x < 0.35 + hold) return 1 - E.io((x - 0.09 - hold) / 0.26); return 0; }
+function rag(r, t, k){
+  r.body.position.y = 1; r.torso.rotation.set(-0.2, 0, 0); r.head.rotation.set(-0.3, 0, 0);
+  r.sh[0].rotation.set(Math.sin(t * 9 + k) * 0.6, 0, -2.0); r.sh[1].rotation.set(Math.cos(t * 8 + k) * 0.6, 0, 2.0); r.el[0].rotation.x = -0.5; r.el[1].rotation.x = -0.5;
+  r.legs[0].rotation.set(Math.sin(t * 10 + k) * 0.7, 0, -0.45); r.legs[1].rotation.set(-Math.sin(t * 10 + k) * 0.7, 0, 0.45); bFace(r, -1, 1);
+}
+function idle(r){ r.sh[0].rotation.set(0.05, 0, -0.1); r.sh[1].rotation.set(0.05, 0, 0.1); }
+function wlk(r, ph, a){ const s = Math.sin(ph); r.legs[0].rotation.x = s * 0.75 * a; r.legs[1].rotation.x = -s * 0.75 * a; r.sh[0].rotation.x = -s * 0.7 * a; r.sh[1].rotation.x = s * 0.7 * a; r.el[0].rotation.x = -0.9 * a; r.el[1].rotation.x = -0.9 * a; r.body.position.y = 1 + (Math.abs(Math.cos(ph)) * 0.08 - 0.03) * a; r.torso.rotation.x = 0.15 * a; }
+const hsh = n => { const x = Math.sin(n * 127.1 + 11.7) * 43758.5453; return x - Math.floor(x); };
+/* =========================================================
+   FIGUREN
+   ========================================================= */
+const SK = 0xE9C3A0;
+const ben = boxer({ top: 0xE8B21F, trim: 0xC4920F, pants: 0x1F2A44, shoe: 0xf2f2f2, sole: 0x9a9a9a, hair: 0x3A2616, skin: SK });
+const ALL = [ben]; scene.add(ben.root);
+function show(){ ALL.forEach(r => r.root.visible = false); for (let i = 0; i < arguments.length; i++) arguments[i].root.visible = true; }
+function sit(r, seatY){ r.body.position.y = seatY + 0.18; r.legs[0].rotation.x = -1.5; r.legs[1].rotation.x = -1.5; r.torso.rotation.x = 0.08; }
+const PI = Math.PI, V3 = new THREE.Vector3(), _w = new THREE.Vector3();
+function wpos(o, v){ o.updateWorldMatrix(true, false); return (v || _w).setFromMatrixPosition(o.matrixWorld); }
+function anchor(par, x, y, z){ const o = new THREE.Object3D(); o.position.set(x, y, z); par.add(o); return o; }
+
+/* =========================================================
+   STIMMUNGEN (Nacht, Schlafzimmer)
+   ========================================================= */
+function sky(stops){
+  const c = document.createElement('canvas'); c.width = 4; c.height = 256; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
+  stops.forEach(s => g.addColorStop(s[0], s[1])); x.fillStyle = g; x.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+}
+const MOOD = { night: { sky: sky([[0, '#1a2440'], [1, '#2a3558']]), fog: [0x1a2238, 80, 260], hemi: [0x9fb2e0, 0x3a3040, 0.85], sun: [0xb4c8ff, 0.6], env: 0 } };
+const SR = 9; { const c = sun.shadow.camera; c.left = -SR; c.right = SR; c.top = SR; c.bottom = -SR; c.near = 1; c.far = 60; c.updateProjectionMatrix(); }
+sun.target.position.set(0, 0, -1.5); sun.position.set(14, 12, 1);
+function setMood(m){
+  scene.background = m.sky; scene.fog.color.set(m.fog[0]); scene.fog.near = m.fog[1]; scene.fog.far = m.fog[2]; scene.environment = m.env ? envDay : envNight;
+  hemi.color.set(m.hemi[0]); hemi.groundColor.set(m.hemi[1]); hemi.intensity = m.hemi[2]; sun.color.set(m.sun[0]); sun.intensity = m.sun[1];
+  fill.color.set(0xffc08a); fill.intensity = 0.3; fill.position.set(-20, 10, -12);
+}
+
+/* =========================================================
+   SETS (1 m = 2 Einheiten). world: Bens Bett längs z (Kopf bei -z). world2: Profi-Bett längs x
+   ========================================================= */
+const MT = 1.1;                       // Matratzen-Oberkante
+const world = new THREE.Group(), world2 = new THREE.Group(); scene.add(world); scene.add(world2);
+function room(par, ox){
+  const noSh = m => { m.castShadow = false; return m; };
+  const fc = document.createElement('canvas'); fc.width = 64; fc.height = 256; const f = fc.getContext('2d');
+  for (let i = 0; i < 4; i++){ f.fillStyle = ['#8a6446', '#82603f', '#8f6a4b', '#7d5b3c'][i]; f.fillRect(i * 16, 0, 16, 256); }
+  const ft = new THREE.CanvasTexture(fc); ft.encoding = THREE.sRGBEncoding; ft.wrapS = ft.wrapT = THREE.RepeatWrapping; ft.repeat.set(4, 2); ft.anisotropy = 8;
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 12), new THREE.MeshStandardMaterial({ map: ft, roughness: 0.7 })); floor.rotation.x = -PI / 2; floor.position.set(0, 0, 0.5); floor.receiveShadow = true; par.add(floor);
+  const wall = mat(0x6f7fa6, { roughness: 0.95 });
+  noSh(P(par, new THREE.BoxGeometry(14, 7, 0.3), wall, 0, 3.5, -5.5)); noSh(P(par, new THREE.BoxGeometry(14, 7, 0.3), wall, 0, 3.5, 6.5));
+  noSh(P(par, new THREE.BoxGeometry(0.3, 7, 12), wall, -7, 3.5, 0.5)); noSh(P(par, new THREE.BoxGeometry(0.3, 7, 12), wall, 7, 3.5, 0.5));
+  noSh(P(par, new THREE.BoxGeometry(14.4, 0.3, 12.4), mat(0x55607e), 0, 7, 0.5));
+}
+const BLUE = mat(0x3d6fb3, { roughness: 0.92 }), GREEN = mat(0x4f8f5a, { roughness: 0.92 }), WOOD = mat(0x6e4a2c, { roughness: 0.6 }), LINEN = mat(0xf1ede4, { roughness: 0.9 });
+(function(){
+  room(world);
+  // Bett längs z: Rahmen, Matratze, Kopfteil, Kissen, Decke (bis zur Brust)
+  P(world, rbox(3.4, 0.5, 4.8, 0.06), WOOD, 0, 0.45, -1.75); P(world, rbox(3.2, 0.5, 4.6, 0.15), LINEN, 0, MT - 0.25, -1.75);
+  P(world, rbox(3.5, 2.4, 0.25, 0.08), WOOD, 0, 1.2, -4.25);
+  P(world, rbox(2.0, 0.22, 1.25, 0.1), mat(0xffffff, { roughness: 0.9 }), 0, MT - 0.03, -2.98);
+  P(world, rbox(3.5, 1.1, 2.4, 0.25), BLUE, 0, MT + 0.2, -0.53);
+  // Nachttisch + Lampe (warm), Fenster hinter der Kamera (Mondlicht von +x)
+  P(world, rbox(1.3, 1.3, 1.1, 0.06), WOOD, -2.7, 0.65, -3.4); P(world, new THREE.CylinderGeometry(0.06, 0.12, 0.7, 10), mat(0x333333), -2.7, 1.65, -3.4);
+  P(world, new THREE.CylinderGeometry(0.28, 0.42, 0.45, 14), new THREE.MeshStandardMaterial({ color: 0xffd8a0, emissive: 0xffb060, emissiveIntensity: 0.9 }), -2.7, 2.15, -3.4).castShadow = false;
+  const lamp = new THREE.PointLight(0xffb066, 1.1, 11, 1.4); lamp.position.set(-2.7, 2.3, -3.2); world.add(lamp);
+  P(world, new THREE.BoxGeometry(0.1, 2.4, 2.4), new THREE.MeshStandardMaterial({ color: 0x8fb2ff, emissive: 0x6f90e0, emissiveIntensity: 0.5 }), -6.8, 3.4, 0.8).castShadow = false;
+  P(world, rbox(2.2, 0.04, 3.2, 0.02, 1), mat(0x8a3b4b, { roughness: 1 }), 2.6, 0.02, -0.8).castShadow = false;
+
+  room(world2);
+  // Profi-Bett längs x (Kopf bei +x), Kissen vor dem Gesicht bis z 1.3
+  P(world2, rbox(5.2, 0.5, 3.2, 0.06), WOOD, 0.2, 0.45, 0.15); P(world2, rbox(5.0, 0.5, 3.0, 0.15), LINEN, 0.2, MT - 0.25, 0.15);
+  P(world2, rbox(0.25, 2.4, 3.3, 0.08), WOOD, 2.85, 1.2, 0.15);
+  P(world2, rbox(1.95, 0.2, 2.3, 0.1), mat(0xffffff, { roughness: 0.9 }), 1.65, MT + 0.1, 0.25);
+  P(world2, rbox(2.9, 1.25, 3.3, 0.25), GREEN, -0.95, MT + 0.3, 0.15);
+  P(world2, rbox(1.2, 1.3, 1.1, 0.06), WOOD, 3.7, 0.65, -1.6); P(world2, new THREE.CylinderGeometry(0.28, 0.42, 0.45, 14), new THREE.MeshStandardMaterial({ color: 0xffd8a0, emissive: 0xffb060, emissiveIntensity: 0.9 }), 3.7, 1.55, -1.6).castShadow = false;
+  const lamp2 = new THREE.PointLight(0xffb066, 1.0, 10, 1.4); lamp2.position.set(3.5, 2.0, -1.2); world2.add(lamp2);
+})();
+const SETS = [world, world2];
+
+/* =========================================================
+   FIGUREN: Ben (Narbe) + Profi. Arme etwas länger (k), damit die Hände das Handy über dem Gesicht halten
+   ========================================================= */
+const SCAR = new THREE.Group(); ben.head.add(SCAR);
+(function(){ const m = mat(0xa8463f, { roughness: 0.7 }); const s = new THREE.Mesh(rbox(0.075, 0.72, 0.03, 0.012, 1), m); s.position.set(0.25, 0.55, 0.522); s.rotation.z = -0.13; SCAR.add(s);
+  for (const y of [0.36, 0.55, 0.74]){ const c = new THREE.Mesh(rbox(0.16, 0.035, 0.03, 0.01, 1), m); c.position.set(0.25 + (y - 0.55) * 0.13, y, 0.528); c.rotation.z = -0.13; SCAR.add(c); } })();
+const pro = boxer({ top: 0x3cae6a, pants: 0x1f2a44, shoe: 0x1c1c22, hair: 0x8a5a2a, skin: 0xf2c6a2 });
+ALL.push(pro); scene.add(pro.root);
+function stretch(r, k){
+  r.sh.forEach(a => { const up = a.children[0], e = a.children[1]; up.scale.y = k; up.position.y = -0.2 * k; e.position.y = -0.46 * k;
+    e.children.forEach(m => { const y = m.position.y; if (Math.abs(y + 0.2) < 0.01){ m.scale.y = k; m.position.y = -0.2 * k; } else if (Math.abs(y + 0.42) < 0.01) m.position.y = -0.45 * k + 0.03; else if (Math.abs(y + 0.56) < 0.01) m.position.y = -0.45 * k - 0.11; }); });
+  r.L1 = 0.46 * k; r.L2 = 0.45 * k + 0.11;
+}
+stretch(ben, 1.35); stretch(pro, 1.35);
+const _ia = new THREE.Vector3(), _ib = new THREE.Vector3(), _ic = new THREE.Vector3(), _id = new THREE.Vector3(), _ie = new THREE.Vector3(), _if = new THREE.Vector3(), _ig = new THREE.Vector3(), _ih = new THREE.Vector3();
+const _iq = new THREE.Quaternion(), _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _dn = new THREE.Vector3(0, -1, 0);
+// Zwei-Gelenk-IK im Rumpf-System: Handmitte -> tw (Welt), Ellbogen Richtung pw (Welt)
+function ik(r, i, tw, pw){
+  r.torso.updateWorldMatrix(true, false);
+  const tl = r.torso.worldToLocal(_ia.copy(tw)); r.torso.getWorldQuaternion(_iq); const pl = _ib.copy(pw).applyQuaternion(_iq.invert());
+  const S = _ic.set(i ? 0.67 : -0.67, 0.92, 0), D = _id.subVectors(tl, S), L1 = r.L1, L2 = r.L2;
+  const d = Math.min(Math.max(D.length(), 0.15), L1 + L2 - 0.002); D.normalize();
+  const a = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))));
+  const n = _ie.crossVectors(D, pl).normalize(), e = _if.copy(D).applyAxisAngle(n, a);
+  _qa.setFromUnitVectors(_dn, e); r.sh[i].quaternion.copy(_qa);
+  const f = _ih.subVectors(tl, _ig.copy(S).addScaledVector(e, L1)).normalize().applyQuaternion(_qb.copy(_qa).invert());
+  r.el[i].quaternion.setFromUnitVectors(_dn, f);
+}
+
+/* Handy: Pivot = Mitte der Unterseite (Bildschirm zeigt nach -y), lange Achse = z */
+function screenTex(){
+  const c = document.createElement('canvas'); c.width = 128; c.height = 256; const x = c.getContext('2d');
+  x.fillStyle = '#0d1020'; x.fillRect(0, 0, 128, 256); const g = x.createLinearGradient(0, 30, 0, 170); g.addColorStop(0, '#ff5fa2'); g.addColorStop(1, '#4fb8ff');
+  x.fillStyle = g; x.fillRect(8, 30, 112, 140); x.fillStyle = '#ffffff'; for (let i = 0; i < 3; i++) x.fillRect(12, 182 + i * 18, 70 - i * 15, 8);
+  x.beginPath(); x.arc(108, 200, 9, 0, 7); x.fill(); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+}
+const SCRN = new THREE.MeshBasicMaterial({ map: screenTex() });
+function makePhone(par, centered){
+  const g = new THREE.Group(), m = new THREE.Group(); g.add(m); m.position.y = centered ? 0 : 0.025; par.add(g);
+  P(m, rbox(0.34, 0.05, 0.66, 0.02), mat(0x1b1e26, { roughness: 0.35, metalness: 0.3 }), 0, 0, 0);
+  P(m, rbox(0.12, 0.02, 0.14, 0.01, 1), mat(0x2c313c, { roughness: 0.3 }), -0.08, 0.03, -0.22);
+  const s = new THREE.Mesh(new THREE.PlaneGeometry(0.31, 0.62), SCRN); s.rotation.x = PI / 2; s.position.y = -0.0265; m.add(s);
+  const L = new THREE.PointLight(0x9cc6ff, 1.5, 2.6, 1.5); L.position.set(0, -0.22, 0); m.add(L); g.light = L;
+  return g;
+}
+const PH = makePhone(world, false), PH2 = makePhone(world2, true);
+
+/* Bens Liegepose: Rücken auf der Matratze, Kopf im Kissen, Kinn leicht Richtung Brust (Blick aufs Handy) */
+const RY = MT + 0.28, HT = 0.4, PT = -0.40, GAP = 0.36;
+function lieBen(t){ bRest(ben, t, 0); ben.root.position.set(0, RY, 0); ben.root.rotation.set(-PI / 2, 0, 0); ben.head.rotation.x = HT; }
+const NOSE = new THREE.Vector3(), HOLD = new THREE.Vector3(), HAND0 = [new THREE.Vector3(), new THREE.Vector3()];
+(function(){ lieBen(0); ben.root.updateMatrixWorld(true); ben.head.localToWorld(NOSE.set(0, 0.58, 0.67)); HOLD.copy(NOSE); HOLD.y += GAP;
+  PH.position.copy(HOLD); PH.rotation.set(PT, 0, 0); PH.updateMatrixWorld(true); PH.localToWorld(HAND0[0].set(-0.25, 0.025, 0.2)); PH.localToWorld(HAND0[1].set(0.25, 0.025, 0.2)); })();
+const POLE = [new THREE.Vector3(-1, -0.4, 0.7), new THREE.Vector3(1, -0.4, 0.7)];
+const T_SLIP = 6.97, T_HIT = 12.6, FALL = 0.247;
+const tReal = () => clamp01((T - T_SLIP) / (T_HIT - T_SLIP)) * FALL;
+// Handy + Hände für Ben zu Zeit T (u = Hochheben am Ende, 0..1)
+function benPhone(lift, t){
+  if (t === undefined) t = T;
+  const fk = clamp01((t - T_SLIP) / (T_HIT - T_SLIP)), hit = t >= T_HIT;
+  let jolt = hit ? 0.035 * Math.exp(-(t - T_HIT) * 4) * (t - T_HIT < 1.2 ? 1 : 0) : 0;
+  ben.root.position.y -= jolt;
+  if (!hit){ PH.position.set(HOLD.x, HOLD.y - GAP * fk * fk, HOLD.z); PH.rotation.set(PT - 0.05 * fk, 0, 0); }
+  else { const u = t - T_HIT; PH.position.set(NOSE.x, NOSE.y + 0.04 * Math.sin(PI * clamp01(u / 0.6)) - jolt, NOSE.z); PH.rotation.set(PT - 0.05 - 0.29 * E.io(seg(t, T_HIT + 0.5, T_HIT + 1.7)), 0, 0); }
+  if (lift > 0){ PH.position.lerpVectors(PH.position.clone(), HOLD, lift); PH.rotation.x = lerp(PH.rotation.x, PT, lift); }
+  PH.light.intensity = hit && lift < 1 ? 0.5 + 1.0 * lift : 1.5;
+  PH.updateMatrixWorld(true);
+  const open = E.out(seg(t, T_SLIP - 0.05, T_SLIP + 0.35)), grab = Math.max(E.io(seg(t, T_HIT + 0.15, T_HIT + 2.0)), lift > 0 ? 1 : 0);
+  for (let i = 0; i < 2; i++){ const s = i ? 1 : -1;
+    const fr = _ih.copy(HAND0[i]); fr.x += s * 0.07 * open; fr.y -= 0.03 * open;
+    const on = PH.localToWorld(new THREE.Vector3(0.25 * s, 0.025, 0.2));
+    ik(ben, i, t < T_SLIP ? HAND0[i] : fr.clone().lerp(on, grab), POLE[i]); }
+}
+
+/* =========================================================
+   KAMERA
+   ========================================================= */
+const cL = new THREE.Vector3();
+let blurAmt = 0, fadeBlk = 0, T = 0, flashA = 0, eyeS = 1, talk = 0, scanK = [0, 0, 0], dT = 0;
+let dimK = 0, raceK = 0, ringK = 0, brainK = 0, weightK = 0, noseK = 0, xrK = 0;
+function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
+function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.012; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.008; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
+const imp = at => T >= at ? Math.exp(-(T - at) * 3) : 0;
+const HOOK = [[3.4, 2.5, -2.15, 0, 2.55, -2.35, 42], [3.05, 2.48, -2.2, 0, 2.5, -2.35, 39]];
+const fmt = (v, n) => v.toFixed(n).replace('.', ',');
+function benHold(t){ show(ben); lieBen(t); benPhone(0, t); eyeS = 1; bFace(ben, 0.15, 0); }
+function painBen(k){ eyeS = lerp(1, 0.1, k); bFace(ben, -1.0 * k, 0.9 * k); }
+
+/* Profi: liegt auf der linken Seite, Kopf Richtung +x, Gesicht Richtung +z */
+const PRX = -1.5, PRY = MT + 0.83, P2C = new THREE.Vector3(1.1, 2.0, 0.98), P2H = new THREE.Vector3(0.85, 1.9, 0.98), P2R = new THREE.Vector3(0.95, 1.4, 0.7);
+function proScene(){
+  show(pro); bRest(pro, T, 2); pro.root.position.set(PRX, PRY, 0); pro.root.rotation.set(0, 0, -PI / 2);
+  pro.sh[1].rotation.set(-PI / 2, 0, 0); pro.el[1].rotation.set(0, 0, 0);
+  const TS = 20.9, TL = TS + 0.194, tf = T - TS;
+  if (T < TS){ PH2.position.copy(P2C); PH2.rotation.set(PI / 2, 0, 0); }
+  else if (T < TL){ PH2.position.set(P2C.x, P2C.y - 9.81 * tf * tf, P2C.z); PH2.rotation.set(PI / 2, 0, 0); }
+  else { const ph = PI / 2 * Math.pow(seg(T, TL, TL + 0.28), 2), B = MT + 0.2; PH2.position.set(P2C.x, B + 0.33 * Math.cos(ph) + 0.025 * Math.sin(ph), P2C.z + 0.33 * Math.sin(ph)); PH2.rotation.set(PI / 2 + ph, 0, 0); }
+  PH2.light.intensity = 1.3;
+  const rel = E.io(seg(T, 21.0, 21.9)), hand = P2H.clone().lerp(P2R, rel); if (T >= TS) hand.x -= 0.05 * E.out(seg(T, TS, TS + 0.3));
+  ik(pro, 0, hand, new THREE.Vector3(0, -1, 0.4));
+  const sl = E.io(seg(T, 21.6, 22.3)); pro.eyes.forEach(e => e.scale.y = lerp(0.55, 0.08, sl)); bFace(pro, 0.35, 0);
+}
+
+/* =========================================================
+   SZENEN (Zeiten = Sprecherspur nach Tempo 1,15)
+   ========================================================= */
+const SCN = [
+  { t: 0, set: world, mood: MOOD.night, hook: 1,
+    upd(lt){ dT = T; benHold(T); PH.light.intensity = 1.5 + 1.2 * imp(0.25) * (T > 0.25 ? 1 : 0); camW(E.io(seg(lt, 0, 2.9)), HOOK[0], HOOK[1]); camFin(); } },
+  { t: 2.9, set: world, mood: MOOD.night, hud: () => T > 3.3 ? ['30 CM', 'ÜBER DEM GESICHT'] : null,
+    upd(lt){ dT = T; benHold(T); dimK = E.out(seg(T, 3.2, 3.6)) * (1 - seg(T, 5.3, 5.5));
+      camW(E.io(seg(lt, 0, 2.6)), [3.9, 3.1, -0.6, 0, 2.15, -2.3, 44], [3.6, 3.0, -0.8, 0, 2.15, -2.3, 42]); camFin(); } },
+  { t: 5.5, set: world, mood: MOOD.night, hud: () => T > T_SLIP ? ['ZEITLUPE', '23× LANGSAMER'] : null,
+    upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); eyeS = 1; bFace(ben, 0.15 - 0.4 * seg(T, T_SLIP, T_SLIP + 0.4), 0.3 * seg(T, T_SLIP, T_SLIP + 0.4));
+      camW(E.io(seg(lt, 0, 2.05)), [2.3, 1.95, -1.45, 0, 2.5, -2.35, 38], [2.1, 1.95, -1.55, 0, 2.5, -2.35, 36]); camFin(); } },
+  { t: 7.55, set: world, mood: MOOD.night, hud: () => [fmt(tReal(), 2) + ' S', 'FALLZEIT'],
+    upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); eyeS = 1; bFace(ben, -0.25, 0.3); raceK = E.out(seg(T, 7.7, 8.0));
+      camW(E.io(seg(lt, 0, 1.85)), [2.7, 2.45, -2.25, 0, 2.45, -2.35, 38], [2.45, 2.42, -2.3, 0, 2.42, -2.35, 36]); camFin(); } },
+  { t: 9.4, set: world, mood: MOOD.night, hud: () => [fmt(tReal(), 2) + ' S', 'GEHIRN REAGIERT …'],
+    upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); eyeS = 1; bFace(ben, -0.25, 0.3); raceK = 1; xrK = E.out(seg(T, 9.4, 9.8));
+      camW(E.io(seg(lt, 0, 3.0)), [2.7, 3.5, -0.9, 0, 2.35, -2.45, 40], [2.45, 3.35, -1.1, 0, 2.35, -2.45, 38]); camFin(); } },
+  { t: 12.4, set: world, mood: MOOD.night, hud: () => T > T_HIT ? ['8,7 KM/H', 'AUFPRALL – ZU SPÄT!'] : [fmt(tReal(), 2) + ' S', 'GEHIRN REAGIERT …'],
+    upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); const hk = T > T_HIT ? 1 : 0; painBen(hk * (0.6 + 0.4 * Math.exp(-(T - T_HIT) * 2)));
+      if (!hk){ eyeS = 1; bFace(ben, -0.25, 0.3); } raceK = 1 - seg(T, 13.2, 13.5); ringK = hk * clamp01(1 - (T - T_HIT) / 0.9); flashA = hk && T < T_HIT + 0.08 ? 0.3 : 0;
+      camW(E.io(seg(lt, 0, 3.0)), [2.4, 2.3, -2.35, 0, 2.3, -2.35, 36], [2.2, 2.28, -2.4, 0, 2.28, -2.4, 34]); camFin(0.06 * imp(T_HIT)); } },
+  { t: 15.4, set: world, mood: MOOD.night, hud: () => ['≈ 100 N', 'WIE 10 KILO AUF DER NASE'],
+    upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); painBen(0.85 + 0.15 * Math.sin(T * 6)); noseK = E.out(seg(T, 15.5, 15.9)) * (1 - seg(T, 19.1, 19.4)); weightK = E.out(seg(T, 17.4, 17.8)) * (1 - seg(T, 19.1, 19.4));
+      camW(E.io(seg(lt, 0, 4.0)), [1.7, 3.2, -1.15, 0, 2.15, -2.4, 34], [1.5, 3.05, -1.3, 0, 2.15, -2.4, 32]); camFin(); } },
+  { t: 19.4, set: world2, mood: MOOD.night, hud: () => ['PROFI-TRICK', 'AUF DER SEITE LIEGEN'],
+    upd(lt){ dT = T; proScene(); camW(E.io(seg(lt, 0, 2.9)), [1.3, 2.5, 4.9, 1.0, 1.75, 0.3, 38], [1.25, 2.4, 4.5, 1.0, 1.7, 0.3, 36]); camFin(); } },
+  { t: 22.3, set: world, mood: MOOD.night, hud: () => T > 22.45 ? ['RUNDE 2', 'NICHTS GELERNT'] : null,
+    upd(lt){ dT = T; show(ben); lieBen(T); const lf = E.io(seg(T, 22.95, 23.7)); benPhone(lf); painBen(0.5 * (1 - lf));
+      camW(E.io(seg(lt, 0, 1.6)), [3.9, 3.1, -0.6, 0, 2.15, -2.3, 44], [3.7, 3.0, -0.75, 0, 2.2, -2.3, 42]); camFin(); } },
+  { t: 23.9, set: world, mood: MOOD.night, loopin: 1,
+    upd(lt){ dT = T - END; benHold(T - END); camW(0, HOOK[0], HOOK[1]); camFin(); } },
+];
+const SUBS = [{"s": 3.2, "e": 4.765, "w": [["BEN", 3.2], ["HÄLT", 3.374], ["ES", 3.583], ["30", 3.861], ["ZENTIMETER", 4.174]]}, {"s": 4.765, "e": 5.45, "w": [["ÜBER", 4.765], ["SICH.", 5.026]]}, {"s": 5.548, "e": 6.296, "w": [["EIN", 5.548], ["KLEINES", 5.739], ["ZUCKEN –", 6.052]]}, {"s": 6.296, "e": 7.45, "w": [["UND", 6.296], ["ES", 6.852], ["RUTSCHT.", 6.974]]}, {"s": 7.548, "e": 8.157, "w": [["ES", 7.548], ["FÄLLT", 7.739], ["NUR", 7.948]]}, {"s": 8.157, "e": 9.3, "w": [["EINE", 8.157], ["VIERTELSEKUNDE.", 8.348]]}, {"s": 9.426, "e": 10.383, "w": [["GENAU", 9.426], ["SO", 9.62], ["LANGE", 9.809], ["BRAUCHT", 10.174]]}, {"s": 10.383, "e": 10.974, "w": [["DEIN", 10.383], ["GEHIRN,", 10.609]]}, {"s": 10.974, "e": 12.3, "w": [["UM", 10.974], ["ÜBERHAUPT", 11.096], ["ZU", 11.478], ["REAGIEREN.", 11.722]]}, {"s": 12.417, "e": 13.374, "w": [["BEIM", 12.417], ["AUFPRALL", 12.591], ["IST", 13.061], ["ES", 13.252]]}, {"s": 13.374, "e": 14.452, "w": [["FAST", 13.374], ["9", 13.67], ["KILOMETER", 13.983]]}, {"s": 14.452, "e": 15.4, "w": [["PRO", 14.452], ["STUNDE", 14.678], ["SCHNELL.", 14.957]]}, {"s": 15.496, "e": 16.574, "w": [["FÜR", 15.496], ["EINEN", 15.652], ["WIMPERNSCHLAG", 15.843]]}, {"s": 16.574, "e": 17.409, "w": [["DRÜCKT", 16.574], ["ES", 16.73], ["SO", 16.991], ["STARK", 17.183]]}, {"s": 17.409, "e": 18.643, "w": [["WIE", 17.409], ["EIN", 17.617], ["ZEHN-KILO-GEWICHT", 17.809]]}, {"s": 18.643, "e": 19.4, "w": [["AUF", 18.643], ["DIE", 18.835], ["NASE.", 18.922]]}, {"s": 19.496, "e": 21.009, "w": [["PROFIS", 19.496], ["LIEGEN", 19.913], ["AUF", 20.104], ["DER", 20.313], ["SEITE –", 20.435]]}, {"s": 21.009, "e": 22.3, "w": [["DA", 21.009], ["LANDET", 21.148], ["ES", 21.443], ["IM", 21.548], ["KISSEN.", 21.687]]}, {"s": 22.365, "e": 22.98, "w": [["UND", 22.365], ["BEN?", 22.47]]}, {"s": 23.009, "e": 23.565, "w": [["HEBT", 23.009], ["ES", 23.113], ["EINFACH", 23.322]]}, {"s": 23.565, "e": 24.35, "w": [["WIEDER", 23.565], ["HOCH.", 23.774]]}];
+
+function proj(v){ V3.copy(v).project(cam); return V3.z < 1 ? [(V3.x + 1) / 2 * W, (1 - V3.y) / 2 * H] : null; }
+function benMark(){ if (eyeS !== null) ben.eyes[0].scale.y = eyeS; ben.eyes[1].scale.y = 0.12; ben.eyes[1].position.y = 0.53; }
+/* =========================================================
+   TEXT (neues Format: fett, Großbuchstaben, aktives Wort gelb)
+   ========================================================= */
+const SANS = '"Arial Black", "Helvetica Neue", Arial, system-ui, sans-serif', SERIF = SANS;
+const band = document.createElement('canvas'); band.width = 8; band.height = 512;
+(function(){ const x = band.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, 'rgba(10,14,24,0)'); g.addColorStop(0.5, 'rgba(10,14,24,0.42)'); g.addColorStop(1, 'rgba(10,14,24,0)'); x.fillStyle = g; x.fillRect(0, 0, 8, 512); })();
+function boldLines(words, cy, size, maxW, act, pop, col){
+  g2.save(); g2.font = `900 ${size}px ${SANS}`; g2.textBaseline = 'middle'; g2.lineJoin = 'round';
+  const spc = size * 0.28, lines = [[]]; let lw = 0;
+  words.forEach((w, i) => { const wd = g2.measureText(w).width; if (lw + wd > maxW && lines[lines.length - 1].length){ lines.push([]); lw = 0; } lines[lines.length - 1].push({ w, wd, i }); lw += wd + spc; });
+  const lh = size * 1.12, y0 = cy - (lines.length - 1) * lh / 2;
+  lines.forEach((ln, li) => { const tw = ln.reduce((a, b) => a + b.wd, 0) + spc * (ln.length - 1); let x = W / 2 - tw / 2;
+    ln.forEach(tk => { const on = tk.i === act, s = on ? 1 + 0.08 * pop : 1, y = y0 + li * lh;
+      g2.save(); g2.translate(x + tk.wd / 2, y); g2.scale(s, s);
+      g2.lineWidth = size * 0.2; g2.strokeStyle = '#0b1220'; g2.strokeText(tk.w, -tk.wd / 2, 0);
+      g2.fillStyle = on ? '#ffd23c' : (col || '#ffffff'); g2.fillText(tk.w, -tk.wd / 2, 0); g2.restore(); x += tk.wd + spc; }); });
+  g2.restore();
+}
+function fitSize(text, size, maxW){ g2.font = `900 ${size}px ${SANS}`; const w = g2.measureText(text).width; return w > maxW ? size * maxW / w : size; }
+function drawHook(a, sc){
+  if (a <= 0) return; g2.save(); g2.globalAlpha = a; g2.drawImage(band, 0, 340, W, 520);
+  const s1 = fitSize('HANDY AUFS GESICHT', 116, 960), s2 = fitSize('IN ZEITLUPE', 120, 900);
+  g2.translate(W / 2, 600); g2.scale(sc, sc); g2.translate(-W / 2, -600);
+  boldLines(['HANDY', 'AUFS', 'GESICHT'], 535, s1, 1000, -1, 0); boldLines(['IN', 'ZEITLUPE'], 670, s2, 940, -1, 0, '#ffd23c');
+  g2.restore();
+}
+function drawSubs(){
+  let cur = null; for (const s of SUBS) if (T >= s.s && T < s.e) cur = s; if (!cur) return;
+  let act = 0; cur.w.forEach((w, i) => { if (T >= w[1]) act = i; });
+  const pop = clamp01(1 - (T - cur.w[act][1]) / 0.18), age = T - cur.s, a = E.out(clamp01(age / 0.08));
+  g2.save(); g2.globalAlpha = a; g2.drawImage(band, 0, 1060, W, 400);
+  const yy = 1260 + (1 - a) * 14;
+  if (cur.ben){ boldLines(cur.w.map(w => w[0]), yy, 112, 880, act, pop, '#ffffff'); g2.font = `900 34px ${SANS}`; g2.textAlign = 'center'; g2.fillStyle = '#ffd23c'; g2.strokeStyle = '#0b1220'; g2.lineWidth = 8; g2.strokeText('— BEN', W / 2, yy + 100); g2.fillText('— BEN', W / 2, yy + 100); }
+  else boldLines(cur.w.map(w => w[0]), yy, 78, 880, act, pop);
+  g2.restore();
+}
+function drawHud(h){
+  if (!h) return; g2.save(); g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.lineJoin = 'round';
+  const big = fitSize(h[0], 140, 880); g2.font = `900 ${big}px ${SANS}`; g2.lineWidth = 24; g2.strokeStyle = '#0b1220'; g2.strokeText(h[0], W / 2, 400); g2.fillStyle = '#ffffff'; g2.fillText(h[0], W / 2, 400);
+  if (h[1]){ g2.font = `900 40px ${SANS}`; g2.lineWidth = 10; g2.strokeText(h[1], W / 2, 500); g2.fillStyle = '#ffd23c'; g2.fillText(h[1], W / 2, 500); }
+  g2.restore();
+}
+function glowDot(x, y, r, col, a){ if (a <= 0) return; const g = g2.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, 'rgba(255,255,255,' + Math.min(1, a) + ')'); g.addColorStop(0.25, col.replace('A', Math.min(1, a) * 0.9)); g.addColorStop(1, col.replace('A', 0)); g2.fillStyle = g; g2.fillRect(x - r, y - r, 2 * r, 2 * r); }
+function wp(x, y, z){ return proj(new THREE.Vector3(x, y, z)); }
+function txt(s, x, y, size, col, al){ g2.font = `900 ${size}px ${SANS}`; g2.textAlign = al || 'center'; g2.textBaseline = 'middle'; g2.lineJoin = 'round'; g2.lineWidth = size * 0.22; g2.strokeStyle = '#0b1220'; g2.strokeText(s, x, y); g2.fillStyle = col; g2.fillText(s, x, y); }
+const _p = new THREE.Vector3();
+function wl(o, x, y, z){ o.updateWorldMatrix(true, false); return proj(o.localToWorld(_p.set(x, y, z))); }
+function arrow(x, y, dir){ g2.beginPath(); g2.moveTo(x, y); g2.lineTo(x - 18, y - 26 * dir); g2.lineTo(x + 18, y - 26 * dir); g2.closePath(); g2.fill(); g2.stroke(); }
+function drawDim(a){ if (a <= 0) return; const p1 = wl(PH, 0, 0, 0), p2 = proj(NOSE); if (!p1 || !p2) return; const x = p2[0] + 70;
+  g2.save(); g2.globalAlpha = a; g2.lineWidth = 6; g2.strokeStyle = '#0b1220'; g2.fillStyle = '#ffd23c';
+  g2.beginPath(); g2.moveTo(x, p1[1] + 22); g2.lineTo(x, p2[1] - 22); g2.lineWidth = 14; g2.stroke(); g2.lineWidth = 7; g2.strokeStyle = '#ffd23c'; g2.stroke();
+  g2.strokeStyle = '#0b1220'; g2.lineWidth = 4; arrow(x, p1[1], -1); arrow(x, p2[1], 1);
+  g2.setLineDash([10, 10]); g2.lineWidth = 4; g2.strokeStyle = 'rgba(255,210,60,0.8)'; g2.beginPath(); g2.moveTo(p1[0], p1[1]); g2.lineTo(x, p1[1]); g2.moveTo(p2[0], p2[1]); g2.lineTo(x, p2[1]); g2.stroke(); g2.setLineDash([]);
+  txt('30 CM', x + 30, (p1[1] + p2[1]) / 2, 64, '#ffd23c', 'left'); g2.restore(); }
+function bar(y, label, f, col, a){ const x0 = 190, w = 700;
+  g2.save(); g2.globalAlpha = a; g2.fillStyle = 'rgba(11,18,32,0.75)'; g2.fillRect(x0 - 8, y - 8, w + 16, 52); g2.fillStyle = col; g2.fillRect(x0, y, w * f, 36);
+  g2.strokeStyle = '#ffffff'; g2.lineWidth = 3; g2.strokeRect(x0, y, w, 36); txt(label, x0 + 14, y + 19, 30, '#ffffff', 'left'); txt(fmt(f * 100, 0) + ' %', x0 + w - 14, y + 19, 30, '#ffffff', 'right'); g2.restore(); }
+function drawRace(a){ if (a <= 0) return; const tr = tReal(); bar(610, 'HANDY FÄLLT', clamp01(tr / FALL), '#ff5a4a', a); bar(680, 'GEHIRN REAGIERT', clamp01(tr / 0.25), '#4fb8ff', a); }
+function drawBrain(a){ if (a <= 0) return; const e = wl(ben.eyes[0], 0, 0, 0.03), b = wl(ben.head, 0, 0.62, -0.1); if (!e || !b) return; const f = clamp01(tReal() / 0.25);
+  g2.save(); g2.fillStyle = 'rgba(8,12,24,' + 0.35 * a + ')'; g2.fillRect(0, 0, W, H); g2.globalCompositeOperation = 'lighter'; g2.lineCap = 'round';
+  g2.beginPath(); g2.moveTo(e[0], e[1]); g2.lineTo(b[0], b[1]); g2.lineWidth = 14; g2.strokeStyle = 'rgba(120,170,255,' + 0.3 * a + ')'; g2.stroke(); g2.lineWidth = 4; g2.strokeStyle = 'rgba(210,230,255,' + 0.6 * a + ')'; g2.stroke();
+  glowDot(e[0], e[1], 50, 'rgba(120,200,255,A)', a * 0.8);
+  for (let k = 0; k < 6; k++){ const ff = Math.max(0, f - k * 0.03); glowDot(lerp(e[0], b[0], ff), lerp(e[1], b[1], ff), 60 * (1 - k * 0.12), 'rgba(255,220,60,A)', a * (1 - k * 0.15)); }
+  glowDot(b[0], b[1], 90 + 140 * f * f, 'rgba(255,220,60,A)', a * (0.25 + 0.75 * f * f)); g2.restore(); }
+function drawRing(a){ if (a <= 0) return; const p = proj(NOSE); if (!p) return; const r = 40 + (1 - a) * 300;
+  g2.save(); g2.globalAlpha = a; g2.lineWidth = 14 * a + 2; g2.strokeStyle = '#ffffff'; g2.beginPath(); g2.arc(p[0], p[1], r, 0, 7); g2.stroke(); g2.lineWidth = 6; g2.strokeStyle = '#ff5a4a'; g2.beginPath(); g2.arc(p[0], p[1], r * 0.7, 0, 7); g2.stroke(); g2.restore(); }
+function drawNose(a){ if (a <= 0) return; const p = proj(NOSE); if (!p) return; g2.save(); g2.globalCompositeOperation = 'lighter'; glowDot(p[0], p[1], 120 + 30 * Math.sin(T * 6), 'rgba(255,50,40,A)', a * 0.8); g2.restore(); }
+function drawWeight(a){ if (a <= 0) return; const p = proj(NOSE); if (!p) return; const x = p[0], y = p[1] - 330 + 18 * Math.sin(T * 5);
+  g2.save(); g2.globalAlpha = a; g2.fillStyle = '#3b4150'; g2.strokeStyle = '#0b1220'; g2.lineWidth = 10;
+  g2.beginPath(); g2.moveTo(x - 150, y + 90); g2.lineTo(x + 150, y + 90); g2.lineTo(x + 105, y - 70); g2.lineTo(x - 105, y - 70); g2.closePath(); g2.stroke(); g2.fill();
+  g2.beginPath(); g2.arc(x, y - 92, 36, PI, 0); g2.lineWidth = 26; g2.stroke(); g2.lineWidth = 14; g2.strokeStyle = '#3b4150'; g2.stroke();
+  txt('10 KG', x, y + 14, 70, '#ffffff'); g2.lineWidth = 8; g2.strokeStyle = '#ffd23c'; g2.setLineDash([16, 14]);
+  g2.beginPath(); g2.moveTo(x, y + 110); g2.lineTo(x, p[1] - 70); g2.stroke(); g2.setLineDash([]); g2.fillStyle = '#ffd23c'; g2.strokeStyle = '#0b1220'; g2.lineWidth = 4; arrow(x, p[1] - 50, 1); g2.restore(); }
+const vig = document.createElement('canvas'); vig.width = 270; vig.height = 480;
+(function(){ const x = vig.getContext('2d'), g = x.createRadialGradient(135, 240, 120, 135, 240, 330); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.38)'); x.fillStyle = g; x.fillRect(0, 0, 270, 480); })();
+function draw2D(sc, lt, dur){
+  g2.globalAlpha = 1; g2.globalCompositeOperation = 'source-over'; g2.drawImage(renderer.domElement, 0, 0, W, H);
+  g2.globalAlpha = 1; g2.globalCompositeOperation = 'source-over'; g2.drawImage(vig, 0, 0, W, H);
+  if (flashA > 0){ g2.fillStyle = `rgba(255,250,240,${Math.min(1, flashA)})`; g2.fillRect(0, 0, W, H); }
+  if (fadeBlk > 0){ g2.fillStyle = `rgba(0,0,0,${fadeBlk})`; g2.fillRect(0, 0, W, H); }
+  drawBrain(xrK); drawDim(dimK); drawNose(noseK); drawWeight(weightK); drawRing(ringK); drawRace(raceK);
+  if (sc.hud) drawHud(sc.hud());
+  if (sc.hook) drawHook(clamp01((dur - lt) / 0.15), 1);
+  if (sc.loopin){ const k = clamp01((T - (END - 0.14)) / 0.14); drawHook(k, 1 + 0.25 * (1 - k)); }
+  if (!sc.hook) drawSubs();
+}
+
+/* =========================================================
+   ABLAUF
+   ========================================================= */
+let curI = -1, curS = SCN[0], curLt = 0;
+function step(){
+  let i = 0; while (i < SCN.length - 1 && T >= SCN[i + 1].t) i++;
+  const sc = SCN[i];
+  if (i !== curI){ curI = i; SETS.forEach(s => s.visible = s === sc.set); setMood(sc.mood); if (sc.enter) sc.enter(); }
+  blurAmt = 0; fadeBlk = 0; flashA = 0; ben.mouth.rotation.z = 0; ben.root.rotation.z = 0;
+  talk = 0; dimK = raceK = ringK = brainK = weightK = noseK = xrK = 0; ben.root.rotation.set(0, 0, 0); curS = sc; curLt = T - sc.t; sc.upd(curLt); benMark();
+  if (T >= END && !ended) finish();
+}
+let vTrack = null;
+function frame(){
+  renderer.render(scene, cam);
+  draw2D(curS, curLt, (curI < SCN.length - 1 ? SCN[curI + 1].t : END) - curS.t);
+  if (recording && vTrack) vTrack.requestFrame();
+}
+let playing = false, startMs = 0, ended = false, rec = null, chunks = [], recording = false, videoBlob = null;
+function reset(){ T = 0; curI = -1; ended = false; hv = hp = hl = ''; hvT = hpT = hlT = -9; step(); }
+function loop(now){
+  requestAnimationFrame(loop);
+  if (exporting) return;
+  if (playing){ T = Math.min((now - startMs) / 1000, END + 0.3); step(); }
+  frame();
+}
+function startRec(){
+  if (!out.captureStream || typeof MediaRecorder === 'undefined'){ ui.innerHTML = '<p>Aufnahme wird von diesem Browser nicht unterstützt.</p>'; ui.classList.remove('hidden'); return false; }
+  let stream; try { stream = out.captureStream(0); vTrack = stream.getVideoTracks()[0]; if (!vTrack || !vTrack.requestFrame) throw 0; } catch (e) { stream = out.captureStream(30); vTrack = null; }
+  const types = ['video/mp4', 'video/mp4;codecs=avc1', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  const mime = types.find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
+  try { rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 10000000 } : {}); } catch (e) { rec = new MediaRecorder(stream); }
+  chunks = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  rec.onstop = () => { vTrack = null; videoBlob = new Blob(chunks, { type: rec.mimeType || mime || 'video/webm' }); recording = false; recdot.style.display = 'none'; showUI('end'); };
+  rec.start(); recording = true; recdot.style.display = 'block'; return true;
+}
+/* Bild-für-Bild-Export: H.264 über WebCodecs + eigener MP4-Schreiber (kein Echtzeit-Mitschnitt) */
+function mp4Build(samples, avcC, w, h, fps){
+  const enc = new TextEncoder();
+  const u32 = n => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255], u16 = n => [(n >> 8) & 255, n & 255];
+  const cat = arrs => { let L = 0; arrs.forEach(a => L += a.length); const o = new Uint8Array(L); let p = 0; arrs.forEach(a => { o.set(a, p); p += a.length; }); return o; };
+  const box = (type, ...parts) => { const body = cat(parts.map(p => p instanceof Uint8Array ? p : new Uint8Array(p))); return cat([new Uint8Array(u32(body.length + 8)), enc.encode(type), body]); };
+  const full = (type, ver, flags, ...parts) => box(type, [ver, (flags >> 16) & 255, (flags >> 8) & 255, flags & 255], ...parts);
+  const n = samples.length, dur = n, MAT = [].concat(u32(0x10000), u32(0), u32(0), u32(0), u32(0x10000), u32(0), u32(0), u32(0), u32(0x40000000));
+  // Reihenfolge der Anzeige (falls der Encoder B-Bilder liefert)
+  let shift = 0; const off = samples.map((s, i) => { const d = s.pts - i; if (-d > shift) shift = -d; return d; }); const needCtts = off.some(d => d !== 0);
+  const sync = []; samples.forEach((s, i) => { if (s.key) sync.push(i + 1); });
+  const stsd = full('stsd', 0, 0, u32(1), box('avc1', [0, 0, 0, 0, 0, 0], u16(1), u16(0), u16(0), u32(0), u32(0), u32(0), u16(w), u16(h), u32(0x480000), u32(0x480000), u32(0), u16(1), new Uint8Array(32), u16(24), [255, 255], box('avcC', avcC)));
+  const stbl = stco => box('stbl', stsd,
+    full('stts', 0, 0, u32(1), u32(n), u32(1)),
+    needCtts ? full('ctts', 0, 0, u32(n), cat(off.map(d => new Uint8Array(u32(1).concat(u32(d + shift)))))) : new Uint8Array(0),
+    full('stss', 0, 0, u32(sync.length), cat(sync.map(i => new Uint8Array(u32(i))))),
+    full('stsc', 0, 0, u32(1), u32(1), u32(n), u32(1)),
+    full('stsz', 0, 0, u32(0), u32(n), cat(samples.map(s => new Uint8Array(u32(s.data.length))))),
+    full('stco', 0, 0, u32(1), u32(stco)));
+  const moov = stco => box('moov',
+    full('mvhd', 0, 0, u32(0), u32(0), u32(fps), u32(dur), u32(0x10000), u16(0x100), u16(0), u32(0), u32(0), MAT, new Uint8Array(24), u32(2)),
+    box('trak',
+      full('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(dur), u32(0), u32(0), u16(0), u16(0), u16(0), u16(0), MAT, u32(w << 16), u32(h << 16)),
+      box('mdia',
+        full('mdhd', 0, 0, u32(0), u32(0), u32(fps), u32(dur), u16(0x55c4), u16(0)),
+        full('hdlr', 0, 0, u32(0), enc.encode('vide'), u32(0), u32(0), u32(0), enc.encode('Video\0')),
+        box('minf', full('vmhd', 0, 1, u16(0), u16(0), u16(0), u16(0)), box('dinf', full('dref', 0, 0, u32(1), full('url ', 0, 1))), stbl(stco)))));
+  const ftyp = box('ftyp', enc.encode('isom'), u32(0x200), enc.encode('isomiso2avc1mp41'));
+  const mv = moov(ftyp.length + moov(0).length + 8);
+  let L = 0; samples.forEach(s => L += s.data.length);
+  return new Blob([ftyp, mv, new Uint8Array(u32(L + 8)), enc.encode('mdat')].concat(samples.map(s => s.data)), { type: 'video/mp4' });
+}
+async function exportMP4(canvas, total, fps, renderAt, onProgress){
+  const w = canvas.width, h = canvas.height; let cfg = null;
+  for (const codec of ['avc1.640028', 'avc1.4d0028', 'avc1.42002a', 'avc1.42e028']){
+    const c = { codec, width: w, height: h, bitrate: 12000000, framerate: fps, avc: { format: 'avc' } };
+    try { const r = await VideoEncoder.isConfigSupported(c); if (r && r.supported){ cfg = c; break; } } catch (e) {}
+  }
+  if (!cfg) throw new Error('H.264 wird nicht unterstützt');
+  const samples = []; let avcC = null, err = null; const usPer = 1e6 / fps;
+  const enc = new VideoEncoder({
+    output: (chunk, meta) => {
+      if (meta && meta.decoderConfig && meta.decoderConfig.description && !avcC){ const d = meta.decoderConfig.description; avcC = new Uint8Array(d.buffer ? d.buffer.slice(d.byteOffset, d.byteOffset + d.byteLength) : d); }
+      const data = new Uint8Array(chunk.byteLength); chunk.copyTo(data); samples.push({ data, key: chunk.type === 'key', pts: Math.round(chunk.timestamp / usPer) });
+    },
+    error: e => { err = e; },
+  });
+  enc.configure(cfg);
+  for (let i = 0; i < total; i++){
+    if (err) throw err;
+    renderAt(i);
+    const vf = new VideoFrame(canvas, { timestamp: Math.round(i * usPer), duration: Math.round(usPer) });
+    enc.encode(vf, { keyFrame: i % 60 === 0 }); vf.close();
+    while (enc.encodeQueueSize > 2) await new Promise(r => setTimeout(r, 4));
+    if (i % 3 === 0){ onProgress && onProgress(i / total); await new Promise(r => setTimeout(r, 0)); }
+  }
+  await enc.flush(); enc.close(); if (err) throw err;
+  if (!avcC || !samples.length) throw new Error('Encoder hat keine Daten geliefert');
+  return mp4Build(samples, avcC, w, h, fps);
+}
+let exporting = false;
+async function doExport(){
+  reset(); exporting = true; playing = false; videoBlob = null; ui.classList.remove('hidden');
+  ui.innerHTML = '<h1>Video wird erstellt …</h1><p id="prog" style="font-size:34px;font-weight:800;opacity:1">0 %</p><p>Bild für Bild in voller Qualität. Bitte die Seite offen lassen und den Bildschirm nicht sperren.</p>';
+  const pr = document.getElementById('prog');
+  try {
+    videoBlob = await exportMP4(out, Math.floor(END * 30), 30, i => { T = i / 30; step(); frame(); }, p => { pr.textContent = Math.round(p * 100) + ' %'; });
+    exporting = false; ended = true; showUI('end');
+  } catch (e) {
+    exporting = false; showUI('start');
+    const m = document.createElement('p'); m.style.color = '#ffb3a0'; m.textContent = 'Export hat nicht geklappt (' + (e && e.message ? e.message : e) + '). Du kannst stattdessen „Aufnehmen“ nutzen.'; ui.appendChild(m);
+  }
+}
+let claudeDL = null;
+try { if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { claudeDL = d; }).catch(() => {}); } catch (e) {}
+async function saveVideo(){
+  if (!videoBlob) return;
+  const fname = `was-waere-ben-handy.${videoBlob.type.includes('mp4') ? 'mp4' : 'webm'}`;
+  if (claudeDL){ try { await claudeDL.save({ filename: fname, data: videoBlob }); return; } catch (e) { if (e && e.code === 'declined') return; } }
+  const file = new File([videoBlob], fname, { type: videoBlob.type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })){ try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+}
+function finish(){ ended = true; playing = false; if (recording && rec) setTimeout(() => rec.stop(), 300); else showUI('end'); }
+function begin(withRec){
+  reset(); if (withRec){ videoBlob = null; if (!startRec()) return; }
+  ui.classList.add('hidden'); playing = true; startMs = performance.now();
+}
+function showUI(mode){
+  ui.classList.remove('hidden');
+  if (mode === 'start'){
+    ui.innerHTML = `<h1>Was wäre Ben? – Handy</h1><p>9:16 · 1080 × 1920 · ca. 24 s · Sprecher-Spur (ElevenLabs, „Take 1 – Sprecher Airbag“) ab 0:00 drunterlegen</p>
+      <button class="b1" id="bPlay">▶ Abspielen</button>
+      ${window.VideoEncoder ? '<button class="b3" id="bExp">💾 Als MP4-Video exportieren</button><p style="font-size:12px;opacity:.7">Der Export rechnet jedes Bild einzeln. Das Ergebnis läuft flüssig, auch wenn das Handy langsam ist.</p>' : ''}
+      <button class="b2" id="bRec">⏺ Live aufnehmen${window.VideoEncoder ? ' (Notlösung)' : ' &amp; speichern'}</button>`;
+  } else {
+    if (videoBlob && !videoBlob._url) videoBlob._url = URL.createObjectURL(videoBlob);
+    ui.innerHTML = `<h1>Fertig!</h1>
+      ${videoBlob ? `<video src="${videoBlob._url}" controls playsinline muted style="max-height:38vh;max-width:80vw;border-radius:12px;background:#000"></video><button class="b3" id="bSave">💾 Video speichern</button>` : ''}
+      <button class="b1" id="bPlay">↺ Nochmal ansehen</button>${window.VideoEncoder ? '<button class="b2" id="bExp">💾 Neu exportieren</button>' : '<button class="b2" id="bRec">⏺ Aufnehmen &amp; speichern</button>'}`;
+  }
+  const bp = document.getElementById('bPlay'), br = document.getElementById('bRec'), bs = document.getElementById('bSave');
+  bp && (bp.onclick = () => begin(false)); br && (br.onclick = () => begin(true)); bs && (bs.onclick = saveVideo); const be = document.getElementById('bExp'); be && (be.onclick = doExport);
+}
+reset(); showUI('start'); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

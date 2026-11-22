@@ -365,7 +365,7 @@ let dimK = 0, raceK = 0, ringK = 0, brainK = 0, weightK = 0, noseK = 0, xrK = 0;
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.012; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.008; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const imp = at => T >= at ? Math.exp(-(T - at) * 3) : 0;
-const HOOK = [[3.4, 2.5, -2.15, 0, 2.55, -2.35, 42], [3.05, 2.48, -2.2, 0, 2.5, -2.35, 39]];
+const HOOK = [[1.4, 4.3, 2.6, 0, 2.35, -2.35, 40], [1.25, 4.15, 2.25, 0, 2.35, -2.35, 38]];
 const fmt = (v, n) => v.toFixed(n).replace('.', ',');
 function benHold(t){ show(ben); lieBen(t); benPhone(0, t); eyeS = 1; bFace(ben, 0.15, 0); }
 function painBen(k){ eyeS = lerp(1, 0.1, k); bFace(ben, -1.0 * k, 0.9 * k); }
@@ -393,28 +393,28 @@ const SCN = [
     upd(lt){ dT = T; benHold(T); PH.light.intensity = 1.5 + 1.2 * imp(0.25) * (T > 0.25 ? 1 : 0); camW(E.io(seg(lt, 0, 2.9)), HOOK[0], HOOK[1]); camFin(); } },
   { t: 2.9, set: world, mood: MOOD.night, hud: () => T > 3.3 ? ['30 CM', 'ÜBER DEM GESICHT'] : null,
     upd(lt){ dT = T; benHold(T); dimK = E.out(seg(T, 3.2, 3.6)) * (1 - seg(T, 5.3, 5.5));
-      camW(E.io(seg(lt, 0, 2.6)), [3.9, 3.1, -0.6, 0, 2.15, -2.3, 44], [3.6, 3.0, -0.8, 0, 2.15, -2.3, 42]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.6)), [5.2, 3.0, -3.6, 0, 2.35, -2.4, 34], [4.9, 2.95, -3.5, 0, 2.35, -2.4, 33]); camFin(); } },
   { t: 5.5, set: world, mood: MOOD.night, hud: () => T > T_SLIP ? ['ZEITLUPE', '23× LANGSAMER'] : null,
     upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); eyeS = 1; bFace(ben, 0.15 - 0.4 * seg(T, T_SLIP, T_SLIP + 0.4), 0.3 * seg(T, T_SLIP, T_SLIP + 0.4));
-      camW(E.io(seg(lt, 0, 2.05)), [2.3, 1.95, -1.45, 0, 2.5, -2.35, 38], [2.1, 1.95, -1.55, 0, 2.5, -2.35, 36]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.05)), [3.3, 1.95, -0.4, 0, 2.45, -2.3, 34], [3.0, 1.95, -0.55, 0, 2.45, -2.3, 33]); camFin(); } },
   { t: 7.55, set: world, mood: MOOD.night, hud: () => [fmt(tReal(), 2) + ' S', 'FALLZEIT'],
     upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); eyeS = 1; bFace(ben, -0.25, 0.3); raceK = E.out(seg(T, 7.7, 8.0));
-      camW(E.io(seg(lt, 0, 1.85)), [2.7, 2.45, -2.25, 0, 2.45, -2.35, 38], [2.45, 2.42, -2.3, 0, 2.42, -2.35, 36]); camFin(); } },
+      camW(E.io(seg(lt, 0, 1.85)), [4.4, 2.6, -3.4, 0, 2.35, -2.4, 32], [4.1, 2.55, -3.3, 0, 2.35, -2.4, 31]); camFin(); } },
   { t: 9.4, set: world, mood: MOOD.night, hud: () => [fmt(tReal(), 2) + ' S', 'GEHIRN REAGIERT …'],
     upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); eyeS = 1; bFace(ben, -0.25, 0.3); raceK = 1; xrK = E.out(seg(T, 9.4, 9.8));
-      camW(E.io(seg(lt, 0, 3.0)), [2.7, 3.5, -0.9, 0, 2.35, -2.45, 40], [2.45, 3.35, -1.1, 0, 2.35, -2.45, 38]); camFin(); } },
+      camW(E.io(seg(lt, 0, 3.0)), [1.5, 4.2, 1.8, 0, 2.4, -2.4, 34], [1.3, 4.0, 1.4, 0, 2.4, -2.4, 33]); camFin(); } },
   { t: 12.4, set: world, mood: MOOD.night, hud: () => T > T_HIT ? ['8,7 KM/H', 'AUFPRALL – ZU SPÄT!'] : [fmt(tReal(), 2) + ' S', 'GEHIRN REAGIERT …'],
     upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); const hk = T > T_HIT ? 1 : 0; painBen(hk * (0.6 + 0.4 * Math.exp(-(T - T_HIT) * 2)));
       if (!hk){ eyeS = 1; bFace(ben, -0.25, 0.3); } raceK = 1 - seg(T, 13.2, 13.5); ringK = hk * clamp01(1 - (T - T_HIT) / 0.9); flashA = hk && T < T_HIT + 0.08 ? 0.3 : 0;
-      camW(E.io(seg(lt, 0, 3.0)), [2.4, 2.3, -2.35, 0, 2.3, -2.35, 36], [2.2, 2.28, -2.4, 0, 2.28, -2.4, 34]); camFin(0.06 * imp(T_HIT)); } },
+      camW(E.io(seg(lt, 0, 3.0)), [4.0, 2.5, -3.6, 0, 2.3, -2.4, 30], [3.6, 2.45, -3.45, 0, 2.3, -2.4, 29]); camFin(0.06 * imp(T_HIT)); } },
   { t: 15.4, set: world, mood: MOOD.night, hud: () => ['≈ 100 N', 'WIE 10 KILO AUF DER NASE'],
     upd(lt){ dT = T; show(ben); lieBen(T); benPhone(0); painBen(0.85 + 0.15 * Math.sin(T * 6)); noseK = E.out(seg(T, 15.5, 15.9)) * (1 - seg(T, 19.1, 19.4)); weightK = E.out(seg(T, 17.4, 17.8)) * (1 - seg(T, 19.1, 19.4));
-      camW(E.io(seg(lt, 0, 4.0)), [1.7, 3.2, -1.15, 0, 2.15, -2.4, 34], [1.5, 3.05, -1.3, 0, 2.15, -2.4, 32]); camFin(); } },
+      camW(E.io(seg(lt, 0, 4.0)), [0.9, 4.0, 0.8, 0, 2.2, -2.45, 30], [0.8, 3.85, 0.5, 0, 2.2, -2.45, 29]); camFin(); } },
   { t: 19.4, set: world2, mood: MOOD.night, hud: () => ['PROFI-TRICK', 'AUF DER SEITE LIEGEN'],
-    upd(lt){ dT = T; proScene(); camW(E.io(seg(lt, 0, 2.9)), [1.3, 2.5, 4.9, 1.0, 1.75, 0.3, 38], [1.25, 2.4, 4.5, 1.0, 1.7, 0.3, 36]); camFin(); } },
+    upd(lt){ dT = T; proScene(); camW(E.io(seg(lt, 0, 2.9)), [1.3, 2.6, 6.0, 0.9, 1.8, 0.3, 30], [1.25, 2.55, 5.7, 0.9, 1.8, 0.3, 29]); camFin(); } },
   { t: 22.3, set: world, mood: MOOD.night, hud: () => T > 22.45 ? ['RUNDE 2', 'NICHTS GELERNT'] : null,
     upd(lt){ dT = T; show(ben); lieBen(T); const lf = E.io(seg(T, 22.95, 23.7)); benPhone(lf); painBen(0.5 * (1 - lf));
-      camW(E.io(seg(lt, 0, 1.6)), [3.9, 3.1, -0.6, 0, 2.15, -2.3, 44], [3.7, 3.0, -0.75, 0, 2.2, -2.3, 42]); camFin(); } },
+      camW(E.io(seg(lt, 0, 1.6)), [2.4, 4.6, 2.8, 0, 2.35, -2.35, 40], [2.2, 4.45, 2.5, 0, 2.35, -2.35, 39]); camFin(); } },
   { t: 23.9, set: world, mood: MOOD.night, loopin: 1,
     upd(lt){ dT = T - END; benHold(T - END); camW(0, HOOK[0], HOOK[1]); camFin(); } },
 ];

@@ -326,7 +326,7 @@ const SCN = [
     upd(lt){ dT = T; hookPose(T); camCar(CAR1, E.io(seg(lt, 0, 2.95)), HOOK[0], HOOK[1]); camFinCar(CAR1); } },
   { t: 2.95, set: world, mood: MOOD.park, hud: () => ['VOLLGAS', 'AB IN DIE SCHLEIFE'],
     upd(lt){ dT = T; riders(T); armsUp(ben, 1 - E.io(seg(T, 3.4, 4.2))); eyeS = 1.2; bFace(ben, 0.5, 0.6); const u = T - 2.95; train(-18.92 + 2.4 * u + 3.225 * u * u);
-      camW(E.io(seg(lt, 0, 2.2)), [27, 9.5, 1.5, 0.8, 8.2, 0.6, 42], [25.5, 9.3, 1.3, 0.8, 8.2, 0.6, 41]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.2)), [27, 9.5, -4.0, 0.8, 8.2, -4.0, 42], [25.5, 9.3, 0.8, 0.8, 8.2, 0.8, 41]); camFin(); } },
   { t: 5.15, set: world, mood: MOOD.park, hud: () => [fmt(gNow, 1) + ' g', T < 7.4 ? 'UNTEN: IN DEN SITZ GEPRESST' : 'GEFÜHLT 4× SO SCHWER'],
     upd(lt){ dT = T; riders(T); const th = lerp(TH_A, 0.6, seg(T, 5.15, 9.3)), d = dAt(th); train(d); gNow = gAt(d); const k = E.out(seg(T, 5.2, 5.8));
       squash(ben, k); eyeS = lerp(1, 0.25, k); bFace(ben, -1 * k, 0.15); ben.head.rotation.x = 0.12 * k; squash(pro, k);

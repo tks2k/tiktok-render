@@ -330,7 +330,7 @@ function makePhone(par, centered){
 const PH = makePhone(world, false), PH2 = makePhone(world2, true);
 
 /* Bens Liegepose: Rücken auf der Matratze, Kopf im Kissen, Kinn leicht Richtung Brust (Blick aufs Handy) */
-const RY = MT + 0.28, HT = 0.4, PT = -0.40, GAP = 0.36;
+const RY = MT + 0.28, HT = 0.4, PT = 0.40, GAP = 0.36;
 function lieBen(t){ bRest(ben, t, 0); ben.root.position.set(0, RY, 0); ben.root.rotation.set(-PI / 2, 0, 0); ben.head.rotation.x = HT; }
 const NOSE = new THREE.Vector3(), HOLD = new THREE.Vector3(), HAND0 = [new THREE.Vector3(), new THREE.Vector3()];
 (function(){ lieBen(0); ben.root.updateMatrixWorld(true); ben.head.localToWorld(NOSE.set(0, 0.58, 0.67)); HOLD.copy(NOSE); HOLD.y += GAP;
@@ -344,8 +344,8 @@ function benPhone(lift, t){
   const fk = clamp01((t - T_SLIP) / (T_HIT - T_SLIP)), hit = t >= T_HIT;
   let jolt = hit ? 0.035 * Math.exp(-(t - T_HIT) * 4) * (t - T_HIT < 1.2 ? 1 : 0) : 0;
   ben.root.position.y -= jolt;
-  if (!hit){ PH.position.set(HOLD.x, HOLD.y - GAP * fk * fk, HOLD.z); PH.rotation.set(PT - 0.05 * fk, 0, 0); }
-  else { const u = t - T_HIT; PH.position.set(NOSE.x, NOSE.y + 0.04 * Math.sin(PI * clamp01(u / 0.6)) - jolt, NOSE.z); PH.rotation.set(PT - 0.05 - 0.29 * E.io(seg(t, T_HIT + 0.5, T_HIT + 1.7)), 0, 0); }
+  if (!hit){ PH.position.set(HOLD.x, HOLD.y - GAP * fk * fk, HOLD.z); PH.rotation.set(PT + 0.05 * fk, 0, 0); }
+  else { const u = t - T_HIT; PH.position.set(NOSE.x, NOSE.y + 0.04 * Math.sin(PI * clamp01(u / 0.6)) - jolt, NOSE.z); PH.rotation.set(PT + 0.05 + 0.29 * E.io(seg(t, T_HIT + 0.5, T_HIT + 1.7)), 0, 0); }
   if (lift > 0){ PH.position.lerpVectors(PH.position.clone(), HOLD, lift); PH.rotation.x = lerp(PH.rotation.x, PT, lift); }
   PH.light.intensity = hit && lift < 1 ? 0.5 + 1.0 * lift : 1.5;
   PH.updateMatrixWorld(true);

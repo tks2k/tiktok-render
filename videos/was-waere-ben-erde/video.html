@@ -428,7 +428,7 @@ function flame(x, y, s, a){ g2.save(); g2.globalAlpha = a; g2.translate(x, y); c
   g2.beginPath(); g2.moveTo(0, -1.1 * s * w); g2.bezierCurveTo(0.7 * s, -0.4 * s, 0.6 * s, 0.5 * s, 0, 0.55 * s); g2.bezierCurveTo(-0.6 * s, 0.5 * s, -0.7 * s, -0.4 * s, 0, -1.1 * s * w); g2.fillStyle = '#ff5a1f'; g2.fill();
   g2.beginPath(); g2.moveTo(0, -0.5 * s * w); g2.bezierCurveTo(0.35 * s, -0.1 * s, 0.3 * s, 0.4 * s, 0, 0.45 * s); g2.bezierCurveTo(-0.3 * s, 0.4 * s, -0.35 * s, -0.1 * s, 0, -0.5 * s * w); g2.fillStyle = '#ffd23c'; g2.fill(); g2.restore(); }
 
-function drawGlobe(a){ if (a <= 0) return; const cx = W / 2, cy = 820, r = 230, rot = lerp(-0.7, 0.7, seg(T, 4.5, 7.9));
+function drawGlobe(a){ if (a <= 0) return; const cx = 260, cy = 840, r = 175, rot = lerp(-0.7, 0.7, seg(T, 4.5, 7.9));
   g2.save(); g2.globalAlpha = a; g2.beginPath(); g2.arc(cx, cy, r + 14, 0, 7); g2.fillStyle = 'rgba(11,18,32,0.55)'; g2.fill();
   g2.save(); g2.beginPath(); g2.arc(cx, cy, r, 0, 7); g2.clip(); const og = g2.createRadialGradient(cx - 70, cy - 70, 30, cx, cy, r); og.addColorStop(0, '#5aa8f0'); og.addColorStop(1, '#1c5aa8'); g2.fillStyle = og; g2.fillRect(cx - r, cy - r, 2 * r, 2 * r);
   const LAND = [[0.0, 0.8, 0.35, 0.28], [0.3, 0.45, 0.3, 0.3], [-0.9, 0.6, 0.4, 0.4], [1.0, 0.3, 0.35, 0.5], [-0.3, -0.3, 0.3, 0.45], [2.2, 0.5, 0.6, 0.4], [-2.0, 0.2, 0.4, 0.5], [2.8, -0.4, 0.3, 0.3]];
@@ -439,9 +439,9 @@ function drawGlobe(a){ if (a <= 0) return; const cx = W / 2, cy = 820, r = 230, 
   g2.restore(); g2.beginPath(); g2.arc(cx, cy, r, 0, 7); g2.lineWidth = 8; g2.strokeStyle = '#ffffff'; g2.stroke();
   const dl = rot, dx = cx + lr * Math.sin(dl), dy = ly + lr * 0.18 * Math.cos(dl);
   g2.beginPath(); g2.arc(dx, dy, 16, 0, 7); g2.fillStyle = '#ff3b3b'; g2.fill(); g2.lineWidth = 5; g2.strokeStyle = '#0b1220'; g2.stroke();
-  g2.beginPath(); g2.moveTo(dx + 24, dy); g2.lineTo(dx + 150, dy); g2.lineWidth = 12; g2.lineCap = 'round'; g2.strokeStyle = '#ffd23c'; g2.stroke();
-  g2.beginPath(); g2.moveTo(dx + 172, dy); g2.lineTo(dx + 140, dy - 22); g2.lineTo(dx + 140, dy + 22); g2.closePath(); g2.fillStyle = '#ffd23c'; g2.fill();
-  txt('DEUTSCHLAND', dx, dy + 48, 34, '#ffffff'); txt('ERDE DREHT SICH →', cx, cy + r + 56, 38, '#ffd23c'); g2.restore(); }
+  g2.beginPath(); g2.moveTo(dx + 24, dy); g2.lineTo(dx + 105, dy); g2.lineWidth = 12; g2.lineCap = 'round'; g2.strokeStyle = '#ffd23c'; g2.stroke();
+  g2.beginPath(); g2.moveTo(dx + 128, dy); g2.lineTo(dx + 98, dy - 20); g2.lineTo(dx + 98, dy + 20); g2.closePath(); g2.fillStyle = '#ffd23c'; g2.fill();
+  txt('DEUTSCHLAND', dx, dy + 44, 28, '#ffffff'); txt('ERDE DREHT SICH →', cx, cy + r + 50, 34, '#ffd23c'); g2.restore(); }
 function drawLines(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a * 0.55; g2.strokeStyle = '#ffffff'; g2.lineCap = 'round';
   for (let i = 0; i < 14; i++){ const y = 620 + hsh(i * 3.3) * 900, len = 160 + hsh(i * 5.1) * 260, sp = 1400 + hsh(i * 7.7) * 900, x = W + 300 - ((T * sp + hsh(i) * 3000) % (W + 700));
     g2.lineWidth = 4 + 4 * hsh(i * 2.2); g2.beginPath(); g2.moveTo(x, y); g2.lineTo(x + len, y); g2.stroke(); }

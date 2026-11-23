@@ -311,22 +311,25 @@ const BM = [], PMt = []; for (let i = 0; i < 5; i++){ const m = new THREE.Mesh(M
 // Bläschen in Bens Flasche
 const NBU = 150, BUB = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }), NBU); BUB.frustumCulled = false; BUB.renderOrder = 0; world.add(BUB);
 // Fontänen (Schaumteilchen)
-function makeJet(n){ const im = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshStandardMaterial({ color: 0xd8b088, roughness: 0.85 }), n); im.frustumCulled = false; im.castShadow = false; world.add(im); return { im, n }; }
+function makeJet(n){ const fm = new THREE.MeshStandardMaterial({ color: 0xd8b088, roughness: 0.85 }); const im = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), fm, n); im.frustumCulled = false; im.castShadow = false; world.add(im);
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 0.55, 1, 18).translate(0, 0.5, 0), fm); core.castShadow = false; world.add(core); return { im, n, core }; }
 const JB = makeJet(520), JP = makeJet(600);
 const _m4 = new THREE.Matrix4(), _q0 = new THREE.Quaternion(), _s0 = new THREE.Vector3(), _p0 = new THREE.Vector3();
 function hideInst(im, n){ _m4.makeScale(0, 0, 0); for (let i = 0; i < n; i++) im.setMatrixAt(i, _m4); im.instanceMatrix.needsUpdate = true; }
+function hideJet(J){ hideInst(J.im, J.n); J.core.visible = false; }
 // tau: echte Sekunden; t0/t1 Ausstoßfenster; v0 Startgeschwindigkeit (E/s)
-function jet(J, tau, o, v0, t0, t1){
+function jet(J, tau, o, v0, t0, t1){ let top = -1;
   for (let i = 0; i < J.n; i++){
     const f = Math.pow(i / J.n, 1.25), te = t0 + (t1 - t0) * f, dt = tau - te;
     if (dt <= 0){ _m4.makeScale(0, 0, 0); J.im.setMatrixAt(i, _m4); continue; }
     const a = hsh(i * 3.1) * PI * 2, sp = 0.035 + 0.05 * hsh(i * 7.7), v = v0 * Math.pow(Math.max(0, 1 - f * 0.92), 0.55) * (0.9 + 0.1 * hsh(i * 5.3));
     const vx = Math.cos(a) * sp * v, vz = Math.sin(a) * sp * v, vy = v * Math.cos(sp);
     const y = o.y + vy * dt - 0.5 * GR * dt * dt;
-    let s = (0.05 + 0.07 * hsh(i * 2.9)) * (1 + 0.7 * Math.min(1.5, dt)); s *= clamp01((y - 0.05) / 0.4);
+    let s = (0.075 + 0.07 * hsh(i * 2.9)) * (1 + 0.6 * Math.min(1.5, dt)); s *= clamp01((y - 0.05) / 0.4); if (vy - GR * dt > -2 && y > top) top = y;
     _p0.set(o.x + vx * dt, y, o.z + vz * dt); _s0.setScalar(Math.max(0, s)); _m4.compose(_p0, _q0, _s0); J.im.setMatrixAt(i, _m4);
   }
   J.im.instanceMatrix.needsUpdate = true;
+  const h = top - o.y - 0.25; J.core.visible = tau > t0 && tau < t1 && h > 0.05; if (J.core.visible){ J.core.position.copy(o); J.core.scale.set(0.11 + 0.03 * Math.min(1, h / 5), Math.max(0.05, h), 0.11 + 0.03 * Math.min(1, h / 5)); }
 }
 
 /* =========================================================
@@ -414,7 +417,7 @@ function proBottle(tau, pull){
 function base(t){
   show(ben, pro); benStand(t); proStand(t); wet(0, t); PUD.visible = false; NB.g.visible = false; CAP.visible = true;
   BB.g.position.copy(BT); setLevel(BB, SURF, 0); PB.g.position.copy(PT); setLevel(PB, SURF, 0); ROLL.position.copy(ROLL0); ROLL.rotation.set(0, 0, 0);
-  hideInst(JB.im, JB.n); hideInst(JP.im, JP.n); hideInst(BUB, NBU);
+  hideJet(JB); hideJet(JP); hideInst(BUB, NBU);
   for (let i = 0; i < 5; i++){ mentoB(i, -1, _mv); BM[i].position.copy(_mv); BM[i].rotation.set(0, 0, 0); BM[i].visible = true; }
   proBottle(-1, 0); proHand(0);
 }

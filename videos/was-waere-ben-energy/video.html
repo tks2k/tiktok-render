@@ -482,10 +482,11 @@ const _q = new THREE.Vector3();
 function lp(o, x, y, z){ o.updateWorldMatrix(true, false); return proj(o.localToWorld(_q.set(x, y, z))); }
 function hex(x, y, r){ g2.beginPath(); for (let k = 0; k < 6; k++){ const a = k * PI / 3 + PI / 6; g2.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } g2.closePath(); }
 function drawTorso(a){ if (a <= 0) return; const t = ben.torso, pt = (x, y) => lp(t, x, y, 0.3);
-  const c = [W / 2 - 40, 960], sx = 640, sy = 700;
+  const c = [W / 2 - 40, 1080], sx = 600, sy = 560;
   const Q = (x, y) => [c[0] + x * sx, c[1] - (y - 0.55) * sy];
   g2.save(); g2.globalAlpha = a; g2.fillStyle = 'rgba(6,14,30,0.58)'; g2.fillRect(0, 0, W, H);
   const o0 = Q(-0.55, 1.1), o1 = Q(0.55, -0.05); g2.beginPath(); g2.roundRect(o0[0], o0[1], o1[0] - o0[0], o1[1] - o0[1], 40); g2.fillStyle = 'rgba(120,170,255,0.10)'; g2.fill(); g2.lineWidth = 5; g2.strokeStyle = 'rgba(160,200,255,0.75)'; g2.stroke();
+  const hc = Q(0, 1.38); g2.beginPath(); g2.arc(hc[0], hc[1], 100, 0, 7); g2.fillStyle = 'rgba(120,170,255,0.10)'; g2.fill(); g2.stroke();
   const L = [[0.12, 0.78], [0.36, 0.92], [0.42, 0.5], [0.3, 0.08], [-0.3, 0.08], [-0.42, 0.5], [-0.36, 0.92], [0.12, 0.78]].map(p => Q(p[0], p[1]));
   path(L); g2.lineWidth = 26; g2.lineJoin = 'round'; g2.strokeStyle = 'rgba(200,40,50,0.85)'; g2.stroke();
   const hb = Q(0.12, 0.78), ph = (T * 1.6) % 1, beat = ph < 0.15 ? Math.sin(ph / 0.15 * PI) : 0; heart(hb[0], hb[1] + 20, 46 * (1 + 0.2 * beat)); g2.fillStyle = '#ff3b3b'; g2.fill(); g2.lineWidth = 6; g2.strokeStyle = '#0b1220'; g2.stroke();

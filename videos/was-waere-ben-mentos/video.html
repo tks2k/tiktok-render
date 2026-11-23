@@ -278,19 +278,19 @@ const rAt = h => { for (let i = 1; i < PROF.length; i++) if (h <= PROF[i][0]) re
 const COLA = new THREE.Color(0x3a1c0c), FOAMC = new THREE.Color(0xc79a6a);
 function makeBottle(label){
   const g = new THREE.Group(); world.add(g);
-  const shell = new THREE.Mesh(new THREE.LatheGeometry(PROF.map(p => new THREE.Vector2(p[1], p[0])), 28), new THREE.MeshStandardMaterial({ color: 0xe6f2fa, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false, envMapIntensity: 1.4 }));
+  const shell = new THREE.Mesh(new THREE.LatheGeometry(PROF.map(p => new THREE.Vector2(p[1], p[0])), 28), new THREE.MeshStandardMaterial({ color: 0xe6f2fa, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false, envMapIntensity: 1.0 }));
   shell.renderOrder = 3; g.add(shell);
   const plane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
-  const lm = new THREE.MeshStandardMaterial({ color: COLA.clone(), roughness: 0.2, transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide, clippingPlanes: [plane] });
+  const lm = new THREE.MeshStandardMaterial({ color: COLA.clone(), roughness: 0.45, envMapIntensity: 0.12, transparent: true, opacity: 0.88, depthWrite: false, side: THREE.DoubleSide, clippingPlanes: [plane] });
   const liq = new THREE.Mesh(new THREE.LatheGeometry(PROF.map(p => new THREE.Vector2(Math.max(0.01, p[1] - 0.012), Math.max(0.012, p[0]))), 28), lm); liq.renderOrder = 1; g.add(liq);
-  const top = new THREE.Mesh(new THREE.CircleGeometry(1, 28), new THREE.MeshStandardMaterial({ color: COLA.clone(), roughness: 0.25, transparent: true, opacity: 0.8, depthWrite: false })); top.rotation.x = -PI / 2; top.renderOrder = 2; g.add(top);
+  const top = new THREE.Mesh(new THREE.CircleGeometry(1, 28), new THREE.MeshStandardMaterial({ color: COLA.clone(), roughness: 0.45, envMapIntensity: 0.12, transparent: true, opacity: 0.92, depthWrite: false })); top.rotation.x = -PI / 2; top.renderOrder = 2; g.add(top);
   const lab = new THREE.Mesh(new THREE.CylinderGeometry(0.159, 0.159, 0.2, 28, 1, true), mat(label, { roughness: 0.45, side: THREE.DoubleSide })); lab.position.y = 0.3; g.add(lab);
   const B = { g, plane, lm, top, level: 0.6, foam: 0 }; return B;
 }
 function setLevel(B, h, foam){ // h: Füllhöhe relativ zum Boden (0.03..0.85), foam: 0 = Cola, 1 = Schaum
   h = Math.max(0.03, Math.min(0.85, h)); B.g.updateMatrixWorld(true); const wy = B.g.position.y + h;
   B.plane.constant = wy; const r = Math.max(0.02, rAt(h) - 0.012); B.top.position.y = h; B.top.scale.set(r, r, 1);
-  B.lm.color.copy(COLA).lerp(FOAMC, foam); B.top.material.color.copy(COLA).lerp(FOAMC, Math.min(1, foam * 1.4)); B.lm.opacity = lerp(0.72, 0.9, foam);
+  B.lm.color.copy(COLA).lerp(FOAMC, foam); B.top.material.color.copy(COLA).lerp(FOAMC, Math.min(1, foam * 1.4)); B.lm.opacity = lerp(0.88, 0.95, foam);
 }
 const BB = makeBottle(0xc8281e), PB = makeBottle(0xb7bcc6), NB = makeBottle(0xc8281e);
 BB.g.position.copy(BT); PB.g.position.copy(PT);
@@ -463,16 +463,16 @@ const SCN = [
     upd(lt){ dT = T; base(T); setLevel(BB, 0.18, 0.85); for (let i = 0; i < 5; i++){ mentoB(i, 2, _mv); BM[i].position.copy(_mv); } ROLL.position.set(0.55, 2.0, -0.2); benRoll(); wet(1, T); PUD.visible = true;
       ben.head.rotation.x = -0.45; ben.head.rotation.y = -0.4; bFace(ben, -0.6, 0.8); eyeS = 1.2;
       const pull = E.io(seg(T, 19.95, 20.25)); const tp = tauP(T); proBottle(tp, pull); proHand(pull); pro.head.rotation.x = lerp(0.2, -0.45, E.io(seg(T, 20.6, 22.2))); bFace(pro, 0.3, 0.2);
-      poleK = E.out(seg(T, 20.9, 21.3));
-      const w = E.io(seg(T, 20.4, 21.8)); camW(w, [-2.75, 2.85, 4.4, -4.2, 2.4, 0.15, 40], [-0.2, 4.6, 17.8, -2.9, 5.6, 0.0, 44]); camFin(); } },
+      poleK = E.out(seg(T, 21.4, 21.8));
+      const w = E.io(seg(T, 20.4, 21.8)); camW(w, [-5.7, 2.85, 4.1, -4.2, 2.35, 0.15, 40], [-4.9, 4.6, 17.8, -3.0, 5.6, 0.0, 44]); camFin(); } },
   { t: 23.5, set: world, mood: MOOD.garden, hud: () => ['RUNDE 2', 'NÄCHSTE FLASCHE'],
     upd(lt){ dT = T; base(T); setLevel(BB, 0.18, 0.85); for (let i = 0; i < 5; i++){ mentoB(i, 2, _mv); BM[i].position.copy(_mv); } PUD.visible = true; wet(1, T);
       setLevel(PB, 0.15, 0.85); for (let i = 0; i < 7; i++){ mentoP(i, 2, _mv); PMt[i].position.copy(_mv); } PIN.position.x = PT.x + 0.26;
       ROLL.position.set(0.55, 2.0, -0.2); benRoll();
-      const u = E.io(seg(T, 23.7, 24.6)); NB.g.visible = true; NB.g.position.set(lerp(1.95, 1.38, u), lerp(0.95, 1.72, u), lerp(-0.25, 0.0, u)); setLevel(NB, SURF, 0);
+      const u = E.io(seg(T, 23.7, 24.6)); NB.g.visible = true; NB.g.position.set(lerp(1.95, 1.38, u), lerp(0.7, 1.3, u), lerp(-0.25, 0.0, u)); setLevel(NB, SURF, 0);
       ik(ben, 1, NB.g.position.clone().add(new THREE.Vector3(0.17, 0.35, 0)), PR);
       ben.head.rotation.y = lerp(-0.3, 0.15, u); ben.head.rotation.x = 0.05; bFace(ben, lerp(-0.3, 0.45, u), lerp(0.2, 0.6, u)); eyeS = 1;
-      camW(E.io(seg(lt, 0, 1.7)), [2.1, 2.85, 4.6, 0.95, 2.55, -0.25, 38], [1.95, 2.8, 4.2, 0.95, 2.55, -0.25, 37]); camFin(); } },
+      camW(E.io(seg(lt, 0, 1.7)), [2.6, 2.75, 6.0, 0.9, 2.2, -0.25, 40], [2.4, 2.7, 5.5, 0.9, 2.2, -0.25, 39]); camFin(); } },
   { t: 25.2, set: world, mood: MOOD.garden, loopin: 1,
     upd(lt){ dT = T - END; hookPose(T - END); camW(0, HOOK[0], HOOK[1]); camFin(); } },
 ];

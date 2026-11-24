@@ -340,7 +340,7 @@ const pullK = t => t > BURST ? Math.exp(-(t - BURST) * 1.1) : 0;
 const HOOK = [[-2.4, 3.3, -9.6, 3.0, 2.4, -0.1, 40], [-2.0, 3.2, -8.8, 3.1, 2.45, -0.1, 39]];
 function base(){ show(ben); pane.visible = true; MASK.forEach((M, i) => maskAt(i, M.hang, false)); scene.fog.far = 200; scene.fog.near = 60; }
 function hookPose(t){ base(); seated(ben, BS); ben.head.rotation.y = -0.9; eyeS = 1; bFace(ben, 0.3, 0.05); }
-function cabinFog(t){ const k = fogK(t); fogA = 0.36 * k; scene.fog.color.set(0xf2f4f7); scene.fog.near = lerp(60, 0.5, k); scene.fog.far = lerp(200, 11, k); }
+function cabinFog(t){ const k = fogK(t); fogA = 0.22 * k; scene.fog.color.set(0xf2f4f7); scene.fog.near = lerp(60, 2, k); scene.fog.far = lerp(200, 20, k); }
 function benStorm(t){ seated(ben, BS); const p = pullK(t); ben.head.rotation.y = -0.9 * (1 - seg(t, BURST, BURST + 0.4)) - 0.35 * p; ben.head.rotation.z = 0.12 * p;
   ben.sh[0].rotation.set(-0.4 - 0.4 * p, 0, -0.1 - 1.0 * p + 0.06 * p * Math.sin(t * 30)); ben.torso.rotation.z = 0.08 * p; }
 

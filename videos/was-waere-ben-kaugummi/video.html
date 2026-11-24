@@ -420,7 +420,7 @@ function blob(x, y, r, g){ const c1 = [255, 111, 179], c2 = [150, 150, 166], c =
 function gumAt(t){ if (t < 2.8) return ESO[0]; if (t < 3.9) return along(ESO.concat([STC]), E.io(seg(t, 2.8, 3.9)));
   if (t < 11.4) { const w = t > 9.4 ? 10 * Math.sin(t * 6) : 4 * Math.sin(t * 2); return [STC[0] + w, STC[1] + 0.6 * w]; }
   if (t < 12.85) return along(GUT, 0.55 * E.io(seg(t, 11.4, 12.85))); return along(GUT, lerp(0.55, 1, E.io(seg(t, 12.95, 14.8)))); }
-function drawXray(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; g2.fillStyle = 'rgba(6,14,30,0.62)'; g2.fillRect(0, 0, W, H);
+function drawXray(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; g2.fillStyle = 'rgba(6,14,30,0.84)'; g2.fillRect(0, 0, W, H); g2.translate(X0, 1000); g2.scale(1.18, 1.18); g2.translate(-X0, -1000);
   g2.lineWidth = 6; g2.strokeStyle = 'rgba(160,200,255,0.75)'; g2.fillStyle = 'rgba(120,170,255,0.10)';
   g2.beginPath(); g2.arc(X0, 590, 125, 0, 7); g2.fill(); g2.stroke(); g2.beginPath(); g2.roundRect(X0 - 300, 745, 600, 760, 60); g2.fill(); g2.stroke();
   g2.lineCap = 'round'; g2.lineJoin = 'round';

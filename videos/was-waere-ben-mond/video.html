@@ -254,7 +254,7 @@ const EARTH = new THREE.Group(), MARS = new THREE.Group(), MOON = new THREE.Grou
 (function(){
   ground(EARTH, 0x74ad4e);
   const trunk = mat(0x6b4a2e), leaf = [mat(0x3e8a3e, { roughness: 0.9 }), mat(0x4f9a46, { roughness: 0.9 })];
-  [[-12, -18], [-3, -24], [7, -20], [15, -26], [-20, -30], [22, -18]].forEach(([x, z], i) => { P(EARTH, new THREE.CylinderGeometry(0.4, 0.55, 4, 10), trunk, x, 2, z); P(EARTH, new THREE.SphereGeometry(2.8, 16, 12), leaf[i % 2], x, 5.6, z); });
+  [[-12, -18], [-17, -26], [9, -22], [15, -26], [-20, -30], [22, -18]].forEach(([x, z], i) => { P(EARTH, new THREE.CylinderGeometry(0.4, 0.55, 4, 10), trunk, x, 2, z); P(EARTH, new THREE.SphereGeometry(2.8, 16, 12), leaf[i % 2], x, 5.6, z); });
   [[-6, -6], [6.5, -8], [-9, 2]].forEach(([x, z]) => P(EARTH, new THREE.SphereGeometry(0.9, 12, 10), leaf[1], x, 0.5, z));
   ground(MARS, 0xc1643a);
   const mr = mat(0x9a4a2c, { roughness: 0.95 });
@@ -264,8 +264,8 @@ const EARTH = new THREE.Group(), MARS = new THREE.Group(), MOON = new THREE.Grou
   const mm = mat(0x77777c, { roughness: 1 });
   [[-6, -5, 2.2], [7, -9, 3.2], [-12, -16, 4], [4, 3.5, 1.3], [14, -3, 2.4]].forEach(([x, z, r]) => { const c = new THREE.Mesh(new THREE.TorusGeometry(r, 0.22, 8, 32), mm); c.rotation.x = -PI / 2; c.scale.set(1, 1, 0.5); c.position.set(x, 0.02, z); c.receiveShadow = true; MOON.add(c); });
   [[-4, -2, 0.5], [6, -4, 0.8], [-9, 1, 0.4], [10, -12, 1.2]].forEach(([x, z, s]) => P(MOON, new THREE.DodecahedronGeometry(s, 0), mat(0x6c6c72, { roughness: 1 }), x, s * 0.4, z));
-  const ea = new THREE.Mesh(new THREE.SphereGeometry(10, 32, 20), new THREE.MeshBasicMaterial({ color: 0x3d7fd8, fog: false })); ea.position.set(-38, 62, -160); MOON.add(ea);
-  [[-2, 4, 4], [3, -3, 3.5], [-5, -4, 2.8]].forEach(([dx, dy, r]) => { const l = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), new THREE.MeshBasicMaterial({ color: 0x5aa060, fog: false })); l.position.set(-38 + dx, 62 + dy, -160 + 8.6); l.scale.z = 0.3; MOON.add(l); });
+  const ea = new THREE.Mesh(new THREE.SphereGeometry(10, 32, 20), new THREE.MeshBasicMaterial({ color: 0x3d7fd8, fog: false })); ea.position.set(-26, 56, -160); MOON.add(ea);
+  [[-2, 4, 4], [3, -3, 3.5], [-5, -4, 2.8]].forEach(([dx, dy, r]) => { const l = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), new THREE.MeshBasicMaterial({ color: 0x5aa060, fog: false })); l.position.set(-26 + dx, 56 + dy, -160 + 8.6); l.scale.z = 0.3; MOON.add(l); });
 })();
 const SETS = [EARTH, MARS, MOON];
 
@@ -317,12 +317,12 @@ const SCN = [
       const a = T < 4.9 ? jump(ben, T, 3.8, 0.64, 0.5 * MU) : jump(ben, T, 5.45, 0.64, 0.5 * MU); ben.root.position.y = a; eyeS = 1; bFace(ben, a > 0 ? -0.3 : 0.4, a > 0 ? 0.4 : 0.05);
       RUL = { x: 2.4, max: 1, peak: 0.5, lab: '0,5 M' }; rulK = E.out(seg(T, 3.2, 3.5)) * (1 - seg(T, 6.55, 6.75));
       TIM = [T < 4.9 ? air(T, 3.8, 0.64) : air(T, 5.45, 0.64), 'IN DER LUFT']; timK = rulK;
-      camW(E.io(seg(lt, 0, 3.75)), [1.6, 2.6, 13.2, 0.7, 2.3, 0, 40], [1.4, 2.6, 12.4, 0.7, 2.3, 0, 40]); camFin(); } },
+      camW(E.io(seg(lt, 0, 3.75)), [1.6, 2.0, 13.2, 0.7, 1.2, 0, 40], [1.4, 2.0, 12.6, 0.7, 1.25, 0, 40]); camFin(); } },
   { t: 6.75, set: MARS, mood: MOOD.mars, hud: () => ['MARS: 1,3 M', 'SCHWERKRAFT 0,38 G'],
     upd(lt){ dT = T; base(); bRest(ben, T, 0); place(ben, 0, 0, 0, 0.1);
       const a = jump(ben, T, 7.6, 1.64, 1.32 * MU); ben.root.position.y = a; eyeS = a > 0 ? 1.3 : 1; bFace(ben, a > 0 ? -0.6 : 0.3, a > 0 ? 0.6 : 0.05);
       RUL = { x: 2.6, max: 2, peak: 1.3, lab: '1,3 M' }; rulK = E.out(seg(T, 6.9, 7.2)) * (1 - seg(T, 10.4, 10.55)); TIM = [air(T, 7.6, 1.64), 'IN DER LUFT']; timK = rulK;
-      camW(E.io(seg(lt, 0, 3.8)), [1.8, 3.3, 15.6, 0.7, 3.0, 0, 40], [1.6, 3.3, 15.0, 0.7, 3.1, 0, 40]); camFin(); } },
+      camW(E.io(seg(lt, 0, 3.8)), [1.8, 2.8, 15.6, 0.7, 2.0, 0, 40], [1.6, 2.8, 15.0, 0.7, 2.1, 0, 40]); camFin(); } },
   { t: 10.55, set: MOON, mood: MOOD.moon, hud: () => ['MOND: 3 M!', 'SCHWERKRAFT 0,17 G'],
     upd(lt){ dT = T; base(); bRest(ben, T, 0); place(ben, 0, 0, 0, 0.1);
       const a = jump(ben, T, 10.75, 3.85, 3.0 * MU); ben.root.position.y = a; eyeS = a > 0 ? 1.4 : 1; bFace(ben, a > 0 ? -0.8 : 0.3, a > 0 ? 0.9 : 0.05);

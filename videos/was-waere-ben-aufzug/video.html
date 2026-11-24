@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Was wäre Ben? – Aufzug</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#out{width:min(100vw,56.25vh);width:min(100vw,calc(100dvh*9/16));height:auto;aspect-ratio:9/16;display:block}
+#ui{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.62);color:#fff;text-align:center;padding:24px}
+#ui.hidden{display:none}
+#ui h1{font:italic 700 28px Georgia,"Times New Roman",serif;margin:0 0 4px;line-height:1.2;max-width:360px}
+#ui p{margin:0 0 6px;opacity:.85;font-size:14px;max-width:330px;line-height:1.35}
+button{font:800 17px system-ui,-apple-system,sans-serif;padding:14px 22px;border-radius:14px;border:0;min-width:270px;cursor:pointer}
+.b1{background:#E8B21F;color:#000}.b2{background:#E0262B;color:#fff}.b3{background:#3bd16f;color:#000}
+#recdot{position:fixed;top:10px;right:12px;color:#ff3b3b;font:800 13px system-ui;display:none;text-shadow:0 0 4px #000}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script>window.THREE||document.write('<script src="https://unpkg.com/three@0.149.0/build/three.min.js"><\/script>')</script>
+</head>
+<body>
+<div id="wrap"><canvas id="out" width="1080" height="1920"></canvas></div>
+<div id="recdot">● REC</div>
+<div id="ui"></div>
+<script>
+(function(){
+if (!window.THREE){ document.getElementById('ui').innerHTML = '<h1>3D-Engine konnte nicht geladen werden</h1><p>Bitte mit Internetverbindung in Safari, Chrome oder Edge öffnen.</p>'; return; }
+const CM = THREE.ColorManagement; if (CM){ if ('legacyMode' in CM) CM.legacyMode = false; if ('enabled' in CM) CM.enabled = true; }
+
+/* =========================================================
+   GRUNDSETUP
+   ========================================================= */
+const W = 1080, H = 1920, END = 25.5;
+const out = document.getElementById('out'), g2 = out.getContext('2d');
+const ui = document.getElementById('ui'), recdot = document.getElementById('recdot');
+const clamp01 = v => Math.max(0, Math.min(1, v)), lerp = (a, b, p) => a + (b - a) * p;
+const seg = (t, a, b) => clamp01((t - a) / (b - a));
+const bump = (t, a, b) => (t <= a || t >= b) ? 0 : Math.pow(Math.sin(Math.PI * (t - a) / (b - a)), 2);
+const E = {
+  io: p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
+  out: p => 1 - Math.pow(1 - p, 3),
+  back: p => { const c = 1.70158; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); },
+};
+function aLerp(a, b, p){ let d = b - a; d = Math.atan2(Math.sin(d), Math.cos(d)); return a + d * p; }
+let seed = 5;
+function rnd(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance', logarithmicDepthBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H, false);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xffffff, 30, 140);
+const cam = new THREE.PerspectiveCamera(36, W / H, 0.2, 3000); scene.add(cam);
+const hemi = new THREE.HemisphereLight(0xffffff, 0x888888, 0.6); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03; sun.shadow.camera.near = 1; sun.shadow.camera.far = 220;
+scene.add(sun); scene.add(sun.target);
+const fill = new THREE.DirectionalLight(0xffffff, 0.25); scene.add(fill);
+
+// Umgebungslicht-Reflexionen (Tag / Nacht)
+let envDay = null, envNight = null;
+try {
+  const pm = new THREE.PMREMGenerator(renderer);
+  const mkEnv = (top, bot, lamp) => {
+    const s = new THREE.Scene(), geo = new THREE.SphereGeometry(50, 24, 12), pos = geo.attributes.position;
+    const col = new Float32Array(pos.count * 3), cT = new THREE.Color(top), cB = new THREE.Color(bot), c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++){ c.copy(cB).lerp(cT, clamp01(pos.getY(i) / 100 + 0.5)); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    s.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ side: THREE.BackSide, vertexColors: true })));
+    const b = new THREE.Mesh(new THREE.BoxGeometry(34, 2, 34), new THREE.MeshBasicMaterial({ color: lamp })); b.position.set(12, 40, 14); s.add(b);
+    return pm.fromScene(s, 0.04).texture;
+  };
+  envDay = mkEnv(0xdfe8f5, 0x8a8078, 0xffffff); envNight = mkEnv(0x1c2c58, 0x0a1020, 0x6f8fd8);
+} catch (e) { envDay = envNight = null; }
+
+/* =========================================================
+   BAUSTEINE: abgerundete Boxen, Materialien, Instanzen
+   ========================================================= */
+const geoCache = {};
+function rbox(w, h, d, r, sg){
+  r = r === undefined ? 0.06 : r; sg = sg || 2;
+  const key = [w, h, d, r, sg].join(','); if (geoCache[key]) return geoCache[key];
+  r = Math.min(r, w / 2 - 1e-3, h / 2 - 1e-3, d / 2 - 1e-3);
+  const n = 2 * sg + 1, g = new THREE.BoxGeometry(w, h, d, n, n, n), p = g.attributes.position, nm = g.attributes.normal;
+  const half = [w / 2, h / 2, d / 2], v = [0, 0, 0], inn = [0, 0, 0];
+  for (let i = 0; i < p.count; i++){
+    v[0] = p.getX(i); v[1] = p.getY(i); v[2] = p.getZ(i);
+    for (let a = 0; a < 3; a++){
+      const hh = half[a], idx = Math.round((v[a] + hh) / (2 * hh / n)), lo = idx <= sg, k = lo ? idx : n - idx;
+      v[a] = (lo ? -1 : 1) * (hh - r * (k / sg)); inn[a] = Math.max(-(hh - r), Math.min(hh - r, v[a]));
+    }
+    let dx = v[0] - inn[0], dy = v[1] - inn[1], dz = v[2] - inn[2]; const len = Math.hypot(dx, dy, dz) || 1; dx /= len; dy /= len; dz /= len;
+    p.setXYZ(i, inn[0] + dx * r, inn[1] + dy * r, inn[2] + dz * r); nm.setXYZ(i, dx, dy, dz);
+  }
+  return geoCache[key] = g;
+}
+const mats = {};
+function mat(c, o){ const k = c + (o ? JSON.stringify(o) : ''); return mats[k] || (mats[k] = new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.62, metalness: 0, envMapIntensity: 0.55 }, o || {}))); }
+const GOLD = mat(0xe2b23a, { roughness: 0.3, metalness: 0.4, envMapIntensity: 1.2 });
+const BLACK = mat(0x17171c, { roughness: 0.3 }), WHITEB = new THREE.MeshBasicMaterial({ color: 0xffffff });
+function P(par, geo, m, x, y, z){ const me = new THREE.Mesh(geo, m); me.position.set(x || 0, y || 0, z || 0); me.castShadow = true; me.receiveShadow = true; par.add(me); return me; }
+function rod(par, m, a, b, r){
+  const A = new THREE.Vector3(a[0], a[1], a[2]), B = new THREE.Vector3(b[0], b[1], b[2]), d = B.clone().sub(A), L = d.length();
+  const me = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 8), m); me.position.copy(A).add(B).multiplyScalar(0.5);
+  me.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); me.castShadow = true; par.add(me); return me;
+}
+const _E = new THREE.Euler(), _Q = new THREE.Quaternion(), _P = new THREE.Vector3(), _S = new THREE.Vector3(), _B = new THREE.Matrix4(), _T = new THREE.Matrix4();
+function Inst(n, defs, s){
+  const o = { g: new THREE.Group(), n, x: new Float32Array(n), y: new Float32Array(n), z: new Float32Array(n), yaw: new Float32Array(n), lean: new Float32Array(n), sc: new Float32Array(n).fill(s || 1) };
+  const parts = defs.map(d => {
+    const im = new THREE.InstancedMesh(d.g, d.m, n); im.castShadow = !d.noShadow; im.receiveShadow = !d.noShadow; im.frustumCulled = false; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    const off = new THREE.Matrix4(); if (d.rz) off.makeRotationZ(d.rz); off.setPosition(d.x || 0, d.y || 0, d.z || 0); o.g.add(im); return { im, off, dyn: d.dyn };
+  });
+  o.parts = parts;
+  o.flush = function(t){
+    for (let i = 0; i < n; i++){
+      _E.set(o.lean[i], o.yaw[i], 0, 'YXZ'); _Q.setFromEuler(_E); _P.set(o.x[i], o.y[i], o.z[i]); _S.setScalar(Math.max(1e-4, o.sc[i])); _B.compose(_P, _Q, _S);
+      for (const p of parts){ _T.multiplyMatrices(_B, p.dyn ? p.dyn(i, t) : p.off); p.im.setMatrixAt(i, _T); }
+    }
+    for (const p of parts) p.im.instanceMatrix.needsUpdate = true;
+  };
+  return o;
+}
+function crowdDefs(o){
+  const bh = o.bh || 1.9, d = [];
+  d.push({ g: rbox(1.0, bh, 0.64, 0.1, 1), m: mat(o.body), y: bh / 2 });
+  if (o.belt) d.push({ g: rbox(1.04, 0.12, 0.68, 0.03, 1), m: o.belt, y: bh * 0.45 });
+  if (o.stripe) d.push({ g: rbox(0.13, bh * 0.86, 0.04, 0.015, 1), m: mat(o.stripe), x: 0.24, y: bh * 0.52, z: 0.325 });
+  d.push({ g: rbox(0.98, 0.86, 0.92, 0.12, 1), m: mat(0xf2c6a2), y: bh + 0.4 });
+  d.push({ g: rbox(1.05, 0.3, 0.99, 0.1, 1), m: o.top, y: bh + 0.8, z: -0.01 });
+  if (o.crest) d.push({ g: rbox(0.17, 0.24, 0.62, 0.06, 1), m: mat(0xc8281e), y: bh + 1.05 });
+  [-1, 1].forEach(s => {
+    d.push({ g: rbox(0.12, 0.17, 0.05, 0.02, 1), m: BLACK, x: s * 0.21, y: bh + 0.42, z: 0.455 });
+    d.push({ g: rbox(0.27, 0.075, 0.07, 0.025, 1), m: mat(0x2e1a10), x: s * 0.21, y: bh + 0.6, z: 0.46, rz: s * 0.24 * (o.angry || 0) });
+  });
+  d.push({ g: rbox(0.16, 0.25, 0.17, 0.06, 1), m: mat(0xe8b592), y: bh + 0.33, z: 0.5 });
+  return d;
+}
+const LEGION = { body: 0xc8281e, belt: GOLD, top: GOLD, crest: 1, angry: 0.6 };
+const SENATOR = { body: 0xefece6, stripe: 0x8a2a3a, top: mat(0x3a2416), angry: 1 };
+
+/* =========================================================
+   FIGUREN MIT ELLBOGEN (Boxer, Ben, Ringrichter)
+   ========================================================= */
+function boxer(o){
+  const skin = mat(o.skin || 0xf2c6a2), hairM = mat(o.hair || 0x3a2416), topM = o.top ? mat(o.top) : skin;
+  const root = new THREE.Group(), body = new THREE.Group(); root.rotation.order = 'YXZ'; body.position.y = 1.0; root.add(body);
+  const legs = [], sh = [], el = [], eyes = [], brw = [];
+  [-1, 1].forEach(s => {
+    const lg = new THREE.Group(); lg.position.x = s * 0.26; body.add(lg);
+    P(lg, rbox(0.44, 0.86, 0.46, 0.07), o.pants ? mat(o.pants) : skin, 0, -0.42, 0);
+    P(lg, rbox(0.5, 0.2, 0.66, 0.07), mat(o.shoe || 0x1c1c22), 0, -0.9, 0.08); if (o.sole) P(lg, rbox(0.52, 0.06, 0.68, 0.02, 1), mat(o.sole), 0, -0.98, 0.08);
+    legs.push(lg);
+  });
+  const torso = new THREE.Group(); body.add(torso);
+  P(torso, rbox(1.0, 1.05, 0.56, 0.09), topM, 0, 0.52, 0);
+  P(torso, rbox(1.08, 0.42, 0.64, 0.08), mat(o.shorts || o.pants || 0x222222), 0, 0, 0);
+  if (o.band) P(torso, rbox(1.1, 0.12, 0.66, 0.03, 1), mat(o.band), 0, 0.17, 0);
+  if (o.trim){ P(torso, rbox(0.05, 0.86, 0.02, 0.008, 1), mat(o.trim), 0, 0.58, 0.285); P(torso, rbox(1.03, 0.1, 0.59, 0.03, 1), mat(o.trim), 0, 0.24, 0); P(torso, rbox(0.86, 0.24, 0.3, 0.08), topM, 0, 1.0, -0.33); }
+  if (o.refStripes) for (let k = -2; k <= 2; k++) P(torso, rbox(0.07, 0.8, 0.02, 0.008, 1), mat(0x15151a), k * 0.19, 0.62, 0.285);
+  [-1, 1].forEach(s => {
+    const a = new THREE.Group(); a.position.set(s * 0.67, 0.92, 0); torso.add(a); P(a, rbox(0.31, 0.56, 0.36, 0.07), topM, 0, -0.2, 0);
+    const e = new THREE.Group(); e.position.y = -0.46; a.add(e); P(e, rbox(0.29, 0.5, 0.34, 0.07), topM, 0, -0.2, 0);
+    if (o.trim) P(e, rbox(0.31, 0.08, 0.36, 0.03, 1), mat(o.trim), 0, -0.42, 0);
+    if (o.glove){ P(e, rbox(0.46, 0.46, 0.46, 0.16), mat(o.glove, { roughness: 0.4 }), 0, -0.62, 0.02); P(e, rbox(0.36, 0.12, 0.38, 0.04, 1), mat(0xf4f4f4), 0, -0.4, 0); }
+    else P(e, rbox(0.3, 0.28, 0.34, 0.08), skin, 0, -0.56, 0);
+    sh.push(a); el.push(e);
+  });
+  P(torso, rbox(0.38, 0.2, 0.38, 0.05, 1), skin, 0, 1.09, 0);
+  const head = new THREE.Group(); head.position.y = 1.13; torso.add(head);
+  P(head, rbox(1.12, 1.0, 1.02, 0.13), skin, 0, 0.55, 0);
+  P(head, rbox(1.19, 0.32, 1.09, 0.1), hairM, 0, 1.0, -0.01); P(head, rbox(1.19, 0.5, 0.34, 0.1), hairM, 0, 0.78, -0.39);
+  if (o.headband) P(head, rbox(1.16, 0.15, 1.06, 0.04, 1), mat(o.headband), 0, 0.8, 0);
+  [-1, 1].forEach(s => {
+    P(head, rbox(0.09, 0.22, 0.18, 0.04, 1), skin, s * 0.59, 0.46, -0.04);
+    const e = P(head, rbox(0.15, 0.21, 0.06, 0.03, 1), BLACK, s * 0.25, 0.56, 0.5); P(e, rbox(0.06, 0.07, 0.03, 0.01, 1), WHITEB, 0.03, 0.05, 0.022); eyes.push(e);
+    brw.push(P(head, rbox(0.31, 0.09, 0.08, 0.035, 1), mat(0x2a1a10), s * 0.25, 0.79, 0.52));
+  });
+  const c = new THREE.Color(o.skin || 0xf2c6a2).multiplyScalar(0.9);
+  P(head, rbox(0.18, 0.31, 0.2, 0.07), new THREE.MeshStandardMaterial({ color: c, roughness: 0.62, envMapIntensity: 0.55 }), 0, 0.45, 0.58);
+  const mouth = P(head, rbox(0.25, 0.06, 0.04, 0.02, 1), mat(0x6a2018), 0.02, 0.2, 0.512);
+  return { root, body, torso, head, sh, el, legs, eyes, brows: brw, mouth };
+}
+function place(r, x, y, z, yaw){ r.root.position.set(x, y, z); r.root.rotation.set(0, yaw, 0); }
+function bRest(r, t, k){
+  r.body.position.set(0, 1, 0); r.body.rotation.set(0, 0, 0); r.torso.rotation.set(0, 0, 0); r.head.rotation.set(0, 0, 0);
+  r.sh[0].rotation.set(0, 0, -0.07); r.sh[1].rotation.set(0, 0, 0.07); r.el[0].rotation.set(-0.1, 0, 0); r.el[1].rotation.set(-0.1, 0, 0);
+  r.legs[0].rotation.set(0, 0, 0); r.legs[1].rotation.set(0, 0, 0); r.mouth.scale.set(1, 1, 1); r.mouth.rotation.z = 0;
+  const b = Math.sin(t * 2.1 + k); r.torso.scale.y = 1 + b * 0.012; r.head.position.y = 1.13 + b * 0.012;
+  const ph = (t + k * 1.37) % 3.4, bl = ph < 0.14 ? Math.abs(Math.cos(Math.PI * ph / 0.14)) : 1; r.eyes.forEach(e => e.scale.y = Math.max(0.08, bl));
+  bFace(r, 0, 0);
+}
+function bFace(r, m, open){ r.brows[0].rotation.z = -0.32 * m; r.brows[1].rotation.z = 0.32 * m; const y = 0.79 + (m < 0 ? -m * 0.05 : -m * 0.015); r.brows[0].position.y = y; r.brows[1].position.y = y; r.mouth.scale.y = 1 + open * 4; }
+function guard(r, t, k){
+  const b = Math.sin(t * 7 + k); r.body.position.y = 0.93 + Math.abs(b) * 0.06; r.torso.rotation.set(0.12, 0.4, 0); r.head.rotation.y = -0.35;
+  r.legs[0].rotation.set(-0.3, 0, -0.12); r.legs[1].rotation.set(0.35, 0, 0.12);
+  r.sh[0].rotation.set(-1.0, 0, 0.15); r.el[0].rotation.x = -1.75; r.sh[1].rotation.set(-0.85, 0, -0.15); r.el[1].rotation.x = -1.85;
+}
+function strike(r, p, i){
+  if (p <= 0) return;
+  r.sh[i].rotation.x = lerp(r.sh[i].rotation.x, -1.57, p); r.sh[i].rotation.z = lerp(r.sh[i].rotation.z, 0, p); r.el[i].rotation.x = lerp(r.el[i].rotation.x, -0.03, p);
+  r.torso.rotation.y += (i ? -0.85 : 0.3) * p; r.torso.rotation.x += 0.1 * p; r.body.position.z += 0.3 * p; r.legs[1].rotation.x += 0.2 * p;
+}
+function pc(lt, t0, hold){ hold = hold || 0.14; const x = lt - t0; if (x <= 0) return 0; if (x < 0.09) return E.out(x / 0.09); if (x < 0.09 + hold) return 1; if (x < 0.35 + hold) return 1 - E.io((x - 0.09 - hold) / 0.26); return 0; }
+function rag(r, t, k){
+  r.body.position.y = 1; r.torso.rotation.set(-0.2, 0, 0); r.head.rotation.set(-0.3, 0, 0);
+  r.sh[0].rotation.set(Math.sin(t * 9 + k) * 0.6, 0, -2.0); r.sh[1].rotation.set(Math.cos(t * 8 + k) * 0.6, 0, 2.0); r.el[0].rotation.x = -0.5; r.el[1].rotation.x = -0.5;
+  r.legs[0].rotation.set(Math.sin(t * 10 + k) * 0.7, 0, -0.45); r.legs[1].rotation.set(-Math.sin(t * 10 + k) * 0.7, 0, 0.45); bFace(r, -1, 1);
+}
+function idle(r){ r.sh[0].rotation.set(0.05, 0, -0.1); r.sh[1].rotation.set(0.05, 0, 0.1); }
+function wlk(r, ph, a){ const s = Math.sin(ph); r.legs[0].rotation.x = s * 0.75 * a; r.legs[1].rotation.x = -s * 0.75 * a; r.sh[0].rotation.x = -s * 0.7 * a; r.sh[1].rotation.x = s * 0.7 * a; r.el[0].rotation.x = -0.9 * a; r.el[1].rotation.x = -0.9 * a; r.body.position.y = 1 + (Math.abs(Math.cos(ph)) * 0.08 - 0.03) * a; r.torso.rotation.x = 0.15 * a; }
+const hsh = n => { const x = Math.sin(n * 127.1 + 11.7) * 43758.5453; return x - Math.floor(x); };
+/* =========================================================
+   FIGUREN
+   ========================================================= */
+const SK = 0xE9C3A0;
+const ben = boxer({ top: 0xE8B21F, trim: 0xC4920F, pants: 0x1F2A44, shoe: 0xf2f2f2, sole: 0x9a9a9a, hair: 0x3A2616, skin: SK });
+const ALL = [ben]; scene.add(ben.root);
+function show(){ ALL.forEach(r => r.root.visible = false); for (let i = 0; i < arguments.length; i++) arguments[i].root.visible = true; }
+function sit(r, seatY){ r.body.position.y = seatY + 0.18; r.legs[0].rotation.x = -1.5; r.legs[1].rotation.x = -1.5; r.torso.rotation.x = 0.08; }
+const PI = Math.PI, V3 = new THREE.Vector3(), _w = new THREE.Vector3();
+function wpos(o, v){ o.updateWorldMatrix(true, false); return (v || _w).setFromMatrixPosition(o.matrixWorld); }
+function anchor(par, x, y, z){ const o = new THREE.Object3D(); o.position.set(x, y, z); par.add(o); return o; }
+
+/* =========================================================
+   STIMMUNG (Aufzugschacht, Schnittmodell)
+   ========================================================= */
+function sky(stops){
+  const c = document.createElement('canvas'); c.width = 4; c.height = 256; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
+  stops.forEach(s => g.addColorStop(s[0], s[1])); x.fillStyle = g; x.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+}
+const MOOD = { shaft: { sky: sky([[0, '#2b3140'], [1, '#1a1e28']]), fog: [0x222733, 40, 140], hemi: [0xf4f1ea, 0x5a5a62, 1.0], sun: [0xfff4e0, 1.05], env: 1 } };
+const SR = 9; { const c = sun.shadow.camera; c.left = -SR; c.right = SR; c.top = SR; c.bottom = -SR; c.near = 1; c.far = 80; c.updateProjectionMatrix(); }
+sun.target.position.set(0, 2, 0); sun.position.set(0, 20, 16);
+function setMood(m){
+  scene.background = m.sky; scene.fog.color.set(m.fog[0]); scene.fog.near = m.fog[1]; scene.fog.far = m.fog[2]; scene.environment = m.env ? envDay : envNight;
+  hemi.color.set(m.hemi[0]); hemi.groundColor.set(m.hemi[1]); hemi.intensity = m.hemi[2]; sun.color.set(m.sun[0]); sun.intensity = m.sun[1];
+  fill.color.set(0xffffff); fill.intensity = 0.4; fill.position.set(-20, 10, 30);
+}
+
+/* =========================================================
+   SET: Kabine fest im Ursprung, Schacht scrollt (Fall = Schacht fährt hoch)
+   ========================================================= */
+const world = new THREE.Group(); scene.add(world);
+const CAB = new THREE.Group(); world.add(CAB);
+const SHAFT = new THREE.Group(); world.add(SHAFT);   // statisch: Wände, Schienen
+const SCR = new THREE.Group(); world.add(SCR);       // wiederholt alle 6 Einheiten
+const LND = new THREE.Group(); world.add(LND);       // Etage (Flur) bei s = 0
+const BTN = new THREE.Vector3(2.47, 1.95, 0.55);
+const BL = [], BR = [];   // Fangbremsen-Backen (links / rechts), je [vorn, hinten]
+let btnM = null;
+(function(){
+  const wall = mat(0xd9ccb2, { roughness: 0.7 }), steel = mat(0xb9bec6, { roughness: 0.35, metalness: 0.5, envMapIntensity: 1 }), dark = mat(0x2a2d33, { roughness: 0.5 });
+  // Kabine
+  P(CAB, rbox(5.3, 0.3, 4.1, 0.04, 1), mat(0x6f747c, { roughness: 0.8 }), 0, -0.15, 0);
+  P(CAB, rbox(5.3, 0.22, 4.1, 0.04, 1), steel, 0, 4.71, 0);
+  const lp = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.04, 2.0), new THREE.MeshStandardMaterial({ color: 0xfff6e0, emissive: 0xfff2d6, emissiveIntensity: 0.7 })); lp.position.set(0, 4.58, 0); CAB.add(lp);
+  [-1, 1].forEach(s => P(CAB, rbox(0.12, 4.6, 4.1, 0.03, 1), wall, s * 2.59, 2.3, 0));
+  P(CAB, rbox(5.3, 4.6, 0.12, 0.03, 1), wall, 0, 2.3, -1.99);
+  P(CAB, rbox(4.2, 0.09, 0.09, 0.03, 1), steel, 0, 1.6, -1.84);
+  [-1, 1].forEach(s => P(CAB, rbox(0.14, 4.6, 0.14, 0.04, 1), steel, s * 2.6, 2.3, 2.02));
+  P(CAB, rbox(5.34, 0.14, 0.14, 0.04, 1), steel, 0, 0.0, 2.02);
+  // Bedienfeld rechts innen
+  P(CAB, rbox(0.04, 1.3, 0.5, 0.01, 1), dark, 2.52, 1.9, 0.55);
+  [1.5, 1.75, 2.2].forEach(y => P(CAB, rbox(0.04, 0.13, 0.13, 0.02, 1), mat(0xdfe3e8, { roughness: 0.4 }), 2.49, y, 0.55));
+  btnM = new THREE.MeshStandardMaterial({ color: 0xe8e2c8, emissive: 0xffc83a, emissiveIntensity: 0, roughness: 0.4 });
+  P(CAB, rbox(0.04, 0.13, 0.13, 0.02, 1), btnM, 2.49, 1.95, 0.55);
+  // Dach: Querträger + Seilaufhängung
+  P(CAB, rbox(5.6, 0.3, 0.5, 0.05, 1), mat(0x4a4f58, { roughness: 0.5, metalness: 0.3 }), 0, 4.97, 0);
+  P(CAB, rbox(1.9, 0.18, 0.5, 0.04, 1), mat(0x4a4f58, { roughness: 0.5, metalness: 0.3 }), 0, 5.2, 0);
+  // Fangvorrichtung unten an beiden Seiten
+  const hous = mat(0xc8362c, { roughness: 0.5 }), jaw = mat(0x3a3d44, { roughness: 0.4, metalness: 0.4 });
+  [-1, 1].forEach(s => { P(CAB, rbox(0.32, 0.5, 0.8, 0.04, 1), hous, s * 2.8, 0.2, 0);
+    const A = s < 0 ? BL : BR; [-1, 1].forEach(k => { const j = P(CAB, rbox(0.26, 0.34, 0.12, 0.02, 1), jaw, s * 3.07, 0.2, k * 0.25); j.userData.k = k; A.push(j); }); });
+  // Schacht: Rückwand, Seitenwände (vorne aufgeschnitten), Führungsschienen
+  const conc = mat(0x666a72, { roughness: 0.95 });
+  P(SHAFT, new THREE.BoxGeometry(8.4, 220, 0.4), conc, 0, 0, -2.8);
+  [-1, 1].forEach(s => { P(SHAFT, new THREE.BoxGeometry(0.4, 220, 2.6), conc, s * 3.85, 0, -1.6);
+    P(SHAFT, new THREE.BoxGeometry(0.34, 220, 0.09), mat(0x8e949c, { roughness: 0.4, metalness: 0.5 }), s * 3.09, 0, 0);
+    P(SHAFT, new THREE.BoxGeometry(0.08, 220, 0.42), mat(0x8e949c, { roughness: 0.4, metalness: 0.5 }), s * 3.28, 0, 0); });
+  // wiederholte Geschossdecken-Kanten + Schienenhalter
+  const slab = mat(0x8c9097, { roughness: 0.9 }), band = mat(0xd9a628, { roughness: 0.6 });
+  for (let k = -5; k <= 5; k++){ const y = k * 6;
+    P(SCR, new THREE.BoxGeometry(8.4, 0.45, 0.3), slab, 0, y, -2.48); P(SCR, new THREE.BoxGeometry(8.4, 0.1, 0.02), band, 0, y + 0.18, -2.32);
+    [-1, 1].forEach(s => { P(SCR, new THREE.BoxGeometry(0.3, 0.45, 2.6), slab, s * 3.52, y, -1.6); P(SCR, new THREE.BoxGeometry(0.3, 0.22, 0.5), mat(0x3a3d44), s * 3.45, y + 1.5, 0); }); }
+  // Flur (Etage): Boden-Kante, Wandstücke mit Türöffnung, Ruftaster
+  const fl = mat(0xa8957a, { roughness: 0.85 }), hw = mat(0xe4ddd0, { roughness: 0.8 });
+  P(LND, new THREE.BoxGeometry(8, 0.5, 4.2), fl, 0, -0.25, 4.4);
+  [-1, 1].forEach(s => P(LND, new THREE.BoxGeometry(9, 5.1, 0.3), hw, s * 7.1, 2.55, 2.45));
+  P(LND, new THREE.BoxGeometry(5.2, 0.5, 0.3), hw, 0, 4.85, 2.45);
+  [-1, 1].forEach(s => P(LND, rbox(0.16, 4.7, 0.36, 0.03, 1), steel, s * 2.68, 2.35, 2.45));
+  P(LND, rbox(0.36, 0.6, 0.06, 0.03, 1), steel, 3.4, 1.9, 2.62); P(LND, rbox(0.14, 0.14, 0.06, 0.04, 1), mat(0xdfe3e8), 3.4, 1.9, 2.66);
+})();
+// 6 Tragseile: Stummel (an der Kabine, kippt nach dem Riss) + oberes Stück (gehört zum Schacht)
+const CX = [-0.75, -0.45, -0.15, 0.15, 0.45, 0.75], CBL = [], CUP = [];
+(function(){ const cm = mat(0x5c6068, { roughness: 0.45, metalness: 0.6 });
+  CX.forEach(x => { const g = new THREE.Group(); g.position.set(x, 5.3, 0); CAB.add(g); P(g, new THREE.CylinderGeometry(0.05, 0.05, 1.7, 8), cm, 0, 0.85, 0); CBL.push(g);
+    const u = P(world, new THREE.CylinderGeometry(0.05, 0.05, 60, 8), cm, x, 37, 0); CUP.push(u); }); })();
+const SETS = [world];
+
+/* =========================================================
+   FIGUREN
+   ========================================================= */
+const SCAR = new THREE.Group(); ben.head.add(SCAR);
+(function(){ const m = mat(0xa8463f, { roughness: 0.7 }); const s = new THREE.Mesh(rbox(0.075, 0.72, 0.03, 0.012, 1), m); s.position.set(0.25, 0.55, 0.522); s.rotation.z = -0.13; SCAR.add(s);
+  for (const y of [0.36, 0.55, 0.74]){ const c = new THREE.Mesh(rbox(0.16, 0.035, 0.03, 0.01, 1), m); c.position.set(0.25 + (y - 0.55) * 0.13, y, 0.528); c.rotation.z = -0.13; SCAR.add(c); } })();
+const pro = boxer({ top: 0x3cae6a, pants: 0x1f2a44, shoe: 0x1c1c22, hair: 0x8a5a2a, skin: 0xf2c6a2 }); ALL.push(pro); scene.add(pro.root);
+[ben, pro].forEach(r => { r.L1 = 0.46; r.L2 = 0.56; });
+const _ia = new THREE.Vector3(), _ib = new THREE.Vector3(), _ic = new THREE.Vector3(), _id = new THREE.Vector3(), _ie = new THREE.Vector3(), _if = new THREE.Vector3(), _ig = new THREE.Vector3(), _ih = new THREE.Vector3();
+const _iq = new THREE.Quaternion(), _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _dn = new THREE.Vector3(0, -1, 0);
+function ik(r, i, tw, pw){
+  r.torso.updateWorldMatrix(true, false);
+  const tl = r.torso.worldToLocal(_ia.copy(tw)); r.torso.getWorldQuaternion(_iq); const pl = _ib.copy(pw).applyQuaternion(_iq.invert());
+  const S = _ic.set(i ? 0.67 : -0.67, 0.92, 0), D = _id.subVectors(tl, S), L1 = r.L1, L2 = r.L2;
+  const d = Math.min(Math.max(D.length(), 0.15), L1 + L2 - 0.002); D.normalize();
+  const a = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))));
+  const n = _ie.crossVectors(D, pl).normalize(), e = _if.copy(D).applyAxisAngle(n, a);
+  _qa.setFromUnitVectors(_dn, e); r.sh[i].quaternion.copy(_qa);
+  const f = _ih.subVectors(tl, _ig.copy(S).addScaledVector(e, L1)).normalize().applyQuaternion(_qb.copy(_qa).invert());
+  r.el[i].quaternion.setFromUnitVectors(_dn, f);
+}
+const POLE = new THREE.Vector3(0.2, -1, 0.6), BX = 0.4, BZ = 0.4, PX = 1.05, PZ = 0.45;
+// Taster drücken (Haltung wie im ersten Bild)
+function pressPose(k){ place(ben, PX, 0, PZ, 0.9); bRest(ben, T, 0); ik(ben, 1, _ih.copy(BTN).add(new THREE.Vector3(-0.1, 0, 0)), POLE); }
+// Schweben: Arme raus, Beine locker
+function floatPose(fy, w){ ben.root.position.y = fy; ben.sh[0].rotation.set(-0.2 + 0.15 * Math.sin(T * 2.1), 0, -1.15 - 0.1 * Math.sin(T * 1.7)); ben.sh[1].rotation.set(-0.2 + 0.15 * Math.cos(T * 2.0), 0, 1.15 + 0.1 * Math.sin(T * 1.9));
+  ben.el[0].rotation.set(-0.4, 0, 0); ben.el[1].rotation.set(-0.4, 0, 0); ben.legs[0].rotation.set(0.2 * w + 0.08 * Math.sin(T * 1.6), 0, -0.1); ben.legs[1].rotation.set(-0.15 * w + 0.08 * Math.cos(T * 1.5), 0, 0.1); }
+
+/* =========================================================
+   KAMERA + Zustand
+   ========================================================= */
+const cL = new THREE.Vector3();
+let blurAmt = 0, fadeBlk = 0, T = 0, flashA = 0, eyeS = 1, talk = 0, dT = 0;
+let sameK = 0, jumpK = 0, starK = 0, cntK = 0, sparkK = 0, gaugeK = 0, spreadK = 0, spdK = 0, SCROLL = 0;
+function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
+function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.012; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.008; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
+const imp = at => T >= at ? Math.exp(-(T - at) * 3) : 0;
+// Fallweg s(t) = Integral der Geschwindigkeit (Tabelle)
+function mkS(v, t0, t1){ const dt = 1 / 240, n = Math.ceil((t1 - t0) / dt) + 1, a = new Float32Array(n); for (let i = 1; i < n; i++) a[i] = a[i - 1] + v(t0 + (i - 0.5) * dt) * dt;
+  return t => { const x = (t - t0) / dt; if (x <= 0) return 0; if (x >= n - 1) return a[n - 1]; const i = Math.floor(x); return lerp(a[i], a[i + 1], x - i); }; }
+const S1 = mkS(t => 12 * E.io(seg(t, 1.45, 3.0)), 0, 12);
+const S5 = mkS(t => 10 * seg(t, 15.35, 16.3) * (1 - E.out(seg(t, 16.44, 17.0))), 15, 18);
+const S7 = mkS(t => t < 21.98 ? 9 : 0, 20, 24);
+function setScroll(s){ SCROLL = s; SCR.position.y = ((s % 6) + 6) % 6; LND.position.y = s; LND.visible = s < 30; CUP.forEach((u, i) => u.userData.s = s); }
+// Seile: Rissmoment je Seil
+let SNAPT = [99, 99, 99, 99, 99, 99]; const SNAPS = () => SNAPT;
+function cables(ts){ SNAPT = ts; CBL.forEach((g, i) => { const u = T - ts[i], side = CX[i] < 0 ? 1 : -1;
+    g.rotation.z = u > 0 ? side * (1.25 + 0.1 * i / 5) * E.out(Math.min(1, u / 0.6)) : 0;
+    CUP[i].position.y = 37 + SCROLL + (u > 0 ? 3 * Math.min(u, 1.5) : 0); }); }
+const NONE = [99, 99, 99, 99, 99, 99], ALLSNAP = [1.45, 1.45, 1.45, 1.45, 1.45, 1.45], S4SNAP = [12.3, 12.75, 13.2, 13.65, 14.1, 15.35];
+function brake(k){ [BL, BR].forEach((A, s) => A.forEach(j => { j.position.z = j.userData.k * lerp(0.25, 0.115, k); })); }
+const HOOK = [[0, 2.4, 13.0, 0.4, 2.2, 0, 40], [0.2, 2.5, 12.2, 0.4, 2.3, 0, 40]];
+// Ben im Fall (Hook bis Szene 3): schweben, abstoßen, Decke
+function fyFall(t){ if (t < 6.3) return 0.12 * E.io(seg(t, 1.6, 2.6)) + 0.03 * Math.sin(t * 2.3) * seg(t, 1.6, 2.6);
+  if (t < 6.6) return 0.12 * (1 - E.io(seg(t, 6.3, 6.5)));
+  if (t < 10.95) return Math.min(1.31, 0.274 * (t - 6.6) * Math.min(1, (t - 6.6) / 0.15 + 0.4));
+  return 1.31 - 0.12 * (t - 10.95); }
+function base(){ show(ben); CAB.position.y = 0; brake(0); btnM.emissiveIntensity = 0; pro.root.visible = false; }
+function hookPose(t){ base(); setScroll(0); cables(NONE); pressPose(1); btnM.emissiveIntensity = 1; eyeS = 1; bFace(ben, 0.2, 0.15); ben.head.rotation.y = -0.6; }
+function fallBen(t){ const tw = E.io(seg(t, 0.4, 1.0)), st = E.io(seg(t, 0.5, 1.2));
+  bRest(ben, T, 0); place(ben, lerp(PX, BX, st), 0, lerp(PZ, BZ, st), lerp(0.9, 0.12, tw));
+  if (t < 0.7){ const k = 1 - E.io(seg(t, 0.3, 0.7)); if (k > 0.001) ik(ben, 1, _ih.copy(BTN).add(new THREE.Vector3(-0.1 - 0.6 * (1 - k), -0.8 * (1 - k), 0)), POLE); }
+  if (t > 0.5 && t < 1.25) wlk(ben, (t - 0.5) * 9, 0.5 * Math.sin(PI * seg(t, 0.5, 1.25)));
+  ben.head.rotation.y = lerp(-0.6, 0, tw);
+  const fl = seg(t, 1.5, 1.9);
+  if (fl > 0){ floatPose(fyFall(t), fl); ben.head.rotation.x = -0.15; }
+  btnM.emissiveIntensity = 1 - seg(t, 1.45, 1.6); }
+
+/* =========================================================
+   SZENEN (gekürzte Sprecherspur, Tempo 1,32)
+   ========================================================= */
+const SCN = [
+  { t: 0, set: world, mood: MOOD.shaft, hook: 1,
+    upd(lt){ dT = T; base(); setScroll(S1(T)); cables(ALLSNAP); fallBen(T); btnM.emissiveIntensity = T < 1.45 ? 1 : 0;
+      eyeS = T < 1.45 ? 1 : 1.45; if (T < 1.45) bFace(ben, 0.2, 0.15); else bFace(ben, -0.8, 0.9 * E.out(seg(T, 1.45, 1.7)));
+      camW(E.io(seg(lt, 0, 3.75)), HOOK[0], HOOK[1]); camFin(0.03 * imp(1.47)); } },
+  { t: 3.75, set: world, mood: MOOD.shaft, hud: () => ['SCHWERELOS', 'KABINE + BEN FALLEN GLEICH'],
+    upd(lt){ dT = T; base(); setScroll(S1(T)); cables(ALLSNAP); fallBen(T); eyeS = 1.45; bFace(ben, -0.8, 0.8);
+      sameK = E.out(seg(T, 4.7, 5.0)) * (1 - seg(T, 6.05, 6.25)); spdK = 1;
+      camW(E.io(seg(lt, 0, 2.5)), [3.6, 3.2, 14.6, 0.3, 2.2, 0, 40], [5.4, 4.4, 15.4, 0.2, 2.0, 0, 40]); camFin(); } },
+  { t: 6.25, set: world, mood: MOOD.shaft, hud: () => ['SPRINGEN?', 'BRINGT FAST NICHTS'],
+    upd(lt){ dT = T; base(); setScroll(S1(T)); cables(ALLSNAP); fallBen(T); eyeS = 1.3;
+      const c = bump(T, 6.25, 6.6); ben.sh[0].rotation.x += 0.9 * c; ben.sh[1].rotation.x += 0.9 * c; ben.legs[0].rotation.x -= 0.5 * c; ben.legs[1].rotation.x += 0.3 * c; ben.torso.rotation.x = 0.25 * c;
+      bFace(ben, T < 6.6 ? 0.6 : -0.5, T < 6.6 ? 0.1 : 0.5); jumpK = E.out(seg(T, 7.3, 7.6)) * (1 - seg(T, 9.25, 9.45)); spdK = 1;
+      camW(E.io(seg(lt, 0, 3.2)), [3.2, 1.6, 11.6, 0.4, 1.8, 0, 40], [2.6, 2.0, 10.8, 0.4, 2.1, 0, 40]); camFin(); } },
+  { t: 9.45, set: world, mood: MOOD.shaft, hud: () => ['AUTSCH!', 'SCHWERELOS = AB AN DIE DECKE'],
+    upd(lt){ dT = T; base(); setScroll(S1(T)); cables(ALLSNAP); fallBen(T); const b = imp(10.95);
+      ben.sh[0].rotation.set(-2.6, 0, -0.3); ben.sh[1].rotation.set(-2.6, 0, 0.3); ben.head.rotation.x = -0.25 + 0.35 * b * Math.sin((T - 10.95) * 18);
+      eyeS = T < 10.95 ? 1.4 : 0.15; bFace(ben, T < 10.95 ? -0.7 : 0.9, T < 10.95 ? 0.6 : 0.3); starK = E.out(seg(T, 10.95, 11.1)) * (1 - seg(T, 11.5, 11.65)); spdK = 1;
+      camW(E.io(seg(lt, 0, 2.2)), [2.4, 3.3, 10.2, 0.4, 3.4, 0, 40], [2.0, 3.7, 9.4, 0.4, 3.7, 0, 40]); camFin(0.02 * b); } },
+  { t: 11.65, set: world, mood: MOOD.shaft, hud: () => T < 13.5 ? ['MEHRERE SEILE', '6 STAHLSEILE TRAGEN'] : ['1 SEIL REICHT', 'JEDES HÄLT DIE VOLLE KABINE'],
+    upd(lt){ dT = T; base(); setScroll(0); cables(S4SNAP); bRest(ben, T, 0); place(ben, BX, 0, BZ, 0.1); ben.head.rotation.x = -0.35; eyeS = 1; bFace(ben, 0.3, 0.1);
+      cntK = E.out(seg(T, 11.9, 12.2)) * (1 - seg(T, 14.9, 15.1)); let jo = 0; S4SNAP.slice(0, 5).forEach(a => jo += 0.025 * imp(a) * Math.sin((T - a) * 20));
+      CAB.position.y = jo; camW(E.io(seg(lt, 0, 3.45)), [6.6, 10.4, 15.6, 0, 5.8, 0, 38], [5.4, 9.6, 14.0, 0, 6.2, 0, 38]); camFin(); } },
+  { t: 15.1, set: world, mood: MOOD.shaft, hud: () => T < 16.4 ? ['ALLE REISSEN?', 'DANN …'] : ['FANGBREMSE!', 'KEILE KRALLEN SICH IN DIE SCHIENE'],
+    upd(lt){ dT = T; base(); setScroll(S5(T)); cables(S4SNAP); bRest(ben, T, 0); place(ben, BX, 0, BZ, 0.1);
+      const fl = seg(T, 15.4, 15.8) * (1 - E.out(seg(T, 16.44, 16.7))); ben.root.position.y = 0.08 * fl; eyeS = 1.4; bFace(ben, -0.7, 0.7);
+      const bk = E.out(seg(T, 16.44, 16.6)); brake(bk); sparkK = bk * (1 - seg(T, 16.95, 17.3));
+      camW(E.io(seg(lt, 0, 1.15)), [5.4, 9.6, 14.0, 0, 6.2, 0, 38], [4.7, 2.5, 3.4, 3.0, 0.25, 0, 38]); camFin(0.03 * imp(16.44)); } },
+  { t: 17.15, set: world, mood: MOOD.shaft, hud: () => ['AB +15 % TEMPO', 'GREIFT DIE FANGBREMSE'],
+    upd(lt){ dT = T; base(); setScroll(S5(T)); cables(S4SNAP); bRest(ben, T, 0); place(ben, BX, 0, BZ, 0.1); brake(1); eyeS = 1; bFace(ben, 0.2, 0.1);
+      sparkK = 1 - seg(T, 16.95, 17.3); gaugeK = E.out(seg(T, 17.25, 17.55)) * (1 - seg(T, 19.85, 20.05));
+      camW(E.io(seg(lt, 0, 2.95)), [4.7, 2.5, 3.4, 3.0, 0.25, 0, 38], [5.3, 3.0, 4.4, 3.0, 0.3, 0, 38]); camFin(); } },
+  { t: 20.1, set: world, mood: MOOD.shaft, hud: () => ['PROFI', 'FLACH AUF DEN BODEN LEGEN'],
+    upd(lt){ dT = T; base(); ben.root.visible = false; pro.root.visible = true; setScroll(40 + S7(T)); cables(ALLSNAP);
+      bRest(pro, T, 2); const hit = imp(21.98), fly = T < 21.98 ? 0.12 + 0.02 * Math.sin(T * 2.4) : 0.02 * Math.max(0, Math.sin((T - 21.98) * 14)) * hit;
+      pro.root.position.set(0, 0.29 + fly, 1.6); pro.root.rotation.set(-PI / 2, 0, 0); pro.sh[0].rotation.set(0, 0, -0.35); pro.sh[1].rotation.set(0, 0, 0.35); bFace(pro, 0.3, 0.05);
+      spreadK = E.out(seg(T, 21.98, 22.2)) * (1 - seg(T, 23.45, 23.65));
+      camW(E.io(seg(lt, 0, 3.6)), [0.6, 8.2, 11.0, 0, 0.4, -0.1, 42], [0.2, 7.6, 10.2, 0, 0.5, -0.1, 42]); camFin(0.04 * hit); } },
+  { t: 23.7, set: world, mood: MOOD.shaft, hud: () => ['UND BEN?', 'NÄCHSTE FAHRT'],
+    upd(lt){ dT = T; base(); setScroll(0); cables(NONE); const st = E.io(seg(T, 24.25, 24.6)), rk = E.io(seg(T, 24.45, 24.82));
+      bRest(ben, T, 0); place(ben, lerp(0.55, PX, st), 0, lerp(1.0, PZ, st), lerp(-0.15, 0.9, E.io(seg(T, 24.2, 24.55))));
+      if (T > 24.25 && T < 24.6) wlk(ben, (T - 24.25) * 12, 0.5 * Math.sin(PI * st));
+      if (rk > 0) ik(ben, 1, _ih.copy(BTN).add(new THREE.Vector3(-0.1 - 0.6 * (1 - rk), -0.8 * (1 - rk), 0)), POLE);
+      btnM.emissiveIntensity = E.out(seg(T, 24.8, 24.9)); ben.head.rotation.y = -0.6 * E.io(seg(T, 24.3, 24.7)); eyeS = 1; bFace(ben, 0.2, 0.15);
+      camW(E.io(seg(lt, 0, 1.4)), [2.2, 3.0, 12.4, 0.5, 2.2, 0, 40], HOOK[0]); camFin(); } },
+  { t: 25.1, set: world, mood: MOOD.shaft, loopin: 1,
+    upd(lt){ dT = T - END; hookPose(0); camW(0, HOOK[0], HOOK[1]); camFin(); } },
+];
+const SUBS = [{"s": 3.95, "e": 4.65, "w": [["BEN", 3.95], ["SCHWEBT –", 4.14]]}, {"s": 4.65, "e": 6.3, "w": [["KABINE", 4.65], ["UND", 4.86], ["BEN", 5.09], ["FALLEN", 5.33], ["GLEICH", 5.58], ["SCHNELL.", 5.88]]}, {"s": 6.3, "e": 7.32, "w": [["SPRINGEN", 6.3], ["BRINGT", 6.53], ["NICHTS:", 6.79]]}, {"s": 7.32, "e": 8.48, "w": [["BEN", 7.32], ["IST", 7.41], ["TROTZDEM", 7.62], ["FAST", 7.92], ["GENAUSO", 8.2]]}, {"s": 8.48, "e": 9.52, "w": [["SCHNELL", 8.48], ["WIE", 8.73], ["DIE", 8.89], ["KABINE.", 8.98]]}, {"s": 9.52, "e": 10.21, "w": [["UND", 9.52], ["WER", 9.53], ["SPRINGT,", 9.68]]}, {"s": 10.21, "e": 11.71, "w": [["KNALLT", 10.21], ["OBEN", 10.53], ["AN", 10.71], ["DIE", 10.88], ["DECKE.", 10.94]]}, {"s": 11.71, "e": 12.27, "w": [["ABER:", 11.71], ["EIN", 11.86], ["AUFZUG", 11.95]]}, {"s": 12.27, "e": 13.52, "w": [["HÄNGT", 12.27], ["AN", 12.47], ["MEHREREN", 12.68], ["SEILEN –", 13.03]]}, {"s": 13.52, "e": 15.15, "w": [["JEDES", 13.52], ["ALLEIN", 13.74], ["HÄLT", 14.03], ["DIE", 14.21], ["VOLLE", 14.41], ["KABINE.", 14.61]]}, {"s": 15.15, "e": 16.06, "w": [["UND", 15.15], ["REISSEN", 15.26], ["ALLE,", 15.58]]}, {"s": 16.06, "e": 17.21, "w": [["GREIFT", 16.06], ["DIE", 16.27], ["FANGBREMSE.", 16.44]]}, {"s": 17.21, "e": 18.06, "w": [["SCHON", 17.21], ["BEI", 17.23], ["15", 17.38], ["PROZENT", 17.67]]}, {"s": 18.06, "e": 19.0, "w": [["ZU", 18.06], ["VIEL", 18.21], ["TEMPO", 18.38]]}, {"s": 19.0, "e": 20.14, "w": [["KRALLT", 19.0], ["SIE", 19.18], ["SICH", 19.29], ["IN", 19.47], ["DIE", 19.58], ["SCHIENEN.", 19.68]]}, {"s": 20.14, "e": 21.55, "w": [["PROFIS", 20.14], ["LEGEN", 20.47], ["SICH", 20.65], ["FLACH", 20.85], ["AUF", 21.06], ["DEN", 21.2], ["BODEN –", 21.35]]}, {"s": 21.55, "e": 22.74, "w": [["DER", 21.55], ["STOSS", 22.02], ["VERTEILT", 22.3], ["SICH", 22.58]]}, {"s": 22.74, "e": 23.74, "w": [["AUF", 22.74], ["DEN", 22.85], ["GANZEN", 22.98], ["KÖRPER.", 23.24]]}, {"s": 23.74, "e": 25.4, "w": [["UND", 23.74], ["BEN", 23.85], ["DRÜCKT", 24.03], ["WIEDER", 24.27], ["AUF", 24.53], ["DEN", 24.7], ["KNOPF …", 24.82]]}];
+
+function proj(v){ V3.copy(v).project(cam); return V3.z < 1 ? [(V3.x + 1) / 2 * W, (1 - V3.y) / 2 * H] : null; }
+function benMark(){ if (eyeS !== null) ben.eyes[0].scale.y = eyeS; ben.eyes[1].scale.y = 0.12; ben.eyes[1].position.y = 0.53; }
+/* =========================================================
+   TEXT (neues Format: fett, Großbuchstaben, aktives Wort gelb)
+   ========================================================= */
+const SANS = '"Arial Black", "Helvetica Neue", Arial, system-ui, sans-serif', SERIF = SANS;
+const band = document.createElement('canvas'); band.width = 8; band.height = 512;
+(function(){ const x = band.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, 'rgba(10,14,24,0)'); g.addColorStop(0.5, 'rgba(10,14,24,0.42)'); g.addColorStop(1, 'rgba(10,14,24,0)'); x.fillStyle = g; x.fillRect(0, 0, 8, 512); })();
+function boldLines(words, cy, size, maxW, act, pop, col){
+  g2.save(); g2.font = `900 ${size}px ${SANS}`; g2.textBaseline = 'middle'; g2.lineJoin = 'round';
+  const spc = size * 0.28, lines = [[]]; let lw = 0;
+  words.forEach((w, i) => { const wd = g2.measureText(w).width; if (lw + wd > maxW && lines[lines.length - 1].length){ lines.push([]); lw = 0; } lines[lines.length - 1].push({ w, wd, i }); lw += wd + spc; });
+  const lh = size * 1.12, y0 = cy - (lines.length - 1) * lh / 2;
+  lines.forEach((ln, li) => { const tw = ln.reduce((a, b) => a + b.wd, 0) + spc * (ln.length - 1); let x = W / 2 - tw / 2;
+    ln.forEach(tk => { const on = tk.i === act, s = on ? 1 + 0.08 * pop : 1, y = y0 + li * lh;
+      g2.save(); g2.translate(x + tk.wd / 2, y); g2.scale(s, s);
+      g2.lineWidth = size * 0.2; g2.strokeStyle = '#0b1220'; g2.strokeText(tk.w, -tk.wd / 2, 0);
+      g2.fillStyle = on ? '#ffd23c' : (col || '#ffffff'); g2.fillText(tk.w, -tk.wd / 2, 0); g2.restore(); x += tk.wd + spc; }); });
+  g2.restore();
+}
+function fitSize(text, size, maxW){ g2.font = `900 ${size}px ${SANS}`; const w = g2.measureText(text).width; return w > maxW ? size * maxW / w : size; }
+function drawHook(a, sc){
+  if (a <= 0) return; g2.save(); g2.globalAlpha = a; g2.drawImage(band, 0, 340, W, 520);
+  const s1 = fitSize('SEIL REISST', 120, 960), s2 = fitSize('SPRINGEN?', 120, 900);
+  g2.translate(W / 2, 600); g2.scale(sc, sc); g2.translate(-W / 2, -600);
+  boldLines(['SEIL', 'REISST'], 535, s1, 1000, -1, 0); boldLines(['SPRINGEN?'], 670, s2, 940, -1, 0, '#ffd23c');
+  g2.restore();
+}
+function drawSubs(){
+  let cur = null; for (const s of SUBS) if (T >= s.s && T < s.e) cur = s; if (!cur) return;
+  let act = 0; cur.w.forEach((w, i) => { if (T >= w[1]) act = i; });
+  const pop = clamp01(1 - (T - cur.w[act][1]) / 0.18), age = T - cur.s, a = E.out(clamp01(age / 0.08));
+  g2.save(); g2.globalAlpha = a; g2.drawImage(band, 0, 1060, W, 400);
+  const yy = 1260 + (1 - a) * 14;
+  if (cur.ben){ boldLines(cur.w.map(w => w[0]), yy, 112, 880, act, pop, '#ffffff'); g2.font = `900 34px ${SANS}`; g2.textAlign = 'center'; g2.fillStyle = '#ffd23c'; g2.strokeStyle = '#0b1220'; g2.lineWidth = 8; g2.strokeText('— BEN', W / 2, yy + 100); g2.fillText('— BEN', W / 2, yy + 100); }
+  else boldLines(cur.w.map(w => w[0]), yy, 78, 880, act, pop);
+  g2.restore();
+}
+function drawHud(h){
+  if (!h) return; g2.save(); g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.lineJoin = 'round';
+  const big = fitSize(h[0], 140, 880); g2.font = `900 ${big}px ${SANS}`; g2.lineWidth = 24; g2.strokeStyle = '#0b1220'; g2.strokeText(h[0], W / 2, 400); g2.fillStyle = '#ffffff'; g2.fillText(h[0], W / 2, 400);
+  if (h[1]){ g2.font = `900 40px ${SANS}`; g2.lineWidth = 10; g2.strokeText(h[1], W / 2, 500); g2.fillStyle = '#ffd23c'; g2.fillText(h[1], W / 2, 500); }
+  g2.restore();
+}
+function glowDot(x, y, r, col, a){ if (a <= 0) return; const g = g2.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, 'rgba(255,255,255,' + Math.min(1, a) + ')'); g.addColorStop(0.25, col.replace('A', Math.min(1, a) * 0.9)); g.addColorStop(1, col.replace('A', 0)); g2.fillStyle = g; g2.fillRect(x - r, y - r, 2 * r, 2 * r); }
+function wp(x, y, z){ return proj(new THREE.Vector3(x, y, z)); }
+function txt(s, x, y, size, col, al){ g2.font = `900 ${size}px ${SANS}`; g2.textAlign = al || 'center'; g2.textBaseline = 'middle'; g2.lineJoin = 'round'; g2.lineWidth = size * 0.22; g2.strokeStyle = '#0b1220'; g2.strokeText(s, x, y); g2.fillStyle = col; g2.fillText(s, x, y); }
+const _p = new THREE.Vector3();
+function wl(o, x, y, z){ o.updateWorldMatrix(true, false); return proj(o.localToWorld(_p.set(x, y, z))); }
+function along(P, f){ let L = 0; const sg = []; for (let i = 1; i < P.length; i++){ const q = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); sg.push(q); L += q; } let r = f * L;
+  for (let i = 0; i < sg.length; i++){ if (r <= sg[i]){ const k = r / sg[i]; return [lerp(P[i][0], P[i + 1][0], k), lerp(P[i][1], P[i + 1][1], k)]; } r -= sg[i]; } return P[P.length - 1]; }
+function path(P){ g2.beginPath(); g2.moveTo(P[0][0], P[0][1]); for (let i = 1; i < P.length; i++) g2.lineTo(P[i][0], P[i][1]); }
+function star(x, y, r){ g2.beginPath(); for (let k = 0; k < 3; k++){ const a = k * PI / 3; g2.moveTo(x - Math.cos(a) * r, y - Math.sin(a) * r); g2.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } g2.stroke(); }
+function flame(x, y, s, a){ g2.save(); g2.globalAlpha = a; g2.translate(x, y); const w = 1 + 0.08 * Math.sin(T * 14);
+  g2.beginPath(); g2.moveTo(0, -1.1 * s * w); g2.bezierCurveTo(0.7 * s, -0.4 * s, 0.6 * s, 0.5 * s, 0, 0.55 * s); g2.bezierCurveTo(-0.6 * s, 0.5 * s, -0.7 * s, -0.4 * s, 0, -1.1 * s * w); g2.fillStyle = '#ff5a1f'; g2.fill();
+  g2.beginPath(); g2.moveTo(0, -0.5 * s * w); g2.bezierCurveTo(0.35 * s, -0.1 * s, 0.3 * s, 0.4 * s, 0, 0.45 * s); g2.bezierCurveTo(-0.3 * s, 0.4 * s, -0.35 * s, -0.1 * s, 0, -0.5 * s * w); g2.fillStyle = '#ffd23c'; g2.fill(); g2.restore(); }
+
+function arrow(x, y0, y1, w, col, lbl, lbl2){ const dir = Math.sign(y1 - y0), hd = Math.min(Math.abs(y1 - y0) * 0.5, w * 1.6);
+  g2.beginPath(); g2.moveTo(x - w / 2, y0); g2.lineTo(x + w / 2, y0); g2.lineTo(x + w / 2, y1 - dir * hd); g2.lineTo(x + w * 1.1, y1 - dir * hd); g2.lineTo(x, y1); g2.lineTo(x - w * 1.1, y1 - dir * hd); g2.lineTo(x - w / 2, y1 - dir * hd); g2.closePath();
+  g2.lineWidth = 12; g2.strokeStyle = '#0b1220'; g2.lineJoin = 'round'; g2.stroke(); g2.fillStyle = col; g2.fill(); }
+function chip(x, y, w, h){ g2.fillStyle = 'rgba(11,18,32,0.62)'; g2.beginPath(); g2.roundRect(x - w / 2, y - h / 2, w, h, 26); g2.fill(); }
+const kmh = t => Math.round(70 * E.out(seg(t, 1.45, 4.2)));
+function drawSpd(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; chip(W - 175, 660, 270, 150); txt(kmh(T) + ' KM/H', W - 175, 640, 52, '#ff6a4a'); txt('ZEITLUPE', W - 175, 700, 28, '#ffd23c'); g2.restore(); }
+function drawSame(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; const L = 300 * E.out(a);
+  [[175, 'KABINE'], [W - 175, 'BEN']].forEach(([x, l]) => { chip(x, 900, 250, 470); arrow(x, 720, 720 + L, 60, '#ff6a4a'); txt(l, x, 1090, 44, '#ffffff'); });
+  txt('=', W / 2, 760, 120, '#ffd23c'); g2.restore(); }
+function drawJump(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; const k = E.out(seg(T, 7.4, 7.8)), r = seg(T, 8.4, 8.7);
+  chip(190, 900, 300, 500); arrow(190, 690, 690 + 320 * k, 64, '#ff6a4a'); txt('FALL', 190, 1065, 40, '#ffffff'); txt('70 KM/H', 190, 1115, 40, '#ff6a4a');
+  chip(W - 190, 900, 300, 500); if (k > 0.3){ arrow(W - 190, 950, 950 - 70 * E.out(seg(T, 7.7, 8.0)), 64, '#3bd16f'); } txt('SPRUNG', W - 190, 1065, 40, '#ffffff'); txt('3 KM/H', W - 190, 1115, 40, '#3bd16f');
+  if (r > 0){ g2.globalAlpha = a * r; chip(W / 2, 640, 520, 120); txt('= 67 KM/H', W / 2, 640, 64, '#ffd23c'); } g2.restore(); }
+const _hp = new THREE.Vector3();
+function drawStars(a){ if (a <= 0) return; ben.head.updateWorldMatrix(true, false); const p = proj(ben.head.localToWorld(_hp.set(0, 1.25, 0))); if (!p) return; g2.save(); g2.globalAlpha = a; g2.lineCap = 'round';
+  for (let i = 0; i < 5; i++){ const an = T * 3 + i * 2 * PI / 5, x = p[0] + Math.cos(an) * 170, y = p[1] - 20 + Math.sin(an) * 50; g2.lineWidth = 14; g2.strokeStyle = '#0b1220'; star(x, y, 26); g2.lineWidth = 7; g2.strokeStyle = '#ffd23c'; star(x, y, 26); }
+  txt('BONK!', p[0], p[1] - 130, 70, '#ffffff'); g2.restore(); }
+function drawCount(a){ if (a <= 0) return; const p = wp(0, 9.6, 0); if (!p) return; const n = 6 - [12.3, 12.75, 13.2, 13.65, 14.1].filter(x => T >= x).length;
+  g2.save(); g2.globalAlpha = a; chip(p[0], p[1], 470, 110); txt(n === 1 ? '1 SEIL HÄLT!' : n + ' SEILE', p[0], p[1], 58, n === 1 ? '#3bd16f' : '#ffffff'); g2.restore(); }
+function drawSnap(ts, s){ ts.forEach((t0, i) => { const u = T - t0; if (u < 0 || u > 0.45) return; const p = wp(CX[i], 7.0 + s, 0); if (!p) return; glowDot(p[0], p[1], 90, 'rgba(255,220,140,A)', 0.85 * (u < 0.06 ? u / 0.06 : 1 - (u - 0.06) / 0.39)); }); }
+function drawSparks(a){ if (a <= 0) return; [-1, 1].forEach(k => { const p = wp(3.08, 0.2, k * 0.2); if (!p) return;
+  for (let i = 0; i < 5; i++){ const ph = (T * 1.6 + i / 5) % 1, x = p[0] + k * 30 + (i - 2) * 22 * ph, y = p[1] + 160 * ph * ph - 20 * ph; glowDot(x, y, 34, 'rgba(255,190,80,A)', a * 0.8 * Math.sin(PI * ph)); } }); }
+function drawGauge(a){ if (a <= 0) return; const cx = W / 2, cy = 960, R = 250, v = 100 * E.io(seg(T, 17.4, 18.1)) + 15 * E.io(seg(T, 18.4, 19.0)), ang = q => PI + PI * q / 130;
+  g2.save(); g2.globalAlpha = a; chip(cx, cy - 70, 640, 400); g2.lineCap = 'butt';
+  g2.lineWidth = 34; g2.beginPath(); g2.arc(cx, cy, R, ang(0), ang(100)); g2.strokeStyle = '#3bd16f'; g2.stroke(); g2.beginPath(); g2.arc(cx, cy, R, ang(100), ang(115)); g2.strokeStyle = '#ffd23c'; g2.stroke(); g2.beginPath(); g2.arc(cx, cy, R, ang(115), ang(130)); g2.strokeStyle = '#ff4a3a'; g2.stroke();
+  const m = ang(115); g2.lineWidth = 8; g2.strokeStyle = '#ffffff'; g2.beginPath(); g2.moveTo(cx + Math.cos(m) * (R - 40), cy + Math.sin(m) * (R - 40)); g2.lineTo(cx + Math.cos(m) * (R + 40), cy + Math.sin(m) * (R + 40)); g2.stroke();
+  txt('115 %', cx + Math.cos(m) * (R + 30) + 40, cy + Math.sin(m) * (R + 30) - 34, 36, '#ff4a3a');
+  const n = ang(v); g2.lineCap = 'round'; g2.lineWidth = 18; g2.strokeStyle = '#0b1220'; g2.beginPath(); g2.moveTo(cx, cy); g2.lineTo(cx + Math.cos(n) * (R - 30), cy + Math.sin(n) * (R - 30)); g2.stroke();
+  g2.lineWidth = 10; g2.strokeStyle = '#ffffff'; g2.stroke(); g2.beginPath(); g2.arc(cx, cy, 20, 0, 7); g2.fillStyle = '#ffffff'; g2.fill();
+  txt(Math.round(v) + ' %', cx, cy - 90, 60, v >= 114.5 ? '#ff4a3a' : '#ffffff'); txt(v >= 114.5 ? 'BREMSE!' : 'NORMALES TEMPO = 100 %', cx, cy + 50, v >= 114.5 ? 46 : 30, v >= 114.5 ? '#ffd23c' : '#9fd8ff'); g2.restore(); }
+function drawSpread(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; const L = 90 * E.out(seg(T, 21.98, 22.3));
+  for (let i = 0; i < 7; i++){ const z = lerp(1.45, -1.55, i / 6), p = wp(0, 0.0, z); if (!p) continue; arrow(p[0] + (i % 2 ? 150 : -150) * 0 , p[1] + 70, p[1] + 70 - L, 26, '#ffd23c'); }
+  const p = wp(0, 0.0, 2.1); if (p) txt('STOSS ÜBERALL GLEICH', p[0], p[1] + 140, 44, '#ffd23c'); g2.restore(); }
+
+function heart(x, y, s){ g2.beginPath(); g2.moveTo(x, y + 0.35 * s); g2.bezierCurveTo(x - 1.1 * s, y - 0.35 * s, x - 0.45 * s, y - 1.0 * s, x, y - 0.45 * s); g2.bezierCurveTo(x + 0.45 * s, y - 1.0 * s, x + 1.1 * s, y - 0.35 * s, x, y + 0.35 * s); g2.closePath(); }
+function drawHeart(a){ if (a <= 0) return; const ph = (T * 2.5) % 1, beat = ph < 0.15 ? Math.sin(ph / 0.15 * PI) : 0, s = 70 * (1 + 0.22 * beat);
+  g2.save(); g2.globalAlpha = a; heart(W / 2, 660, s); g2.fillStyle = '#ff3b3b'; g2.fill(); g2.lineWidth = 10; g2.strokeStyle = '#0b1220'; g2.stroke(); g2.restore(); }
+const vig = document.createElement('canvas'); vig.width = 270; vig.height = 480;
+(function(){ const x = vig.getContext('2d'), g = x.createRadialGradient(135, 240, 120, 135, 240, 330); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.38)'); x.fillStyle = g; x.fillRect(0, 0, 270, 480); })();
+function draw2D(sc, lt, dur){
+  g2.globalAlpha = 1; g2.globalCompositeOperation = 'source-over'; g2.drawImage(renderer.domElement, 0, 0, W, H);
+  g2.globalAlpha = 1; g2.globalCompositeOperation = 'source-over'; g2.drawImage(vig, 0, 0, W, H);
+  if (flashA > 0){ g2.fillStyle = `rgba(255,250,240,${Math.min(1, flashA)})`; g2.fillRect(0, 0, W, H); }
+  if (fadeBlk > 0){ g2.fillStyle = `rgba(0,0,0,${fadeBlk})`; g2.fillRect(0, 0, W, H); }
+  drawSnap(SNAPS(), 0); drawSparks(sparkK); drawSame(sameK); drawJump(jumpK); drawStars(starK); drawCount(cntK); drawGauge(gaugeK); drawSpread(spreadK); if (!sc.hook) drawSpd(spdK);
+  if (sc.hud) drawHud(sc.hud());
+  if (sc.hook) drawHook(clamp01((dur - lt) / 0.15), 1);
+  if (sc.loopin){ const k = clamp01((T - (END - 0.14)) / 0.14); drawHook(k, 1 + 0.25 * (1 - k)); }
+  if (!sc.hook) drawSubs();
+}
+
+/* =========================================================
+   ABLAUF
+   ========================================================= */
+let curI = -1, curS = SCN[0], curLt = 0;
+function step(){
+  let i = 0; while (i < SCN.length - 1 && T >= SCN[i + 1].t) i++;
+  const sc = SCN[i];
+  if (i !== curI){ curI = i; SETS.forEach(s => s.visible = s === sc.set); setMood(sc.mood); if (sc.enter) sc.enter(); }
+  blurAmt = 0; fadeBlk = 0; flashA = 0; ben.mouth.rotation.z = 0; ben.root.rotation.z = 0;
+  talk = 0; sameK = jumpK = starK = cntK = sparkK = gaugeK = spreadK = spdK = 0; ben.root.rotation.set(0, 0, 0); curS = sc; curLt = T - sc.t; sc.upd(curLt); benMark();
+  if (T >= END && !ended) finish();
+}
+let vTrack = null;
+function frame(){
+  renderer.render(scene, cam);
+  draw2D(curS, curLt, (curI < SCN.length - 1 ? SCN[curI + 1].t : END) - curS.t);
+  if (recording && vTrack) vTrack.requestFrame();
+}
+let playing = false, startMs = 0, ended = false, rec = null, chunks = [], recording = false, videoBlob = null;
+function reset(){ T = 0; curI = -1; ended = false; hv = hp = hl = ''; hvT = hpT = hlT = -9; step(); }
+function loop(now){
+  requestAnimationFrame(loop);
+  if (exporting) return;
+  if (playing){ T = Math.min((now - startMs) / 1000, END + 0.3); step(); }
+  frame();
+}
+function startRec(){
+  if (!out.captureStream || typeof MediaRecorder === 'undefined'){ ui.innerHTML = '<p>Aufnahme wird von diesem Browser nicht unterstützt.</p>'; ui.classList.remove('hidden'); return false; }
+  let stream; try { stream = out.captureStream(0); vTrack = stream.getVideoTracks()[0]; if (!vTrack || !vTrack.requestFrame) throw 0; } catch (e) { stream = out.captureStream(30); vTrack = null; }
+  const types = ['video/mp4', 'video/mp4;codecs=avc1', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  const mime = types.find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
+  try { rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 10000000 } : {}); } catch (e) { rec = new MediaRecorder(stream); }
+  chunks = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  rec.onstop = () => { vTrack = null; videoBlob = new Blob(chunks, { type: rec.mimeType || mime || 'video/webm' }); recording = false; recdot.style.display = 'none'; showUI('end'); };
+  rec.start(); recording = true; recdot.style.display = 'block'; return true;
+}
+/* Bild-für-Bild-Export: H.264 über WebCodecs + eigener MP4-Schreiber (kein Echtzeit-Mitschnitt) */
+function mp4Build(samples, avcC, w, h, fps){
+  const enc = new TextEncoder();
+  const u32 = n => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255], u16 = n => [(n >> 8) & 255, n & 255];
+  const cat = arrs => { let L = 0; arrs.forEach(a => L += a.length); const o = new Uint8Array(L); let p = 0; arrs.forEach(a => { o.set(a, p); p += a.length; }); return o; };
+  const box = (type, ...parts) => { const body = cat(parts.map(p => p instanceof Uint8Array ? p : new Uint8Array(p))); return cat([new Uint8Array(u32(body.length + 8)), enc.encode(type), body]); };
+  const full = (type, ver, flags, ...parts) => box(type, [ver, (flags >> 16) & 255, (flags >> 8) & 255, flags & 255], ...parts);
+  const n = samples.length, dur = n, MAT = [].concat(u32(0x10000), u32(0), u32(0), u32(0), u32(0x10000), u32(0), u32(0), u32(0), u32(0x40000000));
+  // Reihenfolge der Anzeige (falls der Encoder B-Bilder liefert)
+  let shift = 0; const off = samples.map((s, i) => { const d = s.pts - i; if (-d > shift) shift = -d; return d; }); const needCtts = off.some(d => d !== 0);
+  const sync = []; samples.forEach((s, i) => { if (s.key) sync.push(i + 1); });
+  const stsd = full('stsd', 0, 0, u32(1), box('avc1', [0, 0, 0, 0, 0, 0], u16(1), u16(0), u16(0), u32(0), u32(0), u32(0), u16(w), u16(h), u32(0x480000), u32(0x480000), u32(0), u16(1), new Uint8Array(32), u16(24), [255, 255], box('avcC', avcC)));
+  const stbl = stco => box('stbl', stsd,
+    full('stts', 0, 0, u32(1), u32(n), u32(1)),
+    needCtts ? full('ctts', 0, 0, u32(n), cat(off.map(d => new Uint8Array(u32(1).concat(u32(d + shift)))))) : new Uint8Array(0),
+    full('stss', 0, 0, u32(sync.length), cat(sync.map(i => new Uint8Array(u32(i))))),
+    full('stsc', 0, 0, u32(1), u32(1), u32(n), u32(1)),
+    full('stsz', 0, 0, u32(0), u32(n), cat(samples.map(s => new Uint8Array(u32(s.data.length))))),
+    full('stco', 0, 0, u32(1), u32(stco)));
+  const moov = stco => box('moov',
+    full('mvhd', 0, 0, u32(0), u32(0), u32(fps), u32(dur), u32(0x10000), u16(0x100), u16(0), u32(0), u32(0), MAT, new Uint8Array(24), u32(2)),
+    box('trak',
+      full('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(dur), u32(0), u32(0), u16(0), u16(0), u16(0), u16(0), MAT, u32(w << 16), u32(h << 16)),
+      box('mdia',
+        full('mdhd', 0, 0, u32(0), u32(0), u32(fps), u32(dur), u16(0x55c4), u16(0)),
+        full('hdlr', 0, 0, u32(0), enc.encode('vide'), u32(0), u32(0), u32(0), enc.encode('Video\0')),
+        box('minf', full('vmhd', 0, 1, u16(0), u16(0), u16(0), u16(0)), box('dinf', full('dref', 0, 0, u32(1), full('url ', 0, 1))), stbl(stco)))));
+  const ftyp = box('ftyp', enc.encode('isom'), u32(0x200), enc.encode('isomiso2avc1mp41'));
+  const mv = moov(ftyp.length + moov(0).length + 8);
+  let L = 0; samples.forEach(s => L += s.data.length);
+  return new Blob([ftyp, mv, new Uint8Array(u32(L + 8)), enc.encode('mdat')].concat(samples.map(s => s.data)), { type: 'video/mp4' });
+}
+async function exportMP4(canvas, total, fps, renderAt, onProgress){
+  const w = canvas.width, h = canvas.height; let cfg = null;
+  for (const codec of ['avc1.640028', 'avc1.4d0028', 'avc1.42002a', 'avc1.42e028']){
+    const c = { codec, width: w, height: h, bitrate: 12000000, framerate: fps, avc: { format: 'avc' } };
+    try { const r = await VideoEncoder.isConfigSupported(c); if (r && r.supported){ cfg = c; break; } } catch (e) {}
+  }
+  if (!cfg) throw new Error('H.264 wird nicht unterstützt');
+  const samples = []; let avcC = null, err = null; const usPer = 1e6 / fps;
+  const enc = new VideoEncoder({
+    output: (chunk, meta) => {
+      if (meta && meta.decoderConfig && meta.decoderConfig.description && !avcC){ const d = meta.decoderConfig.description; avcC = new Uint8Array(d.buffer ? d.buffer.slice(d.byteOffset, d.byteOffset + d.byteLength) : d); }
+      const data = new Uint8Array(chunk.byteLength); chunk.copyTo(data); samples.push({ data, key: chunk.type === 'key', pts: Math.round(chunk.timestamp / usPer) });
+    },
+    error: e => { err = e; },
+  });
+  enc.configure(cfg);
+  for (let i = 0; i < total; i++){
+    if (err) throw err;
+    renderAt(i);
+    const vf = new VideoFrame(canvas, { timestamp: Math.round(i * usPer), duration: Math.round(usPer) });
+    enc.encode(vf, { keyFrame: i % 60 === 0 }); vf.close();
+    while (enc.encodeQueueSize > 2) await new Promise(r => setTimeout(r, 4));
+    if (i % 3 === 0){ onProgress && onProgress(i / total); await new Promise(r => setTimeout(r, 0)); }
+  }
+  await enc.flush(); enc.close(); if (err) throw err;
+  if (!avcC || !samples.length) throw new Error('Encoder hat keine Daten geliefert');
+  return mp4Build(samples, avcC, w, h, fps);
+}
+let exporting = false;
+async function doExport(){
+  reset(); exporting = true; playing = false; videoBlob = null; ui.classList.remove('hidden');
+  ui.innerHTML = '<h1>Video wird erstellt …</h1><p id="prog" style="font-size:34px;font-weight:800;opacity:1">0 %</p><p>Bild für Bild in voller Qualität. Bitte die Seite offen lassen und den Bildschirm nicht sperren.</p>';
+  const pr = document.getElementById('prog');
+  try {
+    videoBlob = await exportMP4(out, Math.floor(END * 30), 30, i => { T = i / 30; step(); frame(); }, p => { pr.textContent = Math.round(p * 100) + ' %'; });
+    exporting = false; ended = true; showUI('end');
+  } catch (e) {
+    exporting = false; showUI('start');
+    const m = document.createElement('p'); m.style.color = '#ffb3a0'; m.textContent = 'Export hat nicht geklappt (' + (e && e.message ? e.message : e) + '). Du kannst stattdessen „Aufnehmen“ nutzen.'; ui.appendChild(m);
+  }
+}
+let claudeDL = null;
+try { if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { claudeDL = d; }).catch(() => {}); } catch (e) {}
+async function saveVideo(){
+  if (!videoBlob) return;
+  const fname = `was-waere-ben-aufzug.${videoBlob.type.includes('mp4') ? 'mp4' : 'webm'}`;
+  if (claudeDL){ try { await claudeDL.save({ filename: fname, data: videoBlob }); return; } catch (e) { if (e && e.code === 'declined') return; } }
+  const file = new File([videoBlob], fname, { type: videoBlob.type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })){ try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+}
+function finish(){ ended = true; playing = false; if (recording && rec) setTimeout(() => rec.stop(), 300); else showUI('end'); }
+function begin(withRec){
+  reset(); if (withRec){ videoBlob = null; if (!startRec()) return; }
+  ui.classList.add('hidden'); playing = true; startMs = performance.now();
+}
+function showUI(mode){
+  ui.classList.remove('hidden');
+  if (mode === 'start'){
+    ui.innerHTML = `<h1>Was wäre Ben? – Aufzug</h1><p>9:16 · 1080 × 1920 · ca. 26 s · Sprecher-Spur (ElevenLabs, „Take 1 – Sprecher Airbag“) ab 0:00 drunterlegen</p>
+      <button class="b1" id="bPlay">▶ Abspielen</button>
+      ${window.VideoEncoder ? '<button class="b3" id="bExp">💾 Als MP4-Video exportieren</button><p style="font-size:12px;opacity:.7">Der Export rechnet jedes Bild einzeln. Das Ergebnis läuft flüssig, auch wenn das Handy langsam ist.</p>' : ''}
+      <button class="b2" id="bRec">⏺ Live aufnehmen${window.VideoEncoder ? ' (Notlösung)' : ' &amp; speichern'}</button>`;
+  } else {
+    if (videoBlob && !videoBlob._url) videoBlob._url = URL.createObjectURL(videoBlob);
+    ui.innerHTML = `<h1>Fertig!</h1>
+      ${videoBlob ? `<video src="${videoBlob._url}" controls playsinline muted style="max-height:38vh;max-width:80vw;border-radius:12px;background:#000"></video><button class="b3" id="bSave">💾 Video speichern</button>` : ''}
+      <button class="b1" id="bPlay">↺ Nochmal ansehen</button>${window.VideoEncoder ? '<button class="b2" id="bExp">💾 Neu exportieren</button>' : '<button class="b2" id="bRec">⏺ Aufnehmen &amp; speichern</button>'}`;
+  }
+  const bp = document.getElementById('bPlay'), br = document.getElementById('bRec'), bs = document.getElementById('bSave');
+  bp && (bp.onclick = () => begin(false)); br && (br.onclick = () => begin(true)); bs && (bs.onclick = saveVideo); const be = document.getElementById('bExp'); be && (be.onclick = doExport);
+}
+reset(); showUI('start'); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

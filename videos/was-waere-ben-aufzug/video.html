@@ -281,10 +281,10 @@ let btnM = null;
     P(SHAFT, new THREE.BoxGeometry(0.34, 220, 0.09), mat(0x8e949c, { roughness: 0.4, metalness: 0.5 }), s * 3.09, 0, 0);
     P(SHAFT, new THREE.BoxGeometry(0.08, 220, 0.42), mat(0x8e949c, { roughness: 0.4, metalness: 0.5 }), s * 3.28, 0, 0); });
   // wiederholte Geschossdecken-Kanten + Schienenhalter
-  const slab = mat(0x8c9097, { roughness: 0.9 }), band = mat(0xd9a628, { roughness: 0.6 });
+  const slab = mat(0x8c9097, { roughness: 0.9 }), band = mat(0xb09a5c, { roughness: 0.8 });
   for (let k = -5; k <= 5; k++){ const y = k * 6;
-    P(SCR, new THREE.BoxGeometry(8.4, 0.45, 0.3), slab, 0, y, -2.48); P(SCR, new THREE.BoxGeometry(8.4, 0.1, 0.02), band, 0, y + 0.18, -2.32);
-    [-1, 1].forEach(s => { P(SCR, new THREE.BoxGeometry(0.3, 0.45, 2.6), slab, s * 3.52, y, -1.6); P(SCR, new THREE.BoxGeometry(0.3, 0.22, 0.5), mat(0x3a3d44), s * 3.45, y + 1.5, 0); }); }
+    P(SCR, new THREE.BoxGeometry(8.4, 0.9, 0.3), slab, 0, y, -2.48); P(SCR, new THREE.BoxGeometry(8.4, 0.4, 0.02), band, 0, y, -2.32);
+    [-1, 1].forEach(s => { P(SCR, new THREE.BoxGeometry(0.3, 0.9, 2.6), slab, s * 3.52, y, -1.6); P(SCR, new THREE.BoxGeometry(0.3, 0.6, 0.5), mat(0x4a4d54), s * 3.45, y + 3, 0); }); }
   // Flur (Etage): Boden-Kante, Wandstücke mit Türöffnung, Ruftaster
   const fl = mat(0xa8957a, { roughness: 0.85 }), hw = mat(0xe4ddd0, { roughness: 0.8 });
   P(LND, new THREE.BoxGeometry(8, 0.5, 4.2), fl, 0, -0.25, 4.4);
@@ -340,9 +340,9 @@ const imp = at => T >= at ? Math.exp(-(T - at) * 3) : 0;
 // Fallweg s(t) = Integral der Geschwindigkeit (Tabelle)
 function mkS(v, t0, t1){ const dt = 1 / 240, n = Math.ceil((t1 - t0) / dt) + 1, a = new Float32Array(n); for (let i = 1; i < n; i++) a[i] = a[i - 1] + v(t0 + (i - 0.5) * dt) * dt;
   return t => { const x = (t - t0) / dt; if (x <= 0) return 0; if (x >= n - 1) return a[n - 1]; const i = Math.floor(x); return lerp(a[i], a[i + 1], x - i); }; }
-const S1 = mkS(t => 12 * E.io(seg(t, 1.45, 3.0)), 0, 12);
+const S1 = mkS(t => 5 * E.io(seg(t, 1.45, 3.0)), 0, 12);
 const S5 = mkS(t => 10 * seg(t, 15.35, 16.3) * (1 - E.out(seg(t, 16.44, 17.0))), 15, 18);
-const S7 = mkS(t => t < 21.98 ? 9 : 0, 20, 24);
+const S7 = mkS(t => t < 21.98 ? 5 : 0, 20, 24);
 function setScroll(s){ SCROLL = s; SCR.position.y = ((s % 6) + 6) % 6; LND.position.y = s; LND.visible = s < 30; CUP.forEach((u, i) => u.userData.s = s); }
 // Seile: Rissmoment je Seil
 let SNAPT = [99, 99, 99, 99, 99, 99]; const SNAPS = () => SNAPT;

@@ -398,11 +398,11 @@ const SCN = [
     upd(lt){ dT = T; base(); setScroll(S5(T)); cables(S4SNAP); bRest(ben, T, 0); place(ben, BX, 0, BZ, 0.1);
       const fl = seg(T, 15.4, 15.8) * (1 - E.out(seg(T, 16.44, 16.7))); ben.root.position.y = 0.08 * fl; eyeS = 1.4; bFace(ben, -0.7, 0.7);
       const bk = E.out(seg(T, 16.44, 16.6)); brake(bk); sparkK = bk * (1 - seg(T, 16.95, 17.3));
-      camW(E.io(seg(lt, 0, 1.15)), [5.4, 9.6, 14.0, 0, 6.2, 0, 38], [5.4, 2.2, 4.6, 3.05, 0.5, 0, 34]); camFin(0.03 * imp(16.44)); } },
+      camW(E.io(seg(lt, 0, 1.15)), [5.4, 9.6, 14.0, 0, 6.2, 0, 38], [6.6, 2.7, 7.2, 2.3, 1.0, 0, 38]); camFin(0.03 * imp(16.44)); } },
   { t: 17.15, set: world, mood: MOOD.shaft, hud: () => ['AB +15 % TEMPO', 'GREIFT DIE FANGBREMSE'],
     upd(lt){ dT = T; base(); setScroll(S5(T)); cables(S4SNAP); bRest(ben, T, 0); place(ben, BX, 0, BZ, 0.1); brake(1); eyeS = 1; bFace(ben, 0.2, 0.1);
       sparkK = 1 - seg(T, 16.95, 17.3); gaugeK = E.out(seg(T, 17.25, 17.55)) * (1 - seg(T, 19.85, 20.05));
-      camW(E.io(seg(lt, 0, 2.95)), [5.4, 2.2, 4.6, 3.05, 0.5, 0, 34], [6.0, 2.8, 5.4, 3.05, 0.6, 0, 34]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.95)), [6.6, 2.7, 7.2, 2.3, 1.0, 0, 38], [7.2, 3.2, 8.2, 2.2, 1.2, 0, 38]); camFin(); } },
   { t: 20.1, set: world, mood: MOOD.shaft, hud: () => ['PROFI', 'FLACH AUF DEN BODEN LEGEN'],
     upd(lt){ dT = T; base(); ben.root.visible = false; pro.root.visible = true; setScroll(40 + S7(T)); cables(ALLSNAP);
       bRest(pro, T, 2); const hit = imp(21.98), fly = T < 21.98 ? 0.12 + 0.02 * Math.sin(T * 2.4) : 0.02 * Math.max(0, Math.sin((T - 21.98) * 14)) * hit;

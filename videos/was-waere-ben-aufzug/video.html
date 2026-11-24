@@ -287,7 +287,7 @@ let btnM = null;
     [-1, 1].forEach(s => { P(SCR, new THREE.BoxGeometry(0.3, 0.9, 2.6), slab, s * 3.52, y, -1.6); P(SCR, new THREE.BoxGeometry(0.3, 0.6, 0.5), mat(0x4a4d54), s * 3.45, y + 3, 0); }); }
   // Flur (Etage): Boden-Kante, Wandstücke mit Türöffnung, Ruftaster
   const fl = mat(0xa8957a, { roughness: 0.85 }), hw = mat(0xe4ddd0, { roughness: 0.8 });
-  P(LND, new THREE.BoxGeometry(8, 0.5, 4.2), fl, 0, -0.25, 4.4);
+  { const lf = new THREE.Mesh(new THREE.PlaneGeometry(8, 4.2), fl); lf.rotation.x = -PI / 2; lf.position.set(0, 0, 4.4); lf.receiveShadow = true; LND.add(lf); }
   [-1, 1].forEach(s => P(LND, new THREE.BoxGeometry(9, 5.1, 0.3), hw, s * 7.1, 2.55, 2.45));
   P(LND, new THREE.BoxGeometry(5.2, 0.5, 0.3), hw, 0, 4.85, 2.45);
   [-1, 1].forEach(s => P(LND, rbox(0.16, 4.7, 0.36, 0.03, 1), steel, s * 2.68, 2.35, 2.45));

@@ -278,7 +278,7 @@ let saltK = 0, kidK = 0, dryK = 0, glandK = 0, rainK = 0;
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.02; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.015; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const HOOK = [[3.0, 3.6, 11.5, 0.2, 2.9, 0, 40], [2.6, 3.4, 10.4, 0.2, 2.8, 0, 40]];
-const CMW = [2.6, 3.0, 9.0, 0.3, 2.2, 0, 40];
+const CMW = [2.6, 2.4, 10.0, 0.3, 1.2, 0, 40];
 function bob(t){ const y = 0.08 * Math.sin(t * 1.4), rx = 0.05 * Math.sin(t * 1.1 + 0.5), rz = 0.04 * Math.sin(t * 0.9); RAFT.position.set(0, y, 0); RAFT.rotation.set(rx, 0, rz); return [y, rx, rz]; }
 function seat(t){ const [y, rx, rz] = bob(t); bRest(ben, t, 0); place(ben, 0, y + 0.05, -0.1, 0.3); ben.root.rotation.x = rx; ben.root.rotation.z = rz; sit(ben, 0.12); ben.legs[0].rotation.x = -1.4; ben.legs[1].rotation.x = -1.4; ben.sh[0].rotation.set(-0.2, 0, -0.35); }
 function base(){ show(ben); GULL.visible = false; CUP.visible = true; }
@@ -295,19 +295,19 @@ const SCN = [
       camW(E.io(seg(lt, 0, 2.95)), HOOK[1], CMW); camFin(); } },
   { t: 6.31, set: SEA, mood: MOOD.sea, hud: () => ['DIE NIERE', 'MUSS DAS SALZ RAUSSPÜLEN'],
     upd(lt){ dT = T; base(); seat(T); drink(ben, 0.7 * (1 - seg(T, 6.4, 7.0))); eyeS = 1.1; bFace(ben, -0.4, 0.05); kidK = E.out(seg(T, 6.5, 6.8)) * (1 - seg(T, 11.0, 11.22));
-      camW(E.io(seg(lt, 0, 4.91)), CMW, [2.2, 3.2, 8.2, 0.3, 2.3, 0, 40]); camFin(); } },
+      camW(E.io(seg(lt, 0, 4.91)), CMW, [2.2, 2.4, 9.2, 0.3, 1.3, 0, 40]); camFin(); } },
   { t: 11.22, set: SEA, mood: MOOD.sea, hud: () => T < 13.5 ? ['BEN TROCKNET AUS', 'SCHNELLER ALS OHNE TRINKEN'] : ['NOCH MEHR DURST', 'EIN TEUFELSKREIS'],
     upd(lt){ dT = T; base(); seat(T); const d = E.io(seg(T, 11.3, 14.5)); drink(ben, 0); ben.torso.rotation.x = 0.25 + 0.25 * d; ben.head.rotation.x = 0.2 + 0.25 * d; ben.sh[1].rotation.set(-0.3, 0, 0.3);
       eyeS = 1 - 0.45 * d; bFace(ben, -0.9 * d, 0.2 * d); dryK = E.out(seg(T, 11.4, 11.7)) * (1 - seg(T, 15.0, 15.2));
-      camW(E.io(seg(lt, 0, 3.98)), [2.2, 3.2, 8.2, 0.3, 2.3, 0, 40], [3.2, 3.6, 9.8, 0.4, 2.2, 0, 40]); camFin(); } },
+      camW(E.io(seg(lt, 0, 3.98)), [2.2, 2.4, 9.2, 0.3, 1.3, 0, 40], [3.2, 2.6, 10.5, 0.4, 1.3, 0, 40]); camFin(); } },
   { t: 15.2, set: SEA, mood: MOOD.sea, hud: () => ['MÖWEN KÖNNEN DAS', 'SALZDRÜSE ÜBER DEN AUGEN'],
     upd(lt){ dT = T; base(); seat(T); drink(ben, 0); ben.torso.rotation.x = 0.4; ben.head.rotation.set(0.1, 0.5, 0); ben.sh[1].rotation.set(-0.3, 0, 0.3); eyeS = 1.1; bFace(ben, -0.3, 0.1);
       const l = E.out(seg(T, 15.2, 16.4)); gull(lerp(6, 1.25, l), lerp(5, 0.92, l) + RAFT.position.y, lerp(-3, 0.75, l), PI * 0.85, l < 0.95, T); glandK = E.out(seg(T, 16.4, 16.7)) * (1 - seg(T, 18.6, 18.8));
-      camW(E.io(seg(lt, 0, 3.6)), [3.2, 3.6, 9.8, 0.4, 2.2, 0, 40], [2.6, 2.6, 6.2, 0.8, 1.5, 0.4, 40]); camFin(); } },
+      camW(E.io(seg(lt, 0, 3.6)), [3.2, 2.6, 10.5, 0.4, 1.3, 0, 40], [2.8, 2.2, 7.8, 0.8, 1.0, 0.4, 40]); camFin(); } },
   { t: 18.8, set: SEA, mood: MOOD.rain, hud: () => ['BEN BRAUCHT', 'SÜSSWASSER – ZUM BEISPIEL REGEN'],
     upd(lt){ dT = T; base(); seat(T); const u = E.io(seg(T, 19.0, 19.6)); ben.sh[1].rotation.set(lerp(-0.3, -2.9, u), 0, lerp(0.3, -0.1, u)); ben.el[1].rotation.x = -0.2; ben.head.rotation.x = -0.35 * u;
       eyeS = 1.2; bFace(ben, 0.6 * u, 0.5 * u); rainK = E.out(seg(T, 18.9, 19.3)) * (1 - seg(T, 21.0, 21.18));
-      camW(E.io(seg(lt, 0, 2.38)), [3.6, 3.4, 11.0, 0.3, 2.6, 0, 40], [3.2, 3.3, 10.2, 0.3, 2.6, 0, 40]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.38)), [3.6, 2.6, 11.5, 0.3, 1.4, 0, 40], [3.2, 2.5, 10.7, 0.3, 1.4, 0, 40]); camFin(); } },
   { t: 21.18, set: SEA, mood: MOOD.sea, hud: () => ['UND BEN?', 'NÄCHSTER REGENTROPFEN …'],
     upd(lt){ dT = T - END; base(); hookBen(T - END); camW(E.io(seg(T, 21.18, 23.5)), [4.2, 4.0, 12.5, 0.3, 2.6, 0, 40], HOOK[0]); camFin(); } },
   { t: 23.9, set: SEA, mood: MOOD.sea, loopin: 1,

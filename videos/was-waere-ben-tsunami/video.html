@@ -292,7 +292,7 @@ let warnK = 0, diaK = 0, minK = 0, wavK = 0;
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.02; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.015; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const imp = at => T >= at ? Math.exp(-(T - at) * 3) : 0;
-const HOOK = [[3.0, 6.8, 13.5, 0.2, 2.3, -6, 40], [2.6, 6.4, 12.4, 0.2, 2.2, -6, 40]];
+const HOOK = [[1.4, 6.2, 12.5, 0.5, 2.0, -6, 40], [1.2, 5.9, 11.4, 0.5, 1.9, -6, 40]];
 function base(){ show(ben); W1.visible = W2.visible = false; sea(-4, 0.06); FISH.forEach(f => f.visible = false); CASTLE.visible = true; HOUSE.visible = true; }
 function recede(t){ return -4 - 26 * E.io(seg(t, 0.3, 4.6)); }
 function fishes(zs, t){ FISH.forEach((f, i) => { f.visible = f.position.z > zs + 0.5; f.rotation.set(0, i * 1.3, 0.5 * Math.sin(t * 7 + i * 2)); f.position.y = 0.18 + 0.12 * Math.max(0, Math.sin(t * 7 + i * 2)); }); }
@@ -308,7 +308,7 @@ const SCN = [
     upd(lt){ dT = T; base(); const zs = recede(T); sea(zs, 0.06); fishes(zs, T); bRest(ben, T, 0); const up = E.io(seg(T, 3.3, 3.9));
       place(ben, 0, 0, 0, PI * 0.82 * up); if (up < 1){ sit(ben, 0.1 + 0.82 * up); ben.legs[0].rotation.x *= 1 - up; ben.legs[1].rotation.x *= 1 - up; ben.body.position.y = lerp(0.28, 1, up); }
       eyeS = 1.3; bFace(ben, -0.6, 0.3); warnK = E.out(seg(T, 3.6, 3.9)) * (1 - seg(T, 5.5, 5.67));
-      camW(E.io(seg(lt, 0, 2.4)), [-5.5, 4.2, 10.5, 0.5, 1.6, -9, 40], [-5.0, 4.4, 9.5, 0.5, 1.4, -11, 40]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.4)), [-4.0, 4.2, 9.5, -1.4, 1.4, -10, 40], [-3.6, 4.4, 8.8, -1.4, 1.2, -12, 40]); camFin(); } },
   { t: 5.67, set: BEACH, mood: MOOD.beach, hud: () => ['ÜBER 700 KM/H', 'SO SCHNELL WIE EIN FLUGZEUG'],
     upd(lt){ dT = T; base(); sea(-30, 0.06); fishes(-30, T); bRest(ben, T, 0); place(ben, 0, 0, 0, PI * 0.82); eyeS = 1.3; bFace(ben, -0.6, 0.3);
       diaK = E.out(seg(T, 5.8, 6.1)); camW(E.io(seg(lt, 0, 5.45)), [1.5, 9, 22, 0, 3, -40, 40], [1.2, 8.6, 20, 0, 3, -40, 40]); camFin(); } },
@@ -324,13 +324,13 @@ const SCN = [
         camW(E.io(seg(T, 13.88, 16.8)), [-6, 5.5, 16, 2, 1.6, -1, 40], [-1, 6.5, 19, 6, 2.0, 1, 40]); camFin(); }
       else { CASTLE.visible = false; const up = E.out(seg(T, 16.8, 17.5)); place(ben, 8.2, 11.25 - 1.2 * (1 - up), 2.2, 2.3); bFace(ben, -0.7, 0.4); eyeS = 1.3;
         ben.sh[0].rotation.set(-0.3, 0, -0.5); ben.sh[1].rotation.set(-0.3, 0, 0.5);
-        camW(E.io(seg(T, 16.8, 19.17)), [27, 15, 9, 3, 8, -9, 40], [25.5, 14.6, 8.5, 3, 8, -9, 40]); camFin(0.04 * seg(T, 18.2, 19.0)); } } },
+        camW(E.io(seg(T, 16.8, 19.17)), [24, 16.5, 13, 6.5, 10, -4, 40], [22.5, 15.8, 12, 6.5, 10, -4, 40]); camFin(0.04 * seg(T, 18.2, 19.0)); } } },
   { t: 19.17, set: BEACH, mood: MOOD.beach, hud: () => ['NICHT ZURÜCK!', 'OFT KOMMEN MEHRERE WELLEN'],
     upd(lt){ dT = T; base(); CASTLE.visible = false; sea(60, 1.66 + 0.15 * Math.sin(T * 1.3)); wave(W2, lerp(-170, -95, seg(T, 19.17, 21.92)), 5.5); bRest(ben, T, 0); place(ben, 8.2, 11.25, 2.2, 2.3);
       ben.sh[1].rotation.set(-2.6, 0, 0.3 + 0.25 * Math.sin(T * 8)); eyeS = 1.2; bFace(ben, -0.5, 0.2); wavK = E.out(seg(T, 19.5, 19.8)) * (1 - seg(T, 21.7, 21.92));
-      camW(E.io(seg(lt, 0, 2.75)), [25.5, 14.6, 8.5, 3, 8, -9, 40], [24, 14.0, 8.0, 3, 8, -9, 40]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.75)), [22.5, 15.8, 12, 6.5, 10, -4, 40], [21.5, 15.3, 11.2, 6.5, 10, -4, 40]); camFin(); } },
   { t: 21.92, set: BEACH, mood: MOOD.beach, hud: () => ['UND BEN?', 'NÄCHSTE SANDBURG'],
-    upd(lt){ dT = T - END; base(); hookBen(T - END); camW(E.io(seg(T, 21.92, 23.95)), [5.5, 5.0, 11.0, 0.2, 1.6, -4, 40], HOOK[0]); camFin(); } },
+    upd(lt){ dT = T - END; base(); hookBen(T - END); camW(E.io(seg(T, 21.92, 23.95)), [4.5, 5.0, 11.0, 0.4, 1.6, -4, 40], HOOK[0]); camFin(); } },
   { t: 24.0, set: BEACH, mood: MOOD.beach, loopin: 1,
     upd(lt){ dT = T - END; base(); hookBen(T - END); camW(0, HOOK[0], HOOK[1]); camFin(); } },
 ];

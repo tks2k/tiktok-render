@@ -385,7 +385,7 @@ function drawCells(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; const 
   for (let i = 0; i < n; i++){ const x = W / 2 - 400 + 40 + hsh(i + 2) * 330, y = cy - 90 + 30 + hsh(i + 30) * 150; g2.fillStyle = '#d8352a'; g2.beginPath(); g2.ellipse(x, y, 22, 15, hsh(i) * 3, 0, 2 * PI); g2.fill(); g2.fillStyle = '#a8231c'; g2.beginPath(); g2.ellipse(x, y, 9, 6, hsh(i) * 3, 0, 2 * PI); g2.fill(); }
   txt('WOCHE ' + (1 + Math.floor(k * 5.99)), W / 2 + 200, cy - 45, 54, '#ffffff'); txt('MEHR ROTE', W / 2 + 200, cy + 20, 36, '#ff8a6a'); txt('BLUTKÖRPERCHEN', W / 2 + 200, cy + 62, 36, '#ff8a6a'); g2.restore(); }
 function drawMes(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; chip(W / 2, 1690, 860, 180); txt('1978: MESSNER & HABELER', W / 2, 1655, 46, '#ffffff'); txt('OHNE FLASCHE AUF 8849 M', W / 2, 1720, 38, '#ffd23c'); g2.restore(); }
-function drawAlt(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; const x = 110, y0 = 600, y1 = 1180, yv = v => lerp(y1, y0, v / 8849);
+function drawAlt(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; const x = 110, y0 = 740, y1 = 1300, yv = v => lerp(y1, y0, v / 8849);
   g2.fillStyle = 'rgba(11,22,40,0.66)'; g2.beginPath(); g2.roundRect(x - 70, y0 - 50, 200, y1 - y0 + 100, 24); g2.fill();
   g2.fillStyle = '#5fb0e0'; g2.fillRect(x - 14, yv(8000), 28, y1 - yv(8000)); g2.fillStyle = '#ff3b3b'; g2.fillRect(x - 14, y0, 28, yv(8000) - y0); g2.lineWidth = 5; g2.strokeStyle = '#0b1220'; g2.strokeRect(x - 14, y0, 28, y1 - y0);
   [0, 2000, 4000, 6000, 8000].forEach(v => txt(v + '', x + 70, yv(v), 26, v === 8000 ? '#ff6a4a' : '#ffffff'));

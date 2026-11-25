@@ -288,12 +288,12 @@ let blurAmt = 0, fadeBlk = 0, T = 0, flashA = 0, eyeS = 1, talk = 0, dT = 0;
 let tidK = 0, clkK = 0, rayK = 0, escK = 0, calmK = 0, CLK = [0, 1], BENP = null;
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.012; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.008; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
-const HOOK = [[1.4, 2.3, 12.2, 0.5, 1.5, 0, 40], [1.0, 2.1, 11.2, 0.4, 1.5, 0, 40]];
-const C2 = [0.9, -1.45, 24, 0.9, -1.45, 0, 40], C3 = [1.2, -1.75, 28, 1.2, -1.75, 0, 40];
+const HOOK = [[0.9, 2.79, 16.7, 0.9, 2.79, 0, 40], [0.8, 2.7, 15.6, 0.8, 2.7, 0, 40]];
+const C2 = [1.0, -1.3, 21, 1.0, -1.3, 0, 40], C3 = [1.4, -1.6, 25.5, 1.4, -1.6, 0, 40];
 const C4 = [0, 0.9, 13.4, 0, 0.9, 0, 40], C4b = [0, 0.85, 12.4, 0, 0.85, 0, 40];
 const C5 = [0, 0, 34, 0, 0, 0, 40], C6 = [-0.6, 0.4, 30, -0.6, 0.4, 0, 40];
 function base(){ show(ben); ben.root.scale.set(1, 1, 1); }
-function hookBH(){ bhVis(1, 0, 0); bhAt(BHM, 5.2, -1.6, -30, 4.2); }
+function hookBH(){ bhVis(1, 0, 0); bhAt(BHM, 5.6, 1.93, -40, 4.3); }
 function hookBen(t){ bRest(ben, t, 0); place(ben, 0, 0.12 * Math.sin(t * 1.4), 0, 0.25); floatPose(ben, t); ben.root.rotation.z = 0.06 * Math.sin(t * 0.9); eyeS = 1; bFace(ben, -0.3, 0.12); }
 // horizontal liegender Ben, Füße zeigen nach +x (Richtung Loch)
 function lieBen(x, y, z, t, w){ bRest(ben, t, 0); place(ben, x, y, z, 0); ben.root.rotation.z = PI / 2; floatPose(ben, t, w); }
@@ -307,26 +307,26 @@ const SCN = [
   { t: 2.35, set: SPACE, mood: MOOD.space, hud: () => ['KLEINES LOCH', 'AN DEN FÜSSEN ZIEHT ES STÄRKER'],
     upd(lt){ dT = T; base(); bhVis(0, 1, 0); bhAt(BHS, 4.4, 0, 0, 0.38); lieBen(1.5, 0.05 * Math.sin(T * 1.2), 0, T, 0.6); eyeS = 1.2; bFace(ben, -0.6, 0.25);
       tidK = E.out(seg(T, 2.7, 3.1)) * (1 - seg(T, 6.5, 6.8)); camW(0, C2, C2); camFin(); } },
-  { t: 6.4, set: SPACE, mood: MOOD.space, hud: () => ['SPAGHETTI-', 'FIZIERUNG – LANG WIE EINE NUDEL'],
+  { t: 6.4, set: SPACE, mood: MOOD.space, hud: () => ['SPAGHETTIFIZIERUNG', 'LANGGEZOGEN WIE EINE NUDEL'],
     upd(lt){ dT = T; base(); bhVis(0, 1, 0); bhAt(BHS, 4.4, 0, 0, 0.38); const k = E.io(seg(T, 6.5, 9.7)), sy = 1 + 0.9 * k, sx = 1 / Math.sqrt(sy);
       lieBen(1.5 + 1.95 * (sy - 1), 0.05 * Math.sin(T * 1.2), 0, T, 0.6 + 0.6 * k); ben.root.scale.set(sx, sy, sx); eyeS = 1.35; bFace(ben, -0.9, 0.35 + 0.4 * k);
       tidK = 1 - seg(T, 6.5, 6.8); camW(E.io(seg(T, 6.6, 10.2)), C2, C3); camFin(); } },
   { t: 10.45, set: SPACE, mood: MOOD.space, hud: () => ['RIESIGES LOCH', 'AM RAND: ERSTMAL NICHTS'],
-    upd(lt){ dT = T; base(); bhVis(0, 0, 1); bhAt(BHG, 0, -158, -30, 150); bRest(ben, T, 0); place(ben, 0, 0.3 - 0.22 * lt, 0, -0.15); floatPose(ben, T * 0.6, 0.7);
+    upd(lt){ dT = T; base(); bhVis(0, 0, 1); bhAt(BHG, 0, -483, -341, 400); bRest(ben, T, 0); place(ben, 0, 0.3 - 0.22 * lt, 0, -0.15); floatPose(ben, T * 0.6, 0.7);
       ben.root.rotation.z = 0.05 * Math.sin(T * 0.8); eyeS = 1; bFace(ben, 0.45, 0.04); calmK = E.out(seg(T, 10.9, 11.2)) * (1 - seg(T, 13.5, 13.75));
       camW(E.io(seg(lt, 0, 3.33)), C4, C4b); camFin(); } },
   { t: 13.78, set: SPACE, mood: MOOD.space, hud: () => T < 16.5 ? ['VON AUSSEN', 'IMMER LANGSAMER UND RÖTER'] : ['EINGEFROREN', 'AM RAND DES LOCHS'],
-    upd(lt){ dT = T; base(); bhVis(1, 0, 0); bhAt(BHM, 0, 2.58, 0, 2.2); const u = T - 13.78, ph = 3 * (1 - Math.exp(-0.9 * u)) / 0.9;
-      lieBen(-2.65 - 6.2 * Math.exp(-1.05 * u), 2.05, 1.6, 13.78 + ph, 1 - seg(u, 0.5, 3.5)); eyeS = 1.3; bFace(ben, -0.7, 0.3);
+    upd(lt){ dT = T; base(); bhVis(1, 0, 0); bhAt(BHM, 1.6, 2.58, 0, 2.2); const u = T - 13.78, ph = 3 * (1 - Math.exp(-0.9 * u)) / 0.9;
+      lieBen(-1.05 - 6.2 * Math.exp(-1.05 * u), 2.05, 1.6, 13.78 + ph, 1 - seg(u, 0.5, 3.5)); eyeS = 1.3; bFace(ben, -0.7, 0.3);
       benTint(0.85 * E.io(seg(u, 0.4, 3.6)), 0.55 * E.io(seg(u, 1.4, 4.0))); CLK = [ph * 2.2, Math.exp(-0.9 * u)];
       clkK = E.out(seg(T, 14.0, 14.3)) * (1 - seg(T, 17.7, 17.93)); camW(0, C5, C5); camFin(); } },
   { t: 17.93, set: SPACE, mood: MOOD.space, hud: () => ['KEIN WEG ZURÜCK', 'NICHT MAL LICHT KOMMT RAUS'],
-    upd(lt){ dT = T; base(); bhVis(1, 0, 0); bhAt(BHM, 0, 2.58, 0, 2.2); const ph = 3 / 0.9;
-      lieBen(-2.65, 2.05, 1.6, 13.78 + ph, 0); eyeS = 1.3; bFace(ben, -0.7, 0.3); benTint(0.85, 0.55);
+    upd(lt){ dT = T; base(); bhVis(1, 0, 0); bhAt(BHM, 1.6, 2.58, 0, 2.2); const ph = 3 / 0.9;
+      lieBen(-1.05, 2.05, 1.6, 13.78 + ph, 0); eyeS = 1.3; bFace(ben, -0.7, 0.3); benTint(0.85, 0.55);
       rayK = E.out(seg(T, 18.05, 18.35)) * (1 - seg(T, 20.9, 21.13)); escK = E.out(seg(T, 19.1, 19.4)) * (1 - seg(T, 20.9, 21.13));
       camW(E.io(seg(lt, 0, 3.2)), C5, C6); camFin(); } },
   { t: 21.13, set: SPACE, mood: MOOD.space, hud: () => ['UND BEN?', 'NÄCHSTES LOCH …'],
-    upd(lt){ dT = T - END; base(); hookBH(); hookBen(T - END); camW(E.io(seg(T, 21.13, 23.05)), [3.6, 2.9, 14.6, 0.8, 1.6, 0, 40], HOOK[0]); camFin(); } },
+    upd(lt){ dT = T - END; base(); hookBH(); hookBen(T - END); camW(E.io(seg(T, 21.13, 23.05)), [3.4, 3.4, 19.5, 1.2, 2.6, 0, 40], HOOK[0]); camFin(); } },
   { t: 23.1, set: SPACE, mood: MOOD.space, loopin: 1,
     upd(lt){ dT = T - END; base(); hookBH(); hookBen(T - END); camW(0, HOOK[0], HOOK[1]); camFin(); } },
 ];
@@ -409,10 +409,10 @@ function drawClock(a){ if (a <= 0) return; const cx = W / 2 - 250, cy = 1690; g2
   txt('BENS UHR', cx + 330, cy - 52, 44, '#ffffff'); txt('VON AUSSEN GESEHEN', cx + 330, cy + 2, 30, '#cfd6e6');
   txt('TEMPO ' + Math.round(CLK[1] * 100) + ' %', cx + 330, cy + 56, 46, CLK[1] < 0.15 ? '#ff4a3a' : '#ffd23c'); g2.restore(); }
 function bez(p0, p1, p2, n){ const o = []; for (let i = 0; i <= n; i++){ const t = i / n, u = 1 - t; o.push([u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0], u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1]]); } return o; }
-function drawRays(a){ if (a <= 0) return; const b = wp(-3.6, 2.05, 1.6), c = wp(0, 2.58, 0); if (!b || !c) return; g2.save(); g2.globalAlpha = a; g2.lineCap = 'round'; g2.lineJoin = 'round';
+function drawRays(a){ if (a <= 0) return; const b = wp(-2.0, 2.05, 1.6), c = wp(1.6, 2.58, 0); if (!b || !c) return; g2.save(); g2.globalAlpha = a; g2.lineCap = 'round'; g2.lineJoin = 'round';
   const R = Math.hypot(c[0] - b[0], c[1] - b[1]);
-  [[-2.3, 0], [-1.75, 0.35], [-2.85, 0.7], [-1.3, 0.2], [-3.3, 0.5]].forEach(([ang, off]) => {
-    const d = [Math.cos(ang), Math.sin(ang)], ctl = [b[0] + d[0] * 340, b[1] + d[1] * 340], end = [c[0] + (b[0] - c[0]) * 0.35, c[1] + (b[1] - c[1]) * 0.35 + 40 * Math.sin(ang * 3)];
+  [[-2.3, 0], [-1.7, 0.35], [-2.9, 0.7], [2.6, 0.2], [1.95, 0.55]].forEach(([ang, off]) => {
+    const d = [Math.cos(ang), Math.sin(ang)], ctl = [b[0] + d[0] * 460, b[1] + d[1] * 460], end = c;
     const P = bez(b, ctl, end, 40), f = ((T - 18.05) / 1.6 + off) % 1, n = Math.max(2, Math.round(f * 40)), Q = P.slice(0, n + 1), tail = Math.max(0, n - 18), S = P.slice(tail, n + 1);
     for (const [lw, col] of [[22, '#0b1220'], [12, '#ffe27a']]){ g2.lineWidth = lw; g2.strokeStyle = col; g2.globalAlpha = a * (f > 0.85 ? (1 - f) / 0.15 : 1); path(S); g2.stroke(); }
     const h = Q[Q.length - 1]; glowDot(h[0], h[1], 34, 'rgba(255,230,150,A)', a);

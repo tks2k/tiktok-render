@@ -289,10 +289,10 @@ const SCN = [
     upd(lt){ dT = T; base(); bRest(ben, T, 0); const f = seg(T, 5.8, 6.9), y = lerp(6.2, 0.32, f * f), z = lerp(13.4, 4.5, f), lie = E.io(seg(T, 6.0, 6.9));
       place(ben, 0, y, z, PI); ben.root.rotation.x = -PI / 2 * lie; ben.sh[0].rotation.set(-2.5 * (1 - lie), 0, -0.8); ben.sh[1].rotation.set(-2.5 * (1 - lie), 0, 0.8); ben.legs[0].rotation.x = 0.3 * Math.sin(T * 10) * (1 - lie); ben.legs[1].rotation.x = -0.3 * Math.sin(T * 10) * (1 - lie);
       if (f >= 1) ben.root.position.y = 0.32 + 0.04 * Math.sin(T * 2.5); eyeS = 1.4; bFace(ben, -0.9, 0.5); densK = E.out(seg(T, 7.5, 7.8)) * (1 - seg(T, 9.55, 9.73));
-      camW(E.io(seg(lt, 0.2, 1.7)), [9, 7.5, 9, 0, 5.5, 11, 50], [9, 6, 7, 0, -1.5, 6.8, 45]); camFin(0.05 * bump(T, 6.85, 7.2)); } },
+      camW(E.io(seg(lt, 0.2, 1.7)), [9, 7.5, 9, 0, 5.5, 11, 50], [1.5, 9, 0, 0, -1, 6.5, 45]); camFin(0.05 * bump(T, 6.85, 7.2)); } },
   { t: 9.73, set: CRATER, mood: MOOD.vol, hud: () => ['ER BLEIBT OBEN', 'WIE AUF ZÄHEM HONIG'],
     upd(lt){ dT = T; base(); bRest(ben, T, 0); place(ben, 0, 0.32 + 0.04 * Math.sin(T * 2.5), 4.5, PI); ben.root.rotation.x = -PI / 2; ben.sh[0].rotation.set(0, 0, -0.8 - 0.15 * Math.sin(T * 3)); ben.sh[1].rotation.set(0, 0, 0.8 + 0.15 * Math.sin(T * 3));
-      eyeS = 1.3; bFace(ben, -0.6, 0.3); honK = E.out(seg(T, 10.0, 10.3)) * (1 - seg(T, 12.6, 12.8)); camW(E.io(seg(lt, 0, 3.07)), [9, 6, 7, 0, -1.5, 6.8, 45], [8.3, 5.6, 7.2, 0, -1.5, 6.8, 45]); camFin(); } },
+      eyeS = 1.3; bFace(ben, -0.6, 0.3); honK = E.out(seg(T, 10.0, 10.3)) * (1 - seg(T, 12.6, 12.8)); camW(E.io(seg(lt, 0, 3.07)), [1.5, 9, 0, 0, -1, 6.5, 45], [1.2, 8.4, 0.8, 0, -1, 6.5, 45]); camFin(); } },
   { t: 12.8, set: CRATER, mood: MOOD.vol, hud: () => ['STRAHLUNGSHITZE', 'GEFÄHRLICH SCHON AUS METERN'],
     upd(lt){ dT = T; base(); bRest(ben, T, 0); const back = E.io(seg(T, 14.6, 15.8)); place(ben, 0, 0.8, lerp(8.0, 10.5, back), PI); ben.sh[0].rotation.set(-1.4, 0, -0.2); ben.sh[1].rotation.set(-1.4, 0, 0.2); ben.el[0].rotation.x = -1.2; ben.el[1].rotation.x = -1.2; ben.torso.rotation.x = -0.1;
       if (T > 14.6 && T < 15.8) wlk(ben, -T * 10, 0.8); eyeS = 1.3; bFace(ben, -0.8, 0.3); heatK = E.out(seg(T, 13.0, 13.3)) * (1 - seg(T, 17.25, 17.44));
@@ -301,8 +301,8 @@ const SCN = [
     upd(lt){ dT = T; base(); bRest(ben, T, 0); place(ben, 0, 0.8, 10.5, PI); const c = E.io(seg(T, 17.9, 18.4)); ben.sh[1].rotation.set(lerp(0, -2.3, c), 0, lerp(0.07, -0.4, c)); ben.el[1].rotation.x = lerp(-0.1, -1.6, c); eyeS = 0.7; bFace(ben, -0.8, 0);
       gasK = E.out(seg(T, 17.5, 17.9)) * (1 - seg(T, 20.35, 20.55)); camW(E.io(seg(lt, 0, 3.11)), [-4, 2.6, 3.4, 0, 1.1, 10.5, 45], [-3.6, 2.8, 4.0, 0, 1.1, 10.5, 45]); camFin(); } },
   { t: 20.55, set: CRATER, mood: MOOD.vol, hud: () => ['UND BEN?', 'MARSHMALLOWS – MIT ABSTAND'],
-    upd(lt){ dT = T; base(); STICK.visible = true; bRest(ben, T, 0); place(ben, 0, 0.8, 9.5, PI); sit(ben, 0.05); ben.legs[0].rotation.x = -1.4; ben.legs[1].rotation.x = -1.4; ben.sh[1].rotation.set(-0.6, 0, 0.1); ben.el[1].rotation.x = -0.2; STICK.rotation.x = 0.75; eyeS = 1; bFace(ben, 0.6, 0.2);
-      camW(E.io(seg(lt, 0, 2.8)), [7.5, 3.6, 2.5, 0, 1.8, 7.5, 45], [7.0, 3.4, 3.2, 0, 1.8, 7.5, 45]); camFin(); } },
+    upd(lt){ dT = T; base(); STICK.visible = true; bRest(ben, T, 0); place(ben, 0, 0.8, 9.5, PI); sit(ben, 0.05); ben.legs[0].rotation.x = -1.4; ben.legs[1].rotation.x = -1.4; ben.sh[1].rotation.set(-0.6, 0, 0.1); ben.el[1].rotation.x = -0.2; STICK.rotation.x = 0.35; eyeS = 1; bFace(ben, 0.6, 0.2);
+      camW(E.io(seg(lt, 0, 2.8)), [7.5, 3.6, 2.5, 0, 1.6, 6.8, 45], [7.0, 3.4, 3.2, 0, 1.6, 6.8, 45]); camFin(); } },
   { t: 23.4, set: CRATER, mood: MOOD.vol, loopin: 1,
     upd(lt){ dT = T - END; base(); hookBen(T - END); camW(0, HOOK[0], HOOK[1]); camFin(); } },
 ];

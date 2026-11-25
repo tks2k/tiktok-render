@@ -302,7 +302,7 @@ const SCN = [
       gasK = E.out(seg(T, 17.5, 17.9)) * (1 - seg(T, 20.35, 20.55)); camW(E.io(seg(lt, 0, 3.11)), [-4, 2.6, 3.4, 0, 1.1, 10.5, 45], [-3.6, 2.8, 4.0, 0, 1.1, 10.5, 45]); camFin(); } },
   { t: 20.55, set: CRATER, mood: MOOD.vol, hud: () => ['UND BEN?', 'MARSHMALLOWS – MIT ABSTAND'],
     upd(lt){ dT = T; base(); STICK.visible = true; bRest(ben, T, 0); place(ben, 0, 0.8, 9.5, PI); sit(ben, 0.05); ben.legs[0].rotation.x = -1.4; ben.legs[1].rotation.x = -1.4; ben.sh[1].rotation.set(-0.6, 0, 0.1); ben.el[1].rotation.x = -0.2; STICK.rotation.x = 0.35; eyeS = 1; bFace(ben, 0.6, 0.2);
-      camW(E.io(seg(lt, 0, 2.8)), [8.6, 3.8, 4.2, 0, 1.5, 7.7, 45], [8.1, 3.6, 4.8, 0, 1.5, 7.7, 45]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.8)), [3.8, 3.0, 0.2, 0, 1.0, 8.0, 45], [3.4, 2.9, 1.0, 0, 1.0, 8.0, 45]); camFin(); } },
   { t: 23.4, set: CRATER, mood: MOOD.vol, loopin: 1,
     upd(lt){ dT = T - END; base(); hookBen(T - END); camW(0, HOOK[0], HOOK[1]); camFin(); } },
 ];

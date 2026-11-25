@@ -307,7 +307,7 @@ let forceK = 0, testK = 0, tgtK = 0, riskK = 0, bonkT = -9;
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.02; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.015; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const imp = at => T >= at ? Math.exp(-(T - at) * 3) : 0;
-const HOOK = [[3.6, 2.4, 18.6, 0.6, 1.0, -1.5, 40], [3.0, 2.2, 16.8, 0.5, 1.0, -1.0, 40]];
+const HOOK = [[3.6, 5.0, 18.6, 0.6, 4.4, -1.5, 40], [3.0, 4.6, 16.8, 0.5, 4.1, -1.0, 40]];
 const TB = 3.3, BT = new THREE.Vector3(0.32, 0.38, 0.02), HD = new THREE.Vector3(-0.3, 0, 1).normalize(), YH = Math.atan2(-HD.z, HD.x);
 const _M = new THREE.Vector3();
 function base(){ show(ben); SHK.visible = false; BUB.forEach(b => b.visible = false); WEED.forEach(w => w.rotation.z = 0.08 * Math.sin(dT * 0.8 + w.userData.sw)); }
@@ -429,7 +429,7 @@ function drawTargets(a){ if (a <= 0) return; const e = wl(SHK, 2.75, 0.45, -0.64
 function drawBonk(){ const k = imp(14.1); if (k < 0.02 || T < 14.1) return; const e = wl(SHK, 2.75, 0.45, -0.64); if (!e) return; g2.save(); g2.globalAlpha = Math.min(1, k * 1.4);
   glowDot(e[0], e[1], 130 * (1.2 - k * 0.4), 'rgba(255,240,180,A)', k); g2.lineWidth = 10; g2.lineCap = 'round'; g2.strokeStyle = '#ffd23c';
   for (let i = 0; i < 8; i++){ const an = i / 8 * 2 * PI + 0.2, r0 = 60 + (1 - k) * 40, r1 = r0 + 50; g2.beginPath(); g2.moveTo(e[0] + Math.cos(an) * r0, e[1] + Math.sin(an) * r0); g2.lineTo(e[0] + Math.cos(an) * r1, e[1] + Math.sin(an) * r1); g2.stroke(); }
-  txt('BONK!', e[0] - 40, e[1] - 150, 70, '#ffffff'); g2.restore(); }
+  txt('BONK!', e[0] + 60, e[1] - 230, 76, '#ffffff'); g2.restore(); }
 function drawRisk(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; const cy = 1680; chip(W / 2, cy, 880, 240);
   txt('≈ 65', W / 2 - 260, cy, 110, '#ffd23c'); txt('HAI-BISSE PRO JAHR', W / 2 + 140, cy - 46, 44, '#ffffff'); txt('WELTWEIT', W / 2 + 140, cy + 8, 44, '#ffffff'); txt('UNPROVOZIERT, 2025', W / 2 + 140, cy + 62, 30, '#9fd8ff'); g2.restore(); }
 

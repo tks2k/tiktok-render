@@ -281,7 +281,7 @@ function ik(r, i, tw, pw){
   const f = _ih.subVectors(tl, _ig.copy(S).addScaledVector(e, L1)).normalize().applyQuaternion(_qb.copy(_qa).invert());
   r.el[i].quaternion.setFromUnitVectors(_dn, f);
 }
-const MOUTH = new THREE.Vector3(0.03, 2.33, 0.6), DIR = new THREE.Vector3(-0.55, 0.5, 0.65).normalize(), POLE = new THREE.Vector3(-0.6, -1, 0.3), HAND = new THREE.Vector3(-0.74, 0.93, 0.05);
+const MOUTH = new THREE.Vector3(0.03, 2.33, 0.6), DIR = new THREE.Vector3(-0.78, 0.45, 0.3).normalize(), POLE = new THREE.Vector3(-0.6, -1, 0.3), HAND = new THREE.Vector3(-0.74, 0.93, 0.05);
 function mkBal(col){ const g = new THREE.Group(); scene.add(g); const m = new THREE.MeshStandardMaterial({ color: col, roughness: 0.28, envMapIntensity: 0.9 });
   const b = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 22), m); b.castShadow = true; g.add(b); const k = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.16, 12), m); g.add(k);
   const s = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1, 6), mat(0xf4f4f4)); scene.add(s); return { g, b, k, s }; }
@@ -304,9 +304,9 @@ let waveK = 0, foldK = 0, specK = 0, bubK = 0, bubKind = 0, o2K = 0, banK = 0;
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.012; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.008; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const imp = at => T >= at ? Math.exp(-(T - at) * 3) : 0;
-const HOOK = [[2.4, 3.05, 7.2, -0.25, 2.8, 0.1, 36], [2.2, 3.0, 6.6, -0.25, 2.8, 0.1, 35]];
+const HOOK = [[2.6, 3.1, 8.6, -0.35, 2.7, 0.1, 36], [2.4, 3.05, 8.0, -0.35, 2.7, 0.1, 35]];
 const MID = [2.0, 3.0, 13.0, -0.3, 2.8, 0, 40];
-const FLOAT = t => new THREE.Vector3(-1.25 + 0.06 * Math.sin(t * 1.1), 4.75 + 0.08 * Math.sin(t * 1.7), 0.3);
+const FLOAT = t => new THREE.Vector3(-1.9 + 0.06 * Math.sin(t * 1.1), 3.7 + 0.08 * Math.sin(t * 1.7), -0.5);
 function base(){ show(ben); ben.torso.scale.set(1, 1, 1); balHide(PB); balHide(GB); }
 function stand(){ bRest(ben, T, 0); place(ben, 0, 0, 0, 0); }
 function hookPose(r){ base(); stand(); balMouth(PB, r); holdMouth(); bFace(ben, 0.1, 0.1); eyeS = 1; }
@@ -316,36 +316,36 @@ function hookPose(r){ base(); stand(); balMouth(PB, r); holdMouth(); bFace(ben, 
    ========================================================= */
 const SCN = [
   { t: 0, set: room, mood: MOOD.room, hook: 1,
-    upd(lt){ dT = T; const r = lerp(0.75, 0.55, E.io(seg(T, 0.35, 2.2))); hookPose(r); ben.torso.scale.set(1 + 0.04 * seg(T, 0.35, 2.2), 1 + 0.03 * seg(T, 0.35, 2.2), 1 + 0.06 * seg(T, 0.35, 2.2)); eyeS = 1 + 0.35 * seg(T, 1.2, 2.2);
+    upd(lt){ dT = T; const r = lerp(0.55, 0.42, E.io(seg(T, 0.35, 2.2))); hookPose(r); ben.torso.scale.set(1 + 0.04 * seg(T, 0.35, 2.2), 1 + 0.03 * seg(T, 0.35, 2.2), 1 + 0.06 * seg(T, 0.35, 2.2)); eyeS = 1 + 0.35 * seg(T, 1.2, 2.2);
       camW(E.io(seg(lt, 0, 2.4)), HOOK[0], HOOK[1]); camFin(); } },
   { t: 2.4, set: room, mood: MOOD.room, hud: () => ['FAST 3× SCHNELLER', 'SCHALL IN HELIUM'],
-    upd(lt){ dT = T; base(); stand(); balString(PB, 0.62, FLOAT(T)); bFace(ben, -0.2, 0.05); waveK = E.out(seg(T, 2.5, 2.8)) * (1 - seg(T, 4.95, 5.15));
+    upd(lt){ dT = T; base(); stand(); balString(PB, 0.5, FLOAT(T)); bFace(ben, -0.2, 0.05); waveK = E.out(seg(T, 2.5, 2.8)) * (1 - seg(T, 4.95, 5.15));
       camW(E.io(seg(lt, 0, 1.5)), HOOK[1], MID); camFin(); } },
   { t: 5.15, set: room, mood: MOOD.room, hud: () => T < 7.8 ? ['STIMMBÄNDER', 'SCHWINGEN GLEICH SCHNELL'] : ['TONHÖHE BLEIBT!', 'GLEICHER GRUNDTON'],
-    upd(lt){ dT = T; base(); stand(); balString(PB, 0.62, FLOAT(T)); bFace(ben, 0.1, 0.05); foldK = E.out(seg(T, 5.25, 5.55)) * (1 - seg(T, 8.85, 9.05)); camW(0, MID, MID); camFin(); } },
+    upd(lt){ dT = T; base(); stand(); balString(PB, 0.5, FLOAT(T)); bFace(ben, 0.1, 0.05); foldK = E.out(seg(T, 5.25, 5.55)) * (1 - seg(T, 8.85, 9.05)); camW(0, MID, MID); camFin(); } },
   { t: 9.05, set: room, mood: MOOD.room, hud: () => T < 11.2 ? ['KLANGFARBE', 'HOHE TÖNE WERDEN LAUTER'] : ['MICKY-MAUS-EFFEKT', 'HELL UND QUÄKIG'],
-    upd(lt){ dT = T; base(); stand(); balString(PB, 0.62, FLOAT(T)); const tk = T > 11.25 ? 0.25 + 0.25 * Math.abs(Math.sin(T * 16)) : 0.05; bFace(ben, 0.4, tk);
+    upd(lt){ dT = T; base(); stand(); balString(PB, 0.5, FLOAT(T)); const tk = T > 11.25 ? 0.25 + 0.25 * Math.abs(Math.sin(T * 16)) : 0.05; bFace(ben, 0.4, tk);
       specK = E.out(seg(T, 9.15, 9.45)) * (1 - seg(T, 11.0, 11.2)); bubK = E.out(seg(T, 11.25, 11.45)) * (1 - seg(T, 12.6, 12.8)); bubKind = 0;
       camW(E.io(seg(lt, 0, 3.75)), MID, [1.6, 3.0, 10.5, -0.3, 2.8, 0, 38]); camFin(); } },
   { t: 12.8, set: room, mood: MOOD.room, hud: () => T < 14.6 ? ['SCHWEFELHEXAFLUORID', 'SCHWERES GAS'] : ['MONSTER-STIMME', 'SCHALL VIEL LANGSAMER'],
     upd(lt){ dT = T; base(); stand(); const rel = seg(T, 13.7, 14.3);
       if (T < 13.7){ balMouth(GB, 0.55); holdMouth(); bFace(ben, 0.1, 0.1); }
-      else { const c = new THREE.Vector3(lerp(-0.4, -1.1, rel), lerp(2.72, 0.62, rel * rel), lerp(1.11, 0.9, rel)); const let0 = E.io(seg(T, 13.7, 14.0)); if (let0 < 1) ik(ben, 0, new THREE.Vector3().copy(MOUTH).addScaledVector(DIR, 0.24).add(new THREE.Vector3(0, -0.1, 0)).lerp(HAND, let0), POLE); balString(GB, 0.55, c); GB.s.visible = false; GB.b.position.y += rel >= 1 ? 0.06 * Math.abs(Math.sin((T - 14.3) * 8)) * Math.exp(-(T - 14.3) * 4) : 0;
+      else { const c = new THREE.Vector3(lerp(-0.55, -1.1, rel), lerp(2.69, 0.62, rel * rel), lerp(0.84, 0.9, rel)); const let0 = E.io(seg(T, 13.7, 14.0)); if (let0 < 1) ik(ben, 0, new THREE.Vector3().copy(MOUTH).addScaledVector(DIR, 0.24).add(new THREE.Vector3(0, -0.1, 0)).lerp(HAND, let0), POLE); balString(GB, 0.55, c); GB.s.visible = false; GB.b.position.y += rel >= 1 ? 0.06 * Math.abs(Math.sin((T - 14.3) * 8)) * Math.exp(-(T - 14.3) * 4) : 0;
         const tk = T > 14.65 ? 0.4 + 0.3 * Math.abs(Math.sin(T * 6)) : 0.1; bFace(ben, -0.8, tk); }
       bubK = E.out(seg(T, 14.65, 14.85)) * (1 - seg(T, 15.7, 15.9)); bubKind = 1;
       camW(E.io(seg(lt, 0, 3.1)), [2.2, 3.0, 9.6, -0.4, 2.4, 0.2, 38], [2.0, 2.9, 9.0, -0.4, 2.3, 0.2, 38]); camFin(); } },
   { t: 15.9, set: room, mood: MOOD.room, hud: () => T < 19.45 ? ['VORSICHT!', 'HELIUM VERDRÄNGT SAUERSTOFF'] : ['NIE AUS DER FLASCHE', 'LEBENSGEFAHR'],
-    upd(lt){ dT = T; base(); stand(); balString(PB, 0.62, FLOAT(T)); const dz = E.io(seg(T, 18.05, 18.5)) * (1 - E.io(seg(T, 19.4, 19.9)));
+    upd(lt){ dT = T; base(); stand(); balString(PB, 0.5, FLOAT(T)); const dz = E.io(seg(T, 18.05, 18.5)) * (1 - E.io(seg(T, 19.4, 19.9)));
       ben.root.rotation.z = 0.13 * dz * Math.sin(T * 3.2); ben.head.rotation.z = 0.15 * dz * Math.sin(T * 3.2 + 1); ben.root.position.x = 0.12 * dz * Math.sin(T * 3.2 - 0.5);
       eyeS = lerp(1, 0.35, dz); bFace(ben, dz > 0.5 ? 0.6 : -0.4, 0.2); o2K = E.out(seg(T, 16.0, 16.3)) * (1 - seg(T, 19.3, 19.5)); banK = E.out(seg(T, 19.45, 19.75)) * (1 - seg(T, 21.0, 21.2));
       camW(E.io(seg(lt, 0, 5.3)), [1.8, 2.9, 11.8, -0.2, 2.4, 0, 40], [1.6, 2.9, 11.0, -0.2, 2.4, 0, 40]); camFin(); } },
   { t: 21.2, set: room, mood: MOOD.room, hud: () => ['UND BEN?', 'LIEBER NORMALE LUFT'],
     upd(lt){ dT = T - END; base(); stand(); const up = E.io(seg(T, 21.3, 21.9));
-      if (T < 21.9){ balString(PB, lerp(0.62, 0.32, up), FLOAT(T).lerp(_bv.copy(MOUTH).addScaledVector(DIR, 0.5), up)); PB.s.visible = up < 0.5; if (up > 0) ik(ben, 0, _ih.copy(HAND).lerp(new THREE.Vector3().copy(MOUTH).addScaledVector(DIR, 0.24).add(new THREE.Vector3(0, -0.1, 0)), up), POLE); bFace(ben, 0.3, 0.05); }
-      else { const r = lerp(0.32, 0.75, E.io(seg(T, 22.1, 24.05))); balMouth(PB, r); holdMouth(); bFace(ben, 0.1, 0.1); ben.torso.scale.set(1 + 0.04 * (1 - seg(T, 22.1, 24.05)), 1, 1 + 0.06 * (1 - seg(T, 22.1, 24.05))); }
+      if (T < 21.9){ balString(PB, lerp(0.5, 0.3, up), FLOAT(T).lerp(_bv.copy(MOUTH).addScaledVector(DIR, 0.5), up)); PB.s.visible = up < 0.5; if (up > 0) ik(ben, 0, _ih.copy(HAND).lerp(new THREE.Vector3().copy(MOUTH).addScaledVector(DIR, 0.24).add(new THREE.Vector3(0, -0.1, 0)), up), POLE); bFace(ben, 0.3, 0.05); }
+      else { const r = lerp(0.3, 0.55, E.io(seg(T, 22.1, 24.05))); balMouth(PB, r); holdMouth(); bFace(ben, 0.1, 0.1); ben.torso.scale.set(1 + 0.04 * (1 - seg(T, 22.1, 24.05)), 1, 1 + 0.06 * (1 - seg(T, 22.1, 24.05))); }
       eyeS = 1; camW(E.io(seg(lt, 0, 2.9)), MID, HOOK[0]); camFin(); } },
   { t: 24.1, set: room, mood: MOOD.room, loopin: 1,
-    upd(lt){ dT = T - END; hookPose(0.75); camW(0, HOOK[0], HOOK[1]); camFin(); } },
+    upd(lt){ dT = T - END; hookPose(0.55); camW(0, HOOK[0], HOOK[1]); camFin(); } },
 ];
 const SUBS = [{"s": 2.43, "e": 3.46, "w": [["SCHALL", 2.43], ["RAST", 2.68], ["DURCH", 2.88], ["HELIUM", 3.09]]}, {"s": 3.46, "e": 5.18, "w": [["FAST", 3.46], ["DREIMAL", 3.75], ["SO", 4.11], ["SCHNELL", 4.29], ["WIE", 4.49], ["DURCH LUFT.", 4.65]]}, {"s": 5.18, "e": 6.25, "w": [["BENS", 5.18], ["STIMMBÄNDER", 5.46], ["SCHWINGEN", 5.91]]}, {"s": 6.25, "e": 7.8, "w": [["TROTZDEM", 6.25], ["GENAUSO", 6.55], ["SCHNELL", 6.97], ["WIE", 7.18], ["VORHER –", 7.35]]}, {"s": 7.8, "e": 9.09, "w": [["DIE", 7.8], ["TONHÖHE", 7.92], ["BLEIBT", 8.35], ["GLEICH!", 8.58]]}, {"s": 9.09, "e": 10.17, "w": [["ABER", 9.09], ["SEIN", 9.25], ["RACHEN", 9.42], ["VERSTÄRKT", 9.74]]}, {"s": 10.17, "e": 11.23, "w": [["JETZT", 10.17], ["DIE", 10.42], ["HOHEN", 10.6], ["TÖNE –", 10.78]]}, {"s": 11.23, "e": 12.82, "w": [["DIE", 11.23], ["STIMME", 11.35], ["KLINGT", 11.57], ["HELL", 11.82], ["UND", 12.05], ["QUÄKIG.", 12.28]]}, {"s": 12.82, "e": 13.85, "w": [["MIT", 12.82], ["SCHWEFELHEXAFLUORID", 12.97]]}, {"s": 13.85, "e": 14.65, "w": [["GEHT'S", 13.85], ["ANDERSRUM:", 14.15]]}, {"s": 14.65, "e": 15.95, "w": [["BEN", 14.65], ["KLINGT", 14.86], ["WIE", 15.05], ["EIN", 15.26], ["MONSTER.", 15.37]]}, {"s": 15.95, "e": 16.78, "w": [["ABER", 15.95], ["VORSICHT:", 16.11]]}, {"s": 16.78, "e": 18.11, "w": [["HELIUM", 16.78], ["VERDRÄNGT", 17.02], ["DEN", 17.32], ["SAUERSTOFF –", 17.51]]}, {"s": 18.11, "e": 19.51, "w": [["ZU", 18.11], ["VIEL", 18.32], ["UND", 18.57], ["MAN", 18.83], ["KIPPT", 18.98], ["UM.", 19.15]]}, {"s": 19.51, "e": 20.58, "w": [["DIREKT", 19.51], ["AUS", 19.71], ["DER", 19.88], ["FLASCHE?", 20.03]]}, {"s": 20.58, "e": 21.25, "w": [["LEBENSGEFÄHRLICH!", 20.58]]}, {"s": 21.25, "e": 22.66, "w": [["UND", 21.25], ["BEN", 21.54], ["BLEIBT", 21.83], ["LIEBER", 22.09], ["BEI", 22.29], ["LUFT –", 22.45]]}, {"s": 22.66, "e": 24.4, "w": [["UND", 22.66], ["PUSTET", 23.0], ["DEN", 23.35], ["BALLON", 23.46], ["WIEDER", 23.72], ["AUF …", 23.92]]}];
 
@@ -430,7 +430,7 @@ function drawBub(a, k){ if (a <= 0) return; ben.head.updateWorldMatrix(true, fal
   g2.lineWidth = k ? 12 : 6; g2.strokeStyle = k ? '#c89aff' : '#e0a800'; g2.stroke(); g2.restore(); }
 function drawO2(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; chip(W / 2, 700, 760, 200); const v = lerp(100, 25, E.io(seg(T, 16.6, 18.3)));
   g2.fillStyle = 'rgba(255,255,255,0.22)'; g2.fillRect(W / 2 - 320, 700, 640, 50); g2.fillStyle = v < 50 ? '#ff4a3a' : '#3bd16f'; g2.fillRect(W / 2 - 320, 700, 640 * v / 100, 50);
-  txt('SAUERSTOFF IN DER LUNGE', W / 2, 650, 38, '#ffffff'); txt(Math.round(v) + ' %', W / 2 + 230, 650, 38, v < 50 ? '#ff6a5a' : '#3bd16f'); g2.restore(); }
+  txt('SAUERSTOFF IN DER LUNGE', W / 2 - 60, 650, 34, '#ffffff'); txt(Math.round(v) + ' %', W / 2 + 290, 650, 40, v < 50 ? '#ff6a5a' : '#3bd16f'); g2.restore(); }
 function drawBan(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; const cx = W / 2, cy = 760; chip(cx, cy, 420, 380);
   g2.fillStyle = '#9aa3b0'; g2.beginPath(); g2.roundRect(cx - 55, cy - 110, 110, 240, 40); g2.fill(); g2.lineWidth = 6; g2.strokeStyle = '#0b1220'; g2.stroke(); g2.fillStyle = '#3a3e48'; g2.fillRect(cx - 22, cy - 150, 44, 44); txt('He', cx, cy + 20, 50, '#ffffff');
   g2.lineWidth = 26; g2.strokeStyle = '#ff3b30'; g2.beginPath(); g2.arc(cx, cy, 160, 0, 7); g2.stroke(); g2.beginPath(); g2.moveTo(cx - 113, cy - 113); g2.lineTo(cx + 113, cy + 113); g2.stroke(); g2.restore(); }

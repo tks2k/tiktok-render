@@ -423,7 +423,7 @@ function drawHeat(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; const c
   g2.globalAlpha = a * p; txt('PIZZAOFEN', W / 2 - 330, cy + 10, 40, '#ffd23f', 'left'); bar(W / 2 - 160, cy - 10, 400, 40, 400 / 465 * p, '#ffd23f'); txt('~400 °C', W / 2 + 380, cy + 10, 34, '#ffffff', 'right');
   g2.globalAlpha = a * seg(T, 7.4, 7.7); txt('BLEI WÜRDE SCHMELZEN', W / 2, cy + 85, 38, '#ff8a4a'); g2.restore(); }
 function drawPres(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; const cy = 1690; chip(W / 2, cy, 880, 230); const k = E.out(seg(T, 9.0, 10.2));
-  txt(Math.round(92 * k) + ' BAR', W / 2, cy - 50, 70, '#ffd23f'); g2.globalAlpha = a * seg(T, 11.8, 12.1); txt('≈ 900 M TIEF IM MEER', W / 2, cy + 30, 42, '#7ac8ff');
+  txt(Math.round(1 + 91 * k) + ' BAR', W / 2, cy - 50, 70, '#ffd23f'); g2.globalAlpha = a * seg(T, 11.8, 12.1); txt('≈ 900 M TIEF IM MEER', W / 2, cy + 30, 42, '#7ac8ff');
   g2.globalAlpha = a * seg(T, 9.5, 9.8); txt('DIE DOSE: PLATT', W / 2, cy + 85, 32, '#ffffff'); g2.restore(); }
 function drawAcid(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; const cy = 1690; chip(W / 2, cy, 880, 200);
   txt('H₂SO₄ IN 50 KM HÖHE', W / 2, cy - 30, 54, '#f2e08a'); txt('TROPFEN VERDAMPFEN VOR DEM BODEN', W / 2, cy + 45, 32, '#ffffff'); g2.restore(); }

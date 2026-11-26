@@ -249,7 +249,7 @@ const CAL = new THREE.Vector3(-1.6, 3.9, -2.75);
   P(ROOM, rbox(1.0, 1.1, 0.9, 0.05), fr, 2.2, 0.55, -2.0); P(ROOM, new THREE.CylinderGeometry(0.2, 0.25, 0.5, 12), mat(0xf2e2a0), 2.2, 1.35, -2.0);
   P(ROOM, rbox(2.2, 2.6, 0.12, 0.03, 1), mat(0x8ac8f0), 1.8, 4.2, -2.82); P(ROOM, rbox(2.4, 0.12, 0.16, 0.03, 1), mat(0xffffff), 1.8, 2.9, -2.8);
 })();
-const BLANKET = P(ROOM, rbox(2.5, 0.25, 2.6, 0.12), mat(0x3a6ab0, { roughness: 0.9 }), 0, 1.38, 0.1);
+const BLANKET = P(ROOM, rbox(2.5, 0.22, 1.8, 0.1), mat(0x3a6ab0, { roughness: 0.9 }), 0, 1.72, 0.55);
 const WEB = new THREE.Group(); ROOM.add(WEB); { const wm = new THREE.LineBasicMaterial({ color: 0xf2f2f2, transparent: true, opacity: 0.7 }); const pts = []; for (let i = 0; i < 7; i++){ const a = i / 6 * PI / 2; pts.push(new THREE.Vector3(0, 0, 0), new THREE.Vector3(Math.cos(a) * 0.9, Math.sin(a) * 0.9, 0)); }
   for (let r = 0.25; r < 0.95; r += 0.22) for (let i = 0; i < 6; i++){ const a = i / 6 * PI / 2, b = (i + 1) / 6 * PI / 2; pts.push(new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, 0), new THREE.Vector3(Math.cos(b) * r, Math.sin(b) * r, 0)); }
   const l = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), wm); WEB.add(l); WEB.position.set(-1.3, 0.75, -2.48); }
@@ -282,7 +282,7 @@ let blurAmt = 0, fadeBlk = 0, T = 0, flashA = 0, eyeS = 1, talk = 0, dT = 0;
 let musK = 0, boneK = 0, hrtK = 0, dizK = 0, walkK = 0, calK = 0, calTxt = '';
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.03; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.02; if (sh){ cam.position.x += Math.sin(T * 5) * sh; cam.position.y += Math.cos(T * 4) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
-const HOOK = [[4.4, 4.6, 4.6, -0.2, 1.6, -0.4, 50], [4.2, 4.5, 4.4, -0.2, 1.6, -0.4, 50]];
+const HOOK = [[3.6, 4.0, 3.8, -0.4, 2.0, -0.6, 50], [3.4, 3.9, 3.6, -0.4, 2.0, -0.6, 50]];
 function base(){ show(ben); PHONE.visible = false; thin(0); WEB.visible = false; BLANKET.visible = true; calK = 1; }
 function hookBen(t){ lie(t); phoneUp(t); eyeS = 0.9; bFace(ben, 0.3, 0.1); calTxt = 'TAG 1'; }
 
@@ -291,7 +291,7 @@ function hookBen(t){ lie(t); phoneUp(t); eyeS = 0.9; bFace(ben, 0.3, 0.1); calTx
    ========================================================= */
 const SCN = [
   { t: 0, set: ROOM, mood: MOOD.room, hook: 1,
-    upd(lt){ dT = T; base(); hookBen(T); camW(E.io(seg(lt, 0, 3.9)), HOOK[0], [3.6, 4.2, 3.8, -0.2, 1.6, -0.6, 50]); camFin(); } },
+    upd(lt){ dT = T; base(); hookBen(T); camW(E.io(seg(lt, 0, 3.9)), HOOK[0], [3.0, 3.6, 3.2, -0.4, 2.0, -0.8, 50]); camFin(); } },
   { t: 3.9, set: ROOM, mood: MOOD.room, hud: () => ['1 WOCHE', 'DIE MUSKELN SCHWINDEN'],
     upd(lt){ dT = T; base(); lie(T); const k = seg(T, 4.2, 6.4); thin(0.5 * k); eyeS = 1; bFace(ben, -0.3, 0.1); calTxt = 'TAG ' + (1 + Math.round(6 * k)); musK = E.out(seg(T, 4.1, 4.4)) * (1 - seg(T, 6.55, 6.7));
       camW(E.io(seg(lt, 0, 2.8)), [2.6, 3.2, 2.6, 0, 1.5, 0.2, 46], [2.3, 3.0, 2.2, 0, 1.5, 0.0, 46]); camFin(); } },
@@ -375,7 +375,7 @@ function flame(x, y, s, a){ g2.save(); g2.globalAlpha = a; g2.translate(x, y); c
 
 function chip(x, y, w, h){ g2.fillStyle = 'rgba(4,14,28,0.74)'; g2.beginPath(); g2.roundRect(x - w / 2, y - h / 2, w, h, 26); g2.fill(); }
 function bar(x, y, w, h, k, col){ g2.fillStyle = 'rgba(255,255,255,0.15)'; g2.fillRect(x, y, w, h); g2.fillStyle = col; g2.fillRect(x, y, w * k, h); }
-function drawCal(a){ if (a <= 0 || !calTxt) return; const p = proj(CAL); if (!p) return; g2.save(); g2.globalAlpha = a; g2.font = `900 ${Math.max(22, 40 * 6 / Math.max(3, cam.position.distanceTo(CAL)))}px ${SANS}`; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.fillStyle = '#1a1a20'; g2.fillText(calTxt, p[0], p[1] + 8); g2.restore(); }
+function drawCal(a){ if (a <= 0 || !calTxt) return; const p = proj(CAL); if (!p) return; g2.save(); g2.globalAlpha = a; g2.font = `900 ${Math.max(30, 80 * 6 / Math.max(3, cam.position.distanceTo(CAL)))}px ${SANS}`; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.fillStyle = '#1a1a20'; g2.fillText(calTxt, p[0], p[1] + 8); g2.restore(); }
 function drawMus(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; const cy = 1690; chip(W / 2, cy, 880, 200); const k = seg(T, 4.2, 6.4);
   txt('MUSKELKRAFT', W / 2 - 400, cy - 35, 38, '#ffffff', 'left'); bar(W / 2 - 100, cy - 55, 400, 38, 1 - 0.12 * k, '#ffd23f'); txt('BIS ZU −1 % PRO TAG IN DER ERSTEN WOCHE', W / 2, cy + 50, 28, '#ffd23f'); g2.restore(); }
 function drawBone(a){ if (a <= 0) return; g2.save(); g2.globalAlpha = a; const cy = 1690; chip(W / 2, cy, 880, 220); const k = seg(T, 6.9, 12.2), v = 100 - 6 * k;

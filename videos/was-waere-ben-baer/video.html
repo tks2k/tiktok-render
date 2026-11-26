@@ -313,7 +313,7 @@ const SCN = [
       eyeS = lerp(1.45, 0.1, dn); bFace(ben, -0.8, 0.2);
       const ch = seg(T, 15.3, 16.4), lv = seg(T, 18.9, 20.2), z = lerp(-7.6, 1.4, E.out(ch)) - 9 * lv; bearPose(0.4 + 0.3 * Math.sin(T * 2) * seg(T, 16.6, 18.8), z, lv > 0 ? PI : 0.05, 0, T * (ch < 1 ? 12 : 7), (ch > 0 && ch < 1) || lv > 0 ? 1 : 0.2 * seg(T, 16.6, 18.8));
       BEAR.rotation.y = lerp(0.05, PI, E.io(seg(T, 18.7, 19.2))); deadK = E.out(seg(T, 16.6, 16.9)) * (1 - seg(T, 20.0, 20.19));
-      camW(E.io(seg(lt, 0, 4.97)), [7.5, 6.5, 10.5, 0.2, 0.6, 3.0, 52], [7.0, 6.2, 10.0, 0.2, 0.6, 3.6, 52]); camFin(0.04 * bump(T, 16.0, 16.5)); } },
+      camW(E.io(seg(lt, 0, 4.97)), [8.4, 7.4, 12.6, 0.2, 0.6, 3.6, 56], [8.0, 7.2, 12.4, 0.2, 0.6, 4.2, 56]); camFin(0.04 * bump(T, 16.0, 16.5)); } },
   { t: 20.19, set: WOOD, mood: MOOD.wood, hud: () => ['UND BEN?', 'BÄRENSPRAY & LÄRM'],
     upd(lt){ dT = T; base(); BEAR.visible = false; SPRAY.visible = true; bRest(ben, T, 0); place(ben, 0, 0, lerp(-2, 1.5, seg(T, 20.19, 24.5)), 0); wlk(ben, T * 8, 0.7);
       if (T > 22.9){ const c = Math.max(0, Math.sin(T * 14)); ben.sh[0].rotation.set(-1.4, 0, 0.35 + 0.3 * c); ben.sh[1].rotation.set(-1.4, 0, -0.35 - 0.3 * c); ben.el[0].rotation.x = -0.4; ben.el[1].rotation.x = -0.4; }

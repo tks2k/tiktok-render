@@ -299,7 +299,7 @@ function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.03; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.02; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 // Kamera fährt mit Ben mit (relativ zu bx)
 function camRel(p, bx, a, b){ camW(p, [a[0] + bx, a[1], a[2], a[3] + bx, a[4], a[5], a[6]], [b[0] + bx, b[1], b[2], b[3] + bx, b[4], b[5], b[6]]); }
-const HOOK = [[3.2, 2.4, 7.4, 0.6, 2.0, 0, 50], [3.0, 2.3, 7.0, 0.6, 2.0, 0, 50]];
+const HOOK = [[4.4, 2.6, 9.6, 0.4, 2.1, 0, 52], [4.2, 2.5, 9.2, 0.4, 2.1, 0, 52]];
 function base(){ show(ben); MED.visible = false; HAM.visible = false; KMS[5].visible = KMS[30].visible = KMS[42].visible = false; fans(T); clock(0); }
 // Hook: Ben läuft los (x = vt), lächelt
 function hookBen(t){ const x = -50 + 3.0 * t; bRest(ben, t, 0); place(ben, x, 0, 1.2, PI / 2); run(ben, t * 9, 1); eyeS = 1.1; bFace(ben, 0.9, 0.2); return x; }
@@ -309,7 +309,7 @@ function hookBen(t){ const x = -50 + 3.0 * t; bRest(ben, t, 0); place(ben, x, 0,
    ========================================================= */
 const SCN = [
   { t: 0, set: CITY, mood: MOOD.day, hook: 1,
-    upd(lt){ dT = T; base(); const x = hookBen(T); camRel(E.io(seg(lt, 0, 3.58)), x, HOOK[0], [2.4, 2.0, 6.4, 0.8, 1.9, 0, 50]); camFin(); } },
+    upd(lt){ dT = T; base(); const x = hookBen(T); camRel(E.io(seg(lt, 0, 3.58)), x, HOOK[0], [3.4, 2.3, 8.2, 0.6, 2.0, 0, 52]); camFin(); } },
   { t: 3.58, set: CITY, mood: MOOD.day, hud: () => ['42,195 KILOMETER', 'FAST 3000 KALORIEN'],
     upd(lt){ dT = T; base(); KMS[5].visible = true; KMS[5].position.x = -30; const x = -36 + 3.0 * (T - 3.58); bRest(ben, T, 0); place(ben, x, 0, 1.2, PI / 2); run(ben, T * 9, 1); eyeS = 1.0; bFace(ben, 0.5, 0.25);
       kmK = E.out(seg(T, 3.8, 4.1)) * (1 - seg(T, 6.9, 7.05)); kmV = 42.195 * E.out(seg(T, 3.9, 5.0)); kcalV = 3000 * E.out(seg(T, 5.0, 6.4));

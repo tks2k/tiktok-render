@@ -315,7 +315,7 @@ const SCN = [
   { t: 17.43, set: LAKE, mood: MOOD.win, hud: () => ['NICHT AUFSTEHEN!', 'WEGROLLEN'],
     upd(lt){ dT = T; base(T); bRest(ben, T, 0); const rl = E.io(seg(T, 17.7, 19.5)); place(ben, -2.6 * rl, 0.42, -3.5, PI); ben.root.rotation.x = PI / 2;
       ben.body.rotation.y = -PI * 2 * rl; ben.sh[0].rotation.set(-2.9, 0, -0.1); ben.sh[1].rotation.set(-2.9, 0, 0.1); eyeS = 1.1; bFace(ben, -0.3, 0.2); frostK = 0.5;
-      rollK = E.out(seg(T, 17.6, 17.9)) * (1 - seg(T, 19.55, 19.73)); camW(E.io(seg(lt, 0, 2.3)), [3.4, 4.6, 1.0, -1.0, 0.3, -4.8, 50], [2.8, 4.4, 0.6, -1.6, 0.3, -4.8, 50]); camFin(); } },
+      rollK = E.out(seg(T, 17.6, 17.9)) * (1 - seg(T, 19.55, 19.73)); camW(E.io(seg(lt, 0, 2.3)), [3.0, 4.2, 0.4, -0.3, 0.3, -5.8, 52], [1.6, 4.0, -0.2, -2.1, 0.3, -5.8, 52]); camFin(); } },
   { t: 19.73, set: LAKE, mood: MOOD.win, hud: () => ['UND BEN?', 'EIS AB 15 CM – NIE ALLEIN'],
     upd(lt){ dT = T; base(T); show(ben, PAL); STICK.visible = true; bRest(ben, T, 0); bRest(PAL, T + 1, 0); place(ben, 0.6, 0, -4.4, 0.3); place(PAL, 2.8, 0, -4.9, -0.3);
       ben.sh[1].rotation.set(-1.2, 0, 0.3); PAL.sh[0].rotation.set(0, 0, -2.6 - 0.2 * Math.sin(T * 6)); eyeS = 1; bFace(ben, 0.7, 0.12); bFace(PAL, 0.7, 0.15); frostK = 0.15;

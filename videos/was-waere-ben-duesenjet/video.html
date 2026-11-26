@@ -288,7 +288,7 @@ const SCAR = new THREE.Group(); ben.head.add(SCAR);
 const MUFF = new THREE.Group(); ben.head.add(MUFF);
 (function(){ const o = mat(0xf27a1a, { roughness: 0.5 }), k = mat(0x2a2a2e); [-1, 1].forEach(s => { P(MUFF, rbox(0.22, 0.52, 0.48, 0.1), o, s * 0.68, 0.48, -0.02); P(MUFF, rbox(0.06, 0.4, 0.36, 0.03), k, s * 0.58, 0.48, -0.02); });
   const b = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.07, 8, 24, PI), k); b.position.set(0, 0.5, -0.02); MUFF.add(b); })();
-function earsCover(k){ ben.sh[0].rotation.set(-0.35 * k, 0, -2.75 * k - 0.07 * (1 - k)); ben.sh[1].rotation.set(-0.35 * k, 0, 2.75 * k + 0.07 * (1 - k)); ben.el[0].rotation.x = -0.1 - 1.2 * k; ben.el[1].rotation.x = -0.1 - 1.2 * k; }
+function earsCover(k){ ben.sh[0].rotation.set(-0.15 * k, 0, -2.05 * k - 0.07 * (1 - k)); ben.sh[1].rotation.set(-0.15 * k, 0, 2.05 * k + 0.07 * (1 - k)); ben.el[0].rotation.set(-0.1, 0, 1.75 * k); ben.el[1].rotation.set(-0.1, 0, -1.75 * k); }
 
 /* =========================================================
    KAMERA + Zustand
@@ -298,19 +298,19 @@ let blurAmt = 0, fadeBlk = 0, T = 0, flashA = 0, eyeS = 1, talk = 0, dT = 0;
 let dbK = 0, dbV = 0, waveK = 0, painK = 0, muffK = 0;
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.03; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.02; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
-const HOOK = [[4.0, 1.8, 9.0, -2.0, 3.0, -8.0, 52], [3.8, 1.8, 8.8, -1.6, 3.0, -8.0, 52]];
+const HOOK = [[5.0, 2.4, 11.5, -3.0, 3.4, -10.0, 58], [4.8, 2.4, 11.3, -2.6, 3.4, -10.0, 58]];
 function base(){ show(ben); MUFF.visible = false; JET.visible = true; }
 function standBen(t, yaw){ bRest(ben, t, 0); place(ben, 0, 0, 0, yaw); }
 // Hook: Jet donnert bei t ≈ 1,3 s an Ben vorbei
-function hookScene(t){ const x = jetAt(t, -95, 70, 0); standBen(t, -0.5 + 0.9 * seg(t, 0.3, 1.4)); const c = E.out(seg(t, 0.6, 1.0)); earsCover(c); eyeS = lerp(1.1, 0.35, c); bFace(ben, -0.9 * c, 0.5 * c); ben.torso.rotation.x = -0.12 * c;
-  ben.head.rotation.y = -0.3 * (1 - seg(t, 0.3, 1.4)) + 0.4 * seg(t, 1.4, 2.4); waveK = clamp01(1 - Math.abs(x) / 70); return x; }
+function hookScene(t){ const x = jetAt(t, -30, 30, 0); standBen(t, -0.5 + 0.9 * seg(t, 0.3, 1.4)); const c = E.out(seg(t, 0.6, 1.0)); earsCover(c); eyeS = lerp(1.1, 0.35, c); bFace(ben, -0.9 * c, 0.5 * c); ben.torso.rotation.x = -0.12 * c;
+  ben.head.rotation.y = -0.3 * (1 - seg(t, 0.3, 1.4)) + 0.4 * seg(t, 1.4, 2.4); waveK = clamp01(1 - Math.abs(x) / 45); return x; }
 
 /* =========================================================
    SZENEN (Sprecherspur Tempo 1,05)
    ========================================================= */
 const SCN = [
   { t: 0, set: AIR, mood: MOOD.day, hook: 1,
-    upd(lt){ dT = T; base(); const x = hookScene(T); camW(E.io(seg(lt, 0, 3.9)), HOOK[0], [3.2, 1.9, 8.2, 0.4, 2.6, -6.0, 52]); camFin(0.05 * clamp01(1 - Math.abs(x) / 40)); } },
+    upd(lt){ dT = T; base(); const x = hookScene(T); camW(E.io(seg(lt, 0, 3.9)), HOOK[0], [3.8, 2.2, 9.8, 0.4, 3.0, -8.0, 56]); camFin(0.05 * clamp01(1 - Math.abs(x) / 40)); } },
   { t: 3.9, set: AIR, mood: MOOD.day, hud: () => ['NORMALES GESPRÄCH', 'ETWA 60 DEZIBEL'],
     upd(lt){ dT = T; base(); JET.visible = false; standBen(T, 0.2); eyeS = 1.05; bFace(ben, 0.6, 0.1); dbK = E.out(seg(T, 4.1, 4.4)); dbV = 60 * E.out(seg(T, 4.3, 5.6));
       camW(E.io(seg(lt, 0, 2.88)), [2.6, 2.4, 6.8, 0, 2.0, 0, 46], [2.0, 2.3, 6.0, 0, 2.0, 0, 46]); camFin(); } },
@@ -322,7 +322,7 @@ const SCN = [
     upd(lt){ dT = T; base(); const tt = T - 10.46, x = jetAt(tt, -120, 60, 6); standBen(T, -0.4); const c = E.out(seg(tt, 0.6, 1.1)); earsCover(c); eyeS = lerp(1.2, 0.3, c); bFace(ben, -1, 0.6 * c); ben.torso.rotation.x = -0.15 * c; ben.legs[0].rotation.x = 0.15 * c;
       waveK = clamp01(1 - Math.abs(x) / 90) + 0.4 * seg(tt, 1, 2) * (1 - seg(T, 17.5, 18.8)); painK = clamp01(1 - Math.abs(x) / 50);
       dbK = 1; dbV = lerp(85, 140, E.io(seg(tt, 0.2, 2.2)));
-      camW(E.io(seg(lt, 0, 8.42)), [5.0, 1.6, 8.0, -1.0, 3.2, -9.0, 56], [3.0, 1.9, 6.4, 1.5, 2.8, -6.0, 52]); camFin(0.07 * painK); } },
+      camW(E.io(seg(lt, 0, 8.42)), [4.5, 1.9, 9.5, -0.8, 2.8, -5.0, 58], [3.0, 2.0, 7.6, 0.8, 2.6, -4.0, 54]); camFin(0.07 * painK); } },
   { t: 18.88, set: AIR, mood: MOOD.day, hud: () => ['UND BEN?', 'MIT GEHÖRSCHUTZ'],
     upd(lt){ dT = T; base(); const tt = T - 18.88, x = jetAt(tt, -100, 75, 0); standBen(T, 0.1); MUFF.visible = true; eyeS = 1.05; bFace(ben, 1, 0.15);
       const th = seg(T, 20.2, 20.6); ben.sh[0].rotation.set(-1.4 * th, 0, -0.35 * th - 0.07); ben.el[0].rotation.x = -1.3 * th; muffK = E.out(seg(T, 20.0, 20.3)) * (1 - seg(T, 22.8, 22.95)); dbK = 1; dbV = lerp(140, 110, seg(T, 19.2, 20.4));

@@ -332,7 +332,7 @@ const SCN = [
     upd(lt){ dT = T; base(); air(); WAT.material.opacity = 0.42; holdBen(T, -4.9, 0.8); ben.torso.scale.set(1.06, 1, 1.06); puff(1); bFace(ben, -0.6, 0); eyeS = 0.7; timerK = 1; holdV = hold(T);
       show(ben, pal); bRest(pal, T, 0); place(pal, 2.4, -0.55, -7.0, -0.2); sit(pal, 0.85); pal.legs[0].rotation.x = -1.5; pal.legs[1].rotation.x = -1.5; pal.head.rotation.x = 0.55;
       warnK = E.out(seg(T, 16.4, 16.7)) * (1 - seg(T, 20.6, 20.79));
-      camW(E.io(seg(lt, 0, 4.61)), [-3.6, 3.4, 4.6, 0.9, -1.4, -5.6, 54], [-3.0, 3.0, 3.6, 0.9, -1.6, -5.6, 54]); camFin(); } },
+      camW(E.io(seg(lt, 0, 4.61)), [-3.8, 3.4, 5.2, 0.9, -1.0, -5.8, 60], [-3.2, 3.0, 4.2, 0.9, -1.2, -5.8, 60]); camFin(); } },
   { t: 20.79, set: POOL, mood: MOOD.hall, hud: () => ['UND BEN?', T < TU ? 'HÄLT DURCH …' : 'NACH 40 SEKUNDEN'],
     upd(lt){ dT = T; base(); air(); WAT.material.opacity = lerp(0.42, 0.78, seg(T, 22.6, 23.6)); timerK = 1; holdV = hold(T); const up = seg(T, TU - 0.25, TU + 0.2);
       if (T < TU - 0.25){ holdBen(T, -4.9, 1); ben.root.position.z = 1.5; puff(1); bFace(ben, -0.7, 0); eyeS = 0.6; }

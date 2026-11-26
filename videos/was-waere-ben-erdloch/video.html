@@ -245,8 +245,8 @@ function setMood(m){
 const HR = 2.4;
 function holeGround(col){ const s = new THREE.Shape(); s.moveTo(-150, -150); s.lineTo(150, -150); s.lineTo(150, 150); s.lineTo(-150, 150); s.lineTo(-150, -150);
   const h = new THREE.Path(); h.absarc(0, 0, HR, 0, PI * 2, true); s.holes.push(h); const m = new THREE.Mesh(new THREE.ShapeGeometry(s, 48), mat(col, { roughness: 1 })); m.rotation.x = -PI / 2; m.receiveShadow = true; return m; }
-const shaftTex = (function(){ const c = document.createElement('canvas'); c.width = 8; c.height = 256; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, '#4a2e1a'); g.addColorStop(0.06, '#24150a'); g.addColorStop(0.22, '#070402'); g.addColorStop(1, '#000000'); x.fillStyle = g; x.fillRect(0, 0, 8, 256); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
-function shaft(par, rimCol){ const s = new THREE.Mesh(new THREE.CylinderGeometry(HR, HR, 30, 40, 1, true), new THREE.MeshBasicMaterial({ map: shaftTex, side: THREE.BackSide, fog: false })); s.position.y = -15; par.add(s);
+const shaftTex = (function(){ const c = document.createElement('canvas'); c.width = 8; c.height = 256; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, '#2e1c0e'); g.addColorStop(0.015, '#140b05'); g.addColorStop(0.05, '#000000'); g.addColorStop(1, '#000000'); x.fillStyle = g; x.fillRect(0, 0, 8, 256); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+function shaft(par, rimCol){ const s = new THREE.Mesh(new THREE.CylinderGeometry(HR, HR, 30, 40, 1, true), new THREE.MeshBasicMaterial({ map: shaftTex, side: THREE.BackSide, fog: false, toneMapped: false })); s.position.y = -15; par.add(s);
   const b = new THREE.Mesh(new THREE.CircleGeometry(HR, 40), new THREE.MeshBasicMaterial({ color: 0x050302, fog: false })); b.rotation.x = -PI / 2; b.position.y = -29.9; par.add(b);
   const r = new THREE.Mesh(new THREE.RingGeometry(HR, HR + 0.45, 48), mat(rimCol, { roughness: 0.9 })); r.rotation.x = -PI / 2; r.position.y = 0.02; r.receiveShadow = true; par.add(r); }
 const GER = new THREE.Group(); scene.add(GER);
@@ -313,7 +313,7 @@ function spd(){ return Math.max(0, 28440 * Math.sin(clamp01((T - T0) / (TA - T0)
 function mins(){ return Math.round(40 * clamp01((T - T0) / (TA - T0))); }
 // Aufstieg auf der anderen Seite (kopfüber, Füße zuerst)
 function riseY(t){ return 3.8 - 0.526 * (t - TA) * (t - TA); }
-const HOOK = [[3.4, 4.6, -8.2, 0, 1.0, 1.6, 46], [3.2, 4.4, -7.8, 0, 1.0, 1.6, 46]];
+const HOOK = [[3.4, 4.6, -8.2, 0, 2.9, 1.6, 46], [3.2, 4.4, -7.8, 0, 2.9, 1.6, 46]];
 function hookBen(t){ bRest(ben, t, 0); const j = seg(t, 3.5, 4.0);
   if (t < 3.5){ place(ben, 0, 0, 3.1, PI); ben.head.rotation.x = 0.45; ben.torso.rotation.x = 0.12; eyeS = 1.15; bFace(ben, -0.3, 0.2 + 0.1 * Math.sin(t * 2)); ben.sh[0].rotation.set(-0.3, 0, -0.35); ben.sh[1].rotation.set(-0.3, 0, 0.35); }
   else { const y = t < 4.0 ? 0.9 * Math.sin(PI * j) : -14 * (t - 4.0) * (t - 4.0); place(ben, 0, y, 3.1 * (1 - E.io(j)), PI); flail(ben, t, 1); eyeS = 1.3; bFace(ben, -0.9, 0.8); ben.head.rotation.x = 0.2; } }
@@ -323,7 +323,7 @@ function hookBen(t){ bRest(ben, t, 0); const j = seg(t, 3.5, 4.0);
    ========================================================= */
 const SCN = [
   { t: 0, set: GER, mood: MOOD.ger, hook: 1,
-    upd(lt){ dT = T; show(ben); hookBen(T); camW(E.io(seg(lt, 0, 4.3)), HOOK[0], [2.8, 4.8, -6.8, 0, 0.2, 1.2, 48]); camFin(); } },
+    upd(lt){ dT = T; show(ben); hookBen(T); camW(E.io(seg(lt, 0, 4.3)), HOOK[0], [2.8, 4.8, -6.8, 0, 1.6, 1.2, 48]); camFin(); } },
   { t: 4.3, set: TUN, mood: MOOD.tun, hud: () => ['FREIER FALL', 'OHNE LUFT UND HITZE'],
     upd(lt){ dT = T; show(ben); bRest(ben, T, 0); place(ben, 0, 0, 0, 0); flail(ben, T, 1); eyeS = 1.3; bFace(ben, -0.9, 0.7); ben.head.rotation.x = -0.35;
       const k = seg(T, 4.3, 7.94); tunnel(4 + 34 * k * k, 0.6 * k, 8 + 30 * k); spdK = E.out(seg(T, 4.6, 4.9)) * (1 - seg(T, 7.8, 7.94));

@@ -248,7 +248,7 @@ const bandTex = cvTex(512, 512, (x, w, h) => { const cols = ['#e8d2b0', '#c8925a
   for (let i = 0; i < 260; i++){ x.fillStyle = `rgba(${hsh(i) > 0.5 ? '255,240,220' : '120,70,40'},0.18)`; x.beginPath(); x.ellipse(hsh(i + 1) * w, hsh(i + 2) * h, 20 + hsh(i + 3) * 50, 3 + hsh(i + 4) * 5, 0, 0, PI * 2); x.fill(); }
   x.fillStyle = '#c0503a'; x.beginPath(); x.ellipse(w * 0.62, h * 0.66, 46, 22, 0, 0, PI * 2); x.fill(); x.fillStyle = '#d87050'; x.beginPath(); x.ellipse(w * 0.62, h * 0.66, 30, 13, 0, 0, PI * 2); x.fill(); });
 const SPC = new THREE.Group(); scene.add(SPC);
-const JUP = new THREE.Mesh(new THREE.SphereGeometry(70, 64, 48), new THREE.MeshStandardMaterial({ map: bandTex, roughness: 1, fog: false })); JUP.position.set(0, -76, -50); JUP.rotation.z = 0.12; SPC.add(JUP);
+const JUP = new THREE.Mesh(new THREE.SphereGeometry(70, 64, 48), new THREE.MeshBasicMaterial({ map: bandTex, fog: false, color: 0xd8d8d8 })); JUP.position.set(0, -76, -50); JUP.rotation.z = 0.12; SPC.add(JUP);
 { const n = 900, p = new Float32Array(n * 3); for (let i = 0; i < n; i++){ const a = hsh(i) * PI * 2, b = Math.acos(2 * hsh(i + 7) - 1), r = 500; p[i * 3] = r * Math.sin(b) * Math.cos(a); p[i * 3 + 1] = r * Math.cos(b); p[i * 3 + 2] = r * Math.sin(b) * Math.sin(a); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); SPC.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false }))); }
 // Wolkenschichten
@@ -299,7 +299,7 @@ let blurAmt = 0, fadeBlk = 0, T = 0, flashA = 0, eyeS = 1, talk = 0, dT = 0;
 let gasK = 0, gK = 0, windK = 0, prbK = 0, firmK = 0;
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.03; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.02; if (sh){ cam.position.x += Math.sin(T * 5) * sh; cam.position.y += Math.cos(T * 4) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
-const HOOK = [[3.6, 4.2, 9.0, 0, -1.0, -6, 52], [3.4, 4.0, 8.6, 0, -1.2, -6, 52]];
+const HOOK = [[3.6, 4.2, 9.0, 0, 2.6, -6, 52], [3.4, 4.0, 8.6, 0, 2.5, -6, 52]];
 function base(){ show(ben); suit(true); CHUTE.visible = false; streaks(false, 0); PRB.visible = false; }
 function fallPose(t){ bRest(ben, t, 0); [0, 1].forEach(i => { const s = i ? 1 : -1; ben.sh[i].rotation.set(-0.3, 0, s * (1.3 + 0.1 * Math.sin(t * 3 + i))); ben.el[i].rotation.x = -0.3; }); ben.legs[0].rotation.x = 0.2; ben.legs[1].rotation.x = -0.25; }
 function hookBen(t){ fallPose(t); place(ben, 0, 1.2 * Math.sin(t * 0.8) * 0.2, 0, -0.3); eyeS = 1.3; bFace(ben, -0.6, 0.4); JUP.rotation.y = t * 0.02; }
@@ -310,7 +310,7 @@ function hang(t){ bRest(ben, t, 0); CHUTE.visible = true; [0, 1].forEach(i => { 
    ========================================================= */
 const SCN = [
   { t: 0, set: SPC, mood: MOOD.spc, hook: 1,
-    upd(lt){ dT = T; base(); hookBen(T); camW(E.io(seg(lt, 0, 3.46)), HOOK[0], [3.0, 3.4, 7.6, 0, -1.4, -6, 52]); camFin(); } },
+    upd(lt){ dT = T; base(); hookBen(T); camW(E.io(seg(lt, 0, 3.46)), HOOK[0], [3.0, 3.6, 7.8, 0, 2.2, -6, 52]); camFin(); } },
   { t: 3.46, set: CLD, mood: MOOD.cld, hud: () => ['KEIN BODEN', 'NUR WOLKEN UND GAS'],
     upd(lt){ dT = T; base(); fallPose(T); place(ben, 0, 0, 0, -0.3); eyeS = 1.4; bFace(ben, -0.9, 0.5); layers((T - 3.46) * 9, 3.2);
       camW(E.io(seg(lt, 0, 2.62)), [3.6, 3.2, 8.0, 0, 0.4, 0, 52], [3.2, 3.2, 7.4, 0, 0.2, 0, 52]); camFin(); } },

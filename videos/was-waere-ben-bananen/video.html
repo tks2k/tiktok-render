@@ -252,9 +252,9 @@ const TY = 1.45;   // Tischhöhe
   [[-2.0, 0.15], [2.0, 0.15], [-2.0, 1.65], [2.0, 1.65]].forEach(([x, z]) => P(KIT, rbox(0.14, TY - 0.14, 0.14, 0.03), tb, x, (TY - 0.14) / 2, z));
 })();
 const bCurve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(-0.36, 0.05, 0), new THREE.Vector3(0, -0.13, 0), new THREE.Vector3(0.36, 0.05, 0));
-const BGEO = new THREE.TubeGeometry(bCurve, 14, 0.075, 7, false);
-const BYM = mat(0xf2d23a, { roughness: 0.55 }), BTM = mat(0x5a4020), PEELM = mat(0xd8b02a, { roughness: 0.8 });
-function banana(par, m){ const g = new THREE.Group(); const b = new THREE.Mesh(BGEO, m || BYM); b.castShadow = true; g.add(b); [-1, 1].forEach(s => { const t = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), BTM); t.position.set(s * 0.36, 0.05, 0); g.add(t); }); par.add(g); return g; }
+const BGEO = new THREE.TubeGeometry(bCurve, 14, 0.1, 8, false);
+const BYM = mat(0xf2d23a, { roughness: 0.55 }), BTM = mat(0x6a5a2a), PEELM = mat(0xd8b02a, { roughness: 0.8 });
+function banana(par, m){ const g = new THREE.Group(); const b = new THREE.Mesh(BGEO, m || BYM); b.castShadow = true; g.add(b); [-1, 1].forEach(s => { const t = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 4), BTM); t.position.set(s * 0.36, 0.05, 0); g.add(t); }); par.add(g); return g; }
 const PILE = new THREE.Group(); KIT.add(PILE); PILE.position.set(-1.05, TY, 0.95);
 const PB = [];
 for (let k = 0; k < 100; k++){ const h = Math.pow(hsh(k * 3 + 1), 1.3), r = (1 - h) * 0.95 * Math.sqrt(hsh(k * 5 + 2)), a = hsh(k * 7 + 3) * PI * 2;
@@ -285,7 +285,7 @@ let blurAmt = 0, fadeBlk = 0, T = 0, flashA = 0, eyeS = 1, talk = 0, dT = 0;
 let radK = 0, cmpK = 0, wgtK = 0, stoK = 0, brdK = 0, nEat = 0;
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.03; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.02; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
-const HOOK = [[1.4, 3.4, 7.8, -0.3, 2.3, 0.2, 46], [1.3, 3.3, 7.5, -0.3, 2.3, 0.2, 46]];
+const HOOK = [[1.1, 3.1, 5.8, -0.4, 2.5, 0.3, 46], [1.0, 3.0, 5.6, -0.4, 2.5, 0.3, 46]];
 // n: wie viele Bananen schon gegessen (Berg schrumpft oben, Schalen wachsen)
 function base(n, loaf){ show(ben); PILE.visible = !loaf; LOAF.visible = !!loaf; PB.forEach((b, i) => b.visible = i < 100 - n); PEELS.forEach((p, i) => p.visible = i < n); HB.visible = !loaf; SLC.visible = !!loaf; GLOWM.emissiveIntensity = 0; belly(0); }
 function benAt(){ bRest(ben, T, 0); place(ben, 0.25, 0, -0.55, 0); }
@@ -297,7 +297,7 @@ function hookBen(t){ benAt(); eat(t, 0.4); ben.sh[0].rotation.set(-0.6, 0, -0.3)
    ========================================================= */
 const SCN = [
   { t: 0, set: KIT, mood: MOOD.kit, hook: 1,
-    upd(lt){ dT = T; base(0); hookBen(T); camW(E.io(seg(lt, 0, 3.58)), HOOK[0], [1.0, 3.0, 6.6, -0.3, 2.3, 0.2, 46]); camFin(); } },
+    upd(lt){ dT = T; base(0); hookBen(T); camW(E.io(seg(lt, 0, 3.58)), HOOK[0], [0.8, 2.9, 5.0, -0.3, 2.5, 0.3, 46]); camFin(); } },
   { t: 3.58, set: KIT, mood: MOOD.kit, hud: () => ['LEICHT RADIOAKTIV', 'WEGEN KALIUM-40'],
     upd(lt){ dT = T; base(1); benAt(); ben.sh[1].rotation.set(-1.5, 0, 0.2); ben.el[1].rotation.x = -0.7; ben.head.rotation.x = 0.25; eyeS = 1.4; bFace(ben, -0.6, 0.35);
       GLOWM.emissiveIntensity = 0.45 + 0.15 * Math.sin(T * 2.4); radK = E.out(seg(T, 3.8, 4.1)) * (1 - seg(T, 6.8, 6.96));

@@ -304,16 +304,16 @@ const SCN = [
     upd(lt){ dT = T; base(); warmK = 0.35; hookBen(T); camW(E.io(seg(lt, 0, 4.08)), HOOK[0], HOOK[1]); camFin(); } },
   { t: 4.08, set: DES, mood: MOOD.day, hud: () => ['ÜBER 40 °C', 'SCHWITZEN OHNE ENDE'],
     upd(lt){ dT = T; base(); warmK = 0.4; bRest(ben, T, 0); place(ben, lerp(-3, 0.5, seg(T, 4.08, 8.08)), 0, 1.0, PI / 2); wlk(ben, T * 8, 0.8); ben.head.rotation.x = 0.15; eyeS = 0.7; bFace(ben, -0.6, 0.3); sweat(1);
-      swK = E.out(seg(T, 4.3, 4.6)) * (1 - seg(T, 7.9, 8.08)); camW(E.io(seg(lt, 0, 4.0)), [-2.0, 2.6, 8.5, -1.6, 2.6, 1.0, 48], [1.6, 2.6, 8.0, 0.4, 2.6, 1.0, 48]); camFin(); } },
+      swK = E.out(seg(T, 4.3, 4.6)) * (1 - seg(T, 7.9, 8.08)); camW(E.io(seg(lt, 0, 4.0)), [-2.6, 3.0, 11.5, -1.6, 2.9, 1.0, 48], [1.8, 3.0, 11.0, 0.4, 2.9, 1.0, 48]); camFin(); } },
   { t: 8.08, set: DES, mood: MOOD.day, hud: () => ['2 % WASSERVERLUST', 'LEISTUNG SINKT'],
     upd(lt){ dT = T; base(); warmK = 0.5; bRest(ben, T, 0); const sl = seg(T, 8.1, 12.4); place(ben, lerp(0.5, 1.9, sl), 0, lerp(1.0, 0.2, sl), PI / 2 - 0.3); wlk(ben, T * 5, 0.5); ben.torso.rotation.x = 0.35; ben.head.rotation.x = 0.35;
       ben.root.rotation.z = 0.08 * Math.sin(T * 2.5); eyeS = 0.45; bFace(ben, -0.5, 0.45); sweat(1); pfK = E.out(seg(T, 8.3, 8.6)) * (1 - seg(T, 12.25, 12.42));
-      camW(E.io(seg(lt, 0, 4.34)), [6.0, 2.4, 6.5, 1.0, 2.2, 0.6, 46], [5.4, 2.3, 5.8, 1.6, 2.1, 0.3, 46]); camFin(); } },
+      camW(E.io(seg(lt, 0, 4.34)), [8.0, 3.2, 9.0, 1.0, 2.7, 0.6, 46], [7.4, 3.1, 8.3, 1.6, 2.6, 0.3, 46]); camFin(); } },
   { t: 12.42, set: DES, mood: MOOD.day, hud: () => ['KAKTUS ANZAPFEN?', 'MEIST UNGENIESSBAR'],
     upd(lt){ dT = T; base(); warmK = 0.5; bRest(ben, T, 0); const bk = E.io(seg(T, 14.0, 14.5)); place(ben, lerp(1.9, 1.5, bk), 0, -0.9, PI / 2);
       const pk = bump(T, 12.9, 13.8); ben.sh[1].rotation.set(-1.6 * (pk > 0 ? 1 : 0.2) - 0.1 * pk, 0, 0.1); ben.el[1].rotation.x = -0.2;
       eyeS = lerp(1.0, 0.5, bk); bFace(ben, lerp(0.2, -1, bk), lerp(0.1, 0.5, bk)); ben.head.rotation.y = 0.4 * bk; ben.torso.rotation.x = -0.15 * bk; sweat(0.8);
-      ctK = E.out(seg(T, 12.6, 12.9)) * (1 - seg(T, 16.5, 16.7)); camW(E.io(seg(lt, 0, 4.28)), [4.2, 2.8, 6.0, 2.6, 2.6, -1.0, 50], [3.8, 2.7, 5.3, 2.6, 2.5, -1.0, 50]); camFin(); } },
+      ctK = E.out(seg(T, 12.6, 12.9)) * (1 - seg(T, 16.5, 16.7)); camW(E.io(seg(lt, 0, 4.28)), [5.4, 3.3, 8.0, 2.6, 3.0, -1.0, 50], [5.0, 3.2, 7.3, 2.6, 2.9, -1.0, 50]); camFin(); } },
   { t: 16.7, set: DES, mood: MOOD.shade, hud: () => ['BESSER:', 'TAGS SCHATTEN, NACHTS LAUFEN'],
     upd(lt){ dT = T; base(); warmK = 0.2; bRest(ben, T, 0); place(ben, 0.7, 0, -1.4, 0.3); sit(ben, 0.05); ben.legs[0].rotation.x = -1.4; ben.legs[1].rotation.x = -1.4; ben.sh[0].rotation.set(-0.6, 0, -0.2); ben.sh[1].rotation.set(-0.6, 0, 0.2);
       eyeS = 0.9; bFace(ben, 0.2, 0.1); sweat(0.3); shK = E.out(seg(T, 16.9, 17.2));
@@ -354,9 +354,9 @@ function boldLines(words, cy, size, maxW, act, pop, col){
 function fitSize(text, size, maxW){ g2.font = `900 ${size}px ${SANS}`; const w = g2.measureText(text).width; return w > maxW ? size * maxW / w : size; }
 function drawHook(a, sc){
   if (a <= 0) return; g2.save(); g2.globalAlpha = a; g2.drawImage(band, 0, 340, W, 520);
-  const s1 = fitSize('BEN OHNE WASSER IN DER WÜSTE?', 120, 960), s2 = fitSize('WAS PASSIERT?', 120, 900);
+  const s1 = fitSize('BEN OHNE WASSER?', 120, 960), s2 = fitSize('WAS PASSIERT?', 120, 900);
   g2.translate(W / 2, 600); g2.scale(sc, sc); g2.translate(-W / 2, -600);
-  boldLines(['BEN', 'OHNE', 'WASSER', 'IN', 'DER', 'WÜSTE?'], 535, s1, 1000, -1, 0); boldLines(['WAS', 'PASSIERT?'], 670, s2, 940, -1, 0, '#ffd23c');
+  boldLines(['BEN', 'OHNE', 'WASSER?'], 535, s1, 1000, -1, 0); boldLines(['WAS', 'PASSIERT?'], 670, s2, 940, -1, 0, '#ffd23c');
   g2.restore();
 }
 function drawSubs(){

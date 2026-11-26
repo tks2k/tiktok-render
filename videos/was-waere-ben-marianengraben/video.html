@@ -323,9 +323,9 @@ const SCN = [
       depthV = 10900; depthK = 1; presK = E.out(seg(T, 13.5, 13.8)) * (1 - seg(T, 18.5, 18.7));
       camW(E.io(seg(lt, 0, 6.54)), [2.2, -6.8, 7.6, 0, -7.2, 0, 50], [1.8, -7.0, 6.6, 0, -7.2, 0, 50]); camFin(0.02 * bump(T, 15.4, 16.0)); } },
   { t: 18.7, set: SEA, mood: MOOD.sea, hud: () => ['OHNE TAUCHBOOT?', 'KEINE CHANCE'],
-    upd(lt){ dT = T; base(); BED.visible = true; SUB.visible = true; ben.root.visible = false; deep(2.0); hemi.intensity = 0.25; const dsc = E.out(seg(T, 18.7, 20.4)); SUB.position.set(0, lerp(-2, -6.2, dsc), 0); SUB.rotation.set(0, -0.5, 0); snow(T, 1, -6);
+    upd(lt){ dT = T; base(); BED.visible = true; SUB.visible = true; ben.root.visible = false; deep(2.0); hemi.intensity = 0.25; const dsc = E.out(seg(T, 18.7, 20.4)); SUB.position.set(0, lerp(-2, -6.2, dsc), 0); SUB.rotation.set(0, 0.55, 0); snow(T, 1, -6);
       depthV = 10900; depthK = 1; xK = E.out(seg(T, 18.8, 19.1)) * (1 - seg(T, 21.0, 21.2));
-      camW(E.io(seg(lt, 0, 2.5)), [7.0, -4.0, 10.0, 0, -5.4, 0, 50], [6.4, -4.6, 9.4, 0, -5.8, 0, 50]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.5)), [7.6, -3.2, 12.6, 0, -4.8, 0, 50], [7.0, -4.0, 11.8, 0, -5.6, 0, 50]); camFin(); } },
   { t: 21.2, set: SEA, mood: MOOD.sea, hud: () => ['UND BEN?', 'SICHER IM TAUCHBOOT'],
     upd(lt){ dT = T; base(); SUB.visible = true; FISH.visible = true; GEAR.visible = false; MASK.visible = false; deep(2.0); hemi.intensity = 0.3; SUB.position.set(0, -6.2, 0); SUB.rotation.set(0, 0, 0); snow(T, 0.6, -6);
       bRest(ben, T, 0); place(ben, 0, -8.15, -0.3, 0); sit(ben, 0.85); ben.legs[0].rotation.x = -1.5; ben.legs[1].rotation.x = -1.5; const wv = seg(T, 22.6, 23.0); ben.sh[1].rotation.set(0, 0, 2.4 * wv + 0.25 * Math.sin(T * 9) * wv); ben.el[1].rotation.x = -0.3 * wv;

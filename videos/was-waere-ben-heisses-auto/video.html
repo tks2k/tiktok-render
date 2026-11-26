@@ -246,9 +246,9 @@ function setMood(m){
 const LOT = new THREE.Group(); scene.add(LOT); const SETS = [LOT];
 (function(){
   const gr = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), mat(0x55565a, { roughness: 1 })); gr.rotation.x = -PI / 2; gr.receiveShadow = true; LOT.add(gr);
-  const wl = mat(0xf2f2ee, { roughness: 0.9 }); [-1.9, 1.9, -5.7, 5.7].forEach(z => P(LOT, rbox(6.4, 0.02, 0.14, 0.005, 1), wl, 0, 0.012, z));
-  P(LOT, rbox(0.14, 0.02, 11.4, 0.005, 1), wl, -3.4, 0.012, 0);
-  const curb = mat(0xb8b6ae, { roughness: 1 }); P(LOT, rbox(40, 0.25, 0.5, 0.04, 1), curb, 0, 0.12, -9);
+  const wl = mat(0xf2f2ee, { roughness: 0.9 }); [-2.5, 2.5, -7.4, 7.4].forEach(z => P(LOT, rbox(8.6, 0.02, 0.16, 0.005, 1), wl, 0, 0.012, z));
+  P(LOT, rbox(0.16, 0.02, 14.8, 0.005, 1), wl, -4.6, 0.012, 0);
+  const curb = mat(0xb8b6ae, { roughness: 1 }); P(LOT, rbox(40, 0.25, 0.5, 0.04, 1), curb, 0, 0.12, -10);
   const gb = mat(0x5f8a3a, { roughness: 1 }); P(LOT, rbox(40, 0.2, 6, 0.04, 1), gb, 0, 0.1, -12.3);
   [-8, 2, 12].forEach((x, i) => { P(LOT, new THREE.CylinderGeometry(0.25, 0.35, 3, 8), mat(0x6a4a30), x, 1.5, -12); P(LOT, new THREE.IcosahedronGeometry(2.2, 0), mat(0x4e7a32, { flatShading: true }), x, 4.2, -12); });
   // Eisstand
@@ -262,11 +262,11 @@ const LOT = new THREE.Group(); scene.add(LOT); const SETS = [LOT];
 })();
 function carShell(par, col, x, z){ const g = new THREE.Group(); g.position.set(x, 0, z); par.add(g); const cm = mat(col, { roughness: 0.35, metalness: 0.2 }), tr = mat(0x1c1c1c), gl = mat(0x3a5060, { roughness: 0.1, metalness: 0.4 });
   P(g, rbox(5.5, 1.0, 2.6, 0.2), cm, 0, 0.85, 0); P(g, rbox(3.0, 1.3, 2.4, 0.25), gl, -0.3, 2.0, 0); P(g, rbox(3.1, 0.12, 2.5, 0.05), cm, -0.3, 2.7, 0);
-  [[-1.8, -1.25], [1.8, -1.25], [-1.8, 1.25], [1.8, 1.25]].forEach(([wx, wz]) => { const w = P(g, new THREE.CylinderGeometry(0.45, 0.45, 0.35, 14), tr, wx, 0.45, wz); w.rotation.x = PI / 2; }); return g; }
-carShell(LOT, 0x2f6fb5, 0, -3.8); carShell(LOT, 0xe8e8e8, -7, 0);
+  [[-1.8, -1.25], [1.8, -1.25], [-1.8, 1.25], [1.8, 1.25]].forEach(([wx, wz]) => { const w = P(g, new THREE.CylinderGeometry(0.45, 0.45, 0.35, 14), tr, wx, 0.45, wz); w.rotation.x = PI / 2; }); g.scale.setScalar(1.4); return g; }
+carShell(LOT, 0x2f6fb5, 0, -4.9); carShell(LOT, 0xe8e8e8, -9.6, 0);
 
 // Bens Auto: offen gebaut, damit man hineinsieht (Glas transparent)
-const CAR = new THREE.Group(); LOT.add(CAR);
+const CAR = new THREE.Group(); LOT.add(CAR); CAR.scale.setScalar(1.4);
 const DOOR = new THREE.Group(); DOOR.position.set(1.0, 0, 1.3); CAR.add(DOOR); const DGLASS = new THREE.Group(); DOOR.add(DGLASS);
 const SWEAT = []; const CONE = new THREE.Group();
 (function(){ const cm = mat(0xd23a2e, { roughness: 0.35, metalness: 0.2 }), tr = mat(0x1c1c1c), it = mat(0x2e2e34, { roughness: 0.8 }), st = mat(0x3a3a44, { roughness: 0.9 });
@@ -304,7 +304,7 @@ const SCAR = new THREE.Group(); ben.head.add(SCAR);
 (function(){ const m = mat(0xa8463f, { roughness: 0.7 }); const s = new THREE.Mesh(rbox(0.075, 0.72, 0.03, 0.012, 1), m); s.position.set(0.25, 0.55, 0.522); s.rotation.z = -0.13; SCAR.add(s);
   for (const y of [0.36, 0.55, 0.74]){ const c = new THREE.Mesh(rbox(0.16, 0.035, 0.03, 0.01, 1), m); c.position.set(0.25 + (y - 0.55) * 0.13, y, 0.528); c.rotation.z = -0.13; SCAR.add(c); } })();
 // Ben auf dem Fahrersitz (Blick nach +x), fächelt sich Luft zu
-function seatBen(t, k){ bRest(ben, t, 0); place(ben, 0.15, 0, 0.55, PI / 2); sit(ben, 0.95); ben.torso.rotation.x = -0.05 + 0.1 * k; ben.head.rotation.y = -0.5 * (1 - k * 0.4);
+function seatBen(t, k){ bRest(ben, t, 0); place(ben, 0.14, 0, 0.77, PI / 2); sit(ben, 1.33); ben.torso.rotation.x = -0.05 + 0.1 * k; ben.head.rotation.y = -0.5 * (1 - k * 0.4);
   ben.sh[1].rotation.set(-2.1, 0, 0.35 + 0.35 * Math.sin(t * 12)); ben.el[1].rotation.x = -1.3; ben.sh[0].rotation.set(-0.6, 0, -0.1); ben.el[0].rotation.x = -0.4; }
 
 /* =========================================================
@@ -315,7 +315,7 @@ let blurAmt = 0, fadeBlk = 0, T = 0, flashA = 0, eyeS = 1, talk = 0, dT = 0;
 let thK = 0, thV = 28, thM = 0, warmK = 0, warnK = 0, glareK = 0;
 function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)); cL.set(lerp(a[3], b[3], p), lerp(a[4], b[4], p), lerp(a[5], b[5], p)); cam.fov = lerp(a[6], b[6], p); }
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.015; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.01; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
-const HOOK = [[3.0, 2.3, 6.0, 0.2, 1.75, 0.5, 45], [2.6, 2.25, 5.2, 0.2, 1.75, 0.5, 45]];
+const HOOK = [[4.0, 3.0, 8.5, 0.3, 2.6, 0.8, 45], [3.5, 2.95, 7.4, 0.3, 2.6, 0.8, 45]];
 function base(){ show(ben); CONE.visible = false; DOOR.rotation.y = 0; DGLASS.position.y = 0; glareK = 1; }
 function hookBen(t){ seatBen(t, 0.3); eyeS = 0.9; bFace(ben, -0.5, 0.25); sweat(0.6); }
 
@@ -327,31 +327,31 @@ const SCN = [
     upd(lt){ dT = T; base(); warmK = 0.25; hookBen(T); camW(E.io(seg(lt, 0, 3.33)), HOOK[0], HOOK[1]); camFin(); } },
   { t: 3.33, set: LOT, mood: MOOD.sun, hud: () => ['DRAUSSEN 28 °C', 'SOMMER, PRALLE SONNE'],
     upd(lt){ dT = T; base(); warmK = 0.2; seatBen(T, 0.3); eyeS = 0.9; bFace(ben, -0.4, 0.2); sweat(0.5); thK = E.out(seg(T, 3.5, 3.8)) * (1 - seg(T, 5.25, 5.42)); thV = 28; thM = 0;
-      camW(E.io(seg(lt, 0, 2.09)), [9.5, 4.2, 11.5, 0, 1.0, 0, 45], [8.2, 3.6, 10.2, 0, 1.1, 0, 45]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.09)), [12, 5, 14, 0, 1.6, 0, 45], [10.5, 4.6, 12.5, 0, 1.7, 0, 45]); camFin(); } },
   { t: 5.42, set: LOT, mood: MOOD.sun, hud: () => ['NACH 10 MINUTEN', 'FAST 38 °C IM AUTO'],
     upd(lt){ dT = T; base(); const h = seg(T, 5.5, 7.2); warmK = 0.25 + 0.3 * h; seatBen(T, 0.5); eyeS = 0.75; bFace(ben, -0.7, 0.35); sweat(0.8);
       thK = E.out(seg(T, 5.5, 5.8)) * (1 - seg(T, 10.0, 10.2)); thV = lerp(28, 38, E.io(h)); thM = 1;
-      camW(E.io(seg(lt, 0, 4.78)), [1.55, 2.3, -0.9, 0.15, 2.0, 0.55, 55], [1.35, 2.25, -0.7, 0.15, 2.0, 0.55, 55]); camFin(); } },
+      camW(E.io(seg(lt, 0, 4.78)), [5.2, 3.4, 1.6, 0.14, 2.9, 0.77, 40], [4.6, 3.3, 1.3, 0.14, 2.9, 0.77, 40]); camFin(); } },
   { t: 10.2, set: LOT, mood: MOOD.sun, hud: () => ['NACH 30 MINUTEN', 'RUND 50 °C'],
     upd(lt){ dT = T; base(); const h = seg(T, 10.3, 12.0); warmK = 0.55 + 0.35 * h; seatBen(T, 1); ben.head.rotation.x = 0.3 * h; ben.head.rotation.y = -0.2; ben.sh[1].rotation.set(-0.2, 0, 0.15); ben.el[1].rotation.x = -0.2;
       eyeS = lerp(0.7, 0.35, h); bFace(ben, -0.6, 0.45); sweat(1); thK = E.out(seg(T, 10.3, 10.6)) * (1 - seg(T, 12.9, 13.07)); thV = lerp(38, 50, E.io(h)); thM = 2;
-      camW(E.io(seg(lt, 0, 2.87)), [1.65, 2.05, 0.05, 0.1, 2.05, 0.55, 55], [1.5, 2.05, 0.15, 0.1, 2.05, 0.55, 55]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.87)), [4.4, 3.1, 0.9, 0.14, 2.8, 0.77, 40], [4.0, 3.05, 0.85, 0.14, 2.8, 0.77, 40]); camFin(); } },
   { t: 13.07, set: LOT, mood: MOOD.sun, hud: () => ['FENSTER-SPALT?', 'BRINGT KAUM WAS'],
     upd(lt){ dT = T; base(); DGLASS.position.y = -0.3 * E.io(seg(T, 13.3, 13.9)); warmK = 0.8; seatBen(T, 0.8); ben.head.rotation.y = 0.3; eyeS = 0.6; bFace(ben, -0.7, 0.3); sweat(1);
       thK = E.out(seg(T, 14.2, 14.5)) * (1 - seg(T, 16.7, 16.87)); thV = 48; thM = 3;
-      camW(E.io(seg(lt, 0, 3.8)), [2.3, 2.25, 4.4, 0.0, 2.0, 0.8, 45], [2.0, 2.2, 3.9, 0.0, 2.0, 0.8, 45]); camFin(); } },
+      camW(E.io(seg(lt, 0, 3.8)), [3.2, 3.3, 6.2, 0.14, 2.9, 1.0, 45], [2.8, 3.2, 5.5, 0.14, 2.9, 1.0, 45]); camFin(); } },
   { t: 16.87, set: LOT, mood: MOOD.sun, hud: () => ['WICHTIG!', 'AUCH NICHT KURZ'],
     upd(lt){ dT = T; base(); DGLASS.position.y = -0.3; warmK = 0.6; seatBen(T, 0.9); eyeS = 0.6; bFace(ben, -0.7, 0.3); sweat(1);
-      warnK = E.out(seg(T, 17.0, 17.3)) * (1 - seg(T, 20.65, 20.85)); camW(E.io(seg(lt, 0, 3.98)), [7.5, 3.6, 9.5, 0, 1.2, 0, 45], [6.4, 3.2, 8.4, 0, 1.2, 0, 45]); camFin(); } },
+      warnK = E.out(seg(T, 17.0, 17.3)) * (1 - seg(T, 20.65, 20.85)); camW(E.io(seg(lt, 0, 3.98)), [9, 4.4, 11.5, 0, 1.6, 0, 45], [8, 4.0, 10.2, 0, 1.6, 0, 45]); camFin(); } },
   { t: 20.85, set: LOT, mood: MOOD.sun, hud: () => ['UND BEN?', 'STEIGT AUS – EIS!'],
     upd(lt){ dT = T; base(); DGLASS.position.y = -0.3; warmK = 0.3 * (1 - seg(T, 21, 21.8)); const op = E.io(seg(T, 20.9, 21.2)); DOOR.rotation.y = 1.45 * op;
       const out = E.io(seg(T, 21.1, 21.5)), up = E.io(seg(T, 21.45, 21.75)), wk = seg(T, 21.75, 22.5), tn = E.io(seg(T, 22.45, 22.8));
-      bRest(ben, T, 0); const x = lerp(0.15, 0.1, out) - lerp(0, 3.0, E.io(wk)), z = lerp(0.55, 2.3, out) + lerp(0, 0.6, E.io(wk)); place(ben, x, 0, z, lerp(lerp(PI / 2, 0, out), -PI / 2, seg(T, 21.65, 21.85)) * (1 - tn) + 0.3 * tn);
-      if (up < 1){ sit(ben, 0.95); ben.body.position.y = lerp(1.13, 1.0, up); ben.legs[0].rotation.x = -1.5 * (1 - up); ben.legs[1].rotation.x = -1.5 * (1 - up); }
+      bRest(ben, T, 0); const x = 0.14 - lerp(0, 3.0, E.io(wk)), z = lerp(0.77, 3.3, out) + lerp(0, 0.6, E.io(wk)); place(ben, x, 0, z, lerp(lerp(PI / 2, 0, out), -PI / 2, seg(T, 21.65, 21.85)) * (1 - tn) + 0.3 * tn);
+      if (up < 1){ sit(ben, 1.33); ben.body.position.y = lerp(1.51, 1.0, up); ben.legs[0].rotation.x = -1.5 * (1 - up); ben.legs[1].rotation.x = -1.5 * (1 - up); }
       if (wk > 0 && wk < 1) wlk(ben, T * 13, 1);
       CONE.visible = T > 22.45; if (T > 22.45){ ben.sh[0].rotation.set(-1.7, 0, -0.1); ben.el[0].rotation.x = -1.2 - 0.25 * Math.max(0, Math.sin(T * 6)); }
       sweat(0.6 * (1 - seg(T, 21.5, 22.2))); eyeS = lerp(0.8, 1.15, tn); bFace(ben, lerp(-0.4, 0.7, tn), lerp(0.2, 0.15, tn));
-      camW(E.io(seg(lt, 0, 2.6)), [3.6, 2.7, 10.2, -1.2, 1.5, 2.2, 50], [2.8, 2.6, 9.4, -1.8, 1.6, 2.6, 50]); camFin(); } },
+      camW(E.io(seg(lt, 0, 2.6)), [4.5, 3.2, 12.5, -1.4, 2.0, 3.0, 50], [3.6, 3.1, 11.5, -2.0, 2.1, 3.3, 50]); camFin(); } },
   { t: 23.45, set: LOT, mood: MOOD.sun, loopin: 1,
     upd(lt){ dT = T - END; base(); warmK = 0.25; hookBen(T - END); camW(0, HOOK[0], HOOK[1]); camFin(); } },
 ];

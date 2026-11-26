@@ -334,7 +334,7 @@ function debUpd(cx, cy, cz){ DEB.forEach((d, i) => { const a = d.a0 + d.w * T; d
 const TORCH = new THREE.Group(); ben.el[1].add(TORCH); TORCH.position.set(0, -0.62, 0.1); TORCH.rotation.x = 1.2;
 P(TORCH, new THREE.CylinderGeometry(0.09, 0.11, 0.5, 10), mat(0x2a2a2e, { metalness: 0.5, roughness: 0.4 }), 0, 0, 0.2).rotation.x = PI / 2;
 const BEAM = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 1.1, 4.5, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff0b0, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
-BEAM.rotation.x = PI / 2; BEAM.position.set(0, 0, 2.7); TORCH.add(BEAM);
+BEAM.rotation.x = PI / 2; BEAM.position.set(0, 0, 2.7);
 const BAG = new THREE.Group(); ben.el[0].add(BAG); BAG.position.set(0, -0.7, 0.18);
 P(BAG, rbox(0.46, 0.62, 0.16, 0.05), mat(0xd02a22, { roughness: 0.5 }), 0, 0, 0); P(BAG, rbox(0.48, 0.12, 0.17, 0.02, 1), mat(0xf2c21a), 0, 0.12, 0);
 

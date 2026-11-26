@@ -263,6 +263,10 @@ const HEATH = new THREE.Group(); scene.add(HEATH); const SETS = [HEATH];
 const NS = 26, SNK = new THREE.Group(); HEATH.add(SNK); const SEG = [];
 (function(){ const dk = mat(0x2a221c, { roughness: 0.6 }), lt = mat(0x9a8a6e, { roughness: 0.6 });
   for (let i = 0; i < NS; i++){ const r = 0.05 + 0.085 * Math.sin(PI * Math.min(1, (i + 2) / (NS - 2)) * 0.85); const s = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), (i % 2) ? dk : lt); s.castShadow = true; SNK.add(s); SEG.push(s); } })();
+SEG.forEach(q => q.visible = false);
+const ZZ = (function(){ const c = document.createElement('canvas'); c.width = 256; c.height = 32; const x = c.getContext('2d'); x.fillStyle = '#8f8068'; x.fillRect(0, 0, 256, 32); x.strokeStyle = '#2a221c'; x.lineWidth = 9; x.beginPath();
+  for (let i = 0; i <= 16; i++) x.lineTo(i * 16, i % 2 ? 4 : 28); x.stroke(); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(7, 1); t.encoding = THREE.sRGBEncoding; return t; })();
+const BODY = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshStandardMaterial({ map: ZZ, roughness: 0.55 })); BODY.castShadow = true; SNK.add(BODY);
 const SHEAD = new THREE.Group(); SNK.add(SHEAD);
 (function(){ const hm = mat(0x6a5a48, { roughness: 0.6 }); P(SHEAD, rbox(0.2, 0.11, 0.3, 0.04), hm, 0, 0, 0.08); P(SHEAD, rbox(0.16, 0.03, 0.18, 0.01, 1), mat(0x1e1814), 0, 0.06, 0.06);
   const em = new THREE.MeshStandardMaterial({ color: 0xd8401a, emissive: 0x6a1004, roughness: 0.3 }); [-1, 1].forEach(s => P(SHEAD, new THREE.SphereGeometry(0.03, 8, 6), em, s * 0.095, 0.03, 0.14)); })();
@@ -278,6 +282,7 @@ function snake(t, lift, tgt, strike){
   if (tgt && strike > 0) hr.lerp(tgt, strike);
   _b.set((_a.x + hr.x) / 2, Math.max(_a.y, hr.y) + 0.15, (_a.z + hr.z) / 2);
   for (let j = 0; j < 7; j++){ const u = (j + 1) / 7, q = 1 - u; SEG[nc + j].position.set(q * q * _a.x + 2 * q * u * _b.x + u * u * hr.x, q * q * _a.y + 2 * q * u * _b.y + u * u * hr.y, q * q * _a.z + 2 * q * u * _b.z + u * u * hr.z); }
+  BODY.geometry.dispose(); BODY.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(SEG.map(q => q.position.clone())), 90, 0.095, 8, false);
   SHEAD.position.copy(hr); _c.copy(hr).sub(SEG[NS - 2].position).normalize(); SHEAD.lookAt(_c.add(hr));
   TONG.visible = (t * 3) % 1 < 0.35; TONG.scale.z = 0.6 + 0.4 * Math.sin(t * 40);
 }

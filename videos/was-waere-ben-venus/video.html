@@ -315,8 +315,8 @@ function camW(p, a, b){ cam.position.set(lerp(a[0], b[0], p), lerp(a[1], b[1], p
 function camFin(sh){ cam.position.x += Math.sin(dT * 0.7) * 0.03; cam.position.y += Math.sin(dT * 0.9 + 1) * 0.02; if (sh){ cam.position.x += Math.sin(T * 23) * sh; cam.position.y += Math.cos(T * 17) * sh; } cam.up.set(0, 1, 0); cam.lookAt(cL); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
 const TD = 1.3, TJ = 2.1;
 const HOOK = [[1.6, 4.2, 12.5, -2.0, 4.4, -1.4, 48], [1.4, 4.0, 12.2, -2.0, 4.0, -1.4, 48]];
-const BX = LX + 2.6, BZ = LZ + 1.9;
-function base(){ show(ben); suit(true); SLICE.visible = false; LND.position.set(LX, 0, LZ); FLM.visible = false; CAN.position.set(BX + 1.6, 0, BZ + 0.6); CAN.scale.set(1, 1, 1); PRB.position.set(BX + 5.5, 0, BZ - 4.5); PACKM.emissiveIntensity = 0; drops(false, 0); }
+const BX = LX + 2.6, BZ = LZ + 1.9; P(VEN, new THREE.DodecahedronGeometry(0.72, 0), mat(0x4a3426, { roughness: 1, flatShading: true }), BX + 1.6, 0.42, BZ + 0.6).scale.y = 0.85;
+function base(){ show(ben); suit(true); SLICE.visible = false; LND.position.set(LX, 0, LZ); FLM.visible = false; CAN.position.set(BX + 1.6, 1.02, BZ + 0.6); const cc = E.out(seg(T, 9.4, 10.3)); CAN.scale.set(1 + 0.35 * cc, 1 - 0.72 * cc, 1 + 0.25 * cc); PRB.position.set(BX + 5.5, 0, BZ - 4.5); PACKM.emissiveIntensity = 0; drops(false, 0); }
 function hookScene(t){ const ld = E.out(seg(t, -0.4, TD)); LND.position.y = 7 * (1 - ld); FLM.visible = t < TD + 0.1; FLM.scale.set(1, 0.8 + 0.25 * Math.sin(t * 9), 1);
   bRest(ben, t, 0); const s = t - TJ;
   if (s < 0){ ben.root.visible = t > TJ - 0.5; place(ben, LX, 0.9 + LND.position.y, LZ + 1.0, 0); crouch(seg(t, TJ - 0.5, TJ)); }
@@ -336,7 +336,7 @@ const SCN = [
       heatK = E.out(seg(T, 3.9, 4.2)) * (1 - seg(T, 8.5, 8.68)); warmK = 0.35 * h * (1 - seg(T, 8.5, 8.68));
       camW(E.io(seg(lt, 0, 5.0)), [BX + 2.8, 2.6, BZ + 7.6, BX, 2.2, BZ, 46], [BX + 1.8, 2.4, BZ + 5.8, BX, 2.3, BZ, 46]); camFin(); } },
   { t: 8.68, set: VEN, mood: MOOD.ven, hud: () => ['90-FACHER DRUCK', 'WIE 900 M UNTER WASSER'],
-    upd(lt){ dT = T; base(); bRest(ben, T, 0); PACKM.emissiveIntensity = 0.45; const c = E.out(seg(T, 9.4, 10.3)); CAN.scale.set(1 + 0.35 * c, 1 - 0.72 * c, 1 + 0.25 * c);
+    upd(lt){ dT = T; base(); bRest(ben, T, 0); PACKM.emissiveIntensity = 0.45; 
       const sq = seg(T, 10.6, 11.6); place(ben, BX, 0, BZ, 0.25); crouch(0.55 * sq + 0.05 * Math.sin(T * 8) * sq); ben.sh[0].rotation.set(-0.2, 0, -0.9); ben.sh[1].rotation.set(-0.2, 0, 0.9);
       eyeS = 1.4 - 0.6 * sq; bFace(ben, -1, 0.3 + 0.4 * sq); presK = E.out(seg(T, 8.9, 9.2)) * (1 - seg(T, 14.05, 14.2));
       camW(E.io(seg(lt, 0, 5.52)), [BX + 4.4, 1.8, BZ + 6.2, BX + 0.8, 2.2, BZ + 0.3, 48], [BX + 3.6, 2.4, BZ + 7.2, BX + 0.6, 2.5, BZ, 48]); camFin(0.012 * bump(T, 9.4, 10.3)); } },
@@ -347,7 +347,7 @@ const SCN = [
   { t: 16.86, set: VEN, mood: MOOD.ven, hud: () => ['RAUMSONDEN?', 'HIELTEN NUR GUT 2 STUNDEN'],
     upd(lt){ dT = T; base(); bRest(ben, T, 0); PACKM.emissiveIntensity = 0.45; smoke(T); place(ben, BX, 0, BZ, 1.2); crouch(0.55); ben.head.rotation.y = 0.4; eyeS = 1.4; bFace(ben, -0.9, 0.5);
       probK = E.out(seg(T, 17.1, 17.4)) * (1 - seg(T, 20.3, 20.48));
-      camW(E.io(seg(lt, 0, 3.62)), [BX - 1.6, 3.0, BZ + 7.0, BX + 3.2, 2.0, BZ - 2.6, 48], [BX - 1.0, 2.7, BZ + 6.0, BX + 3.6, 2.0, BZ - 3.0, 48]); camFin(); } },
+      camW(E.io(seg(lt, 0, 3.62)), [BX - 3.2, 3.0, BZ + 8.0, BX + 2.6, 2.0, BZ - 2.4, 50], [BX - 2.6, 2.8, BZ + 7.2, BX + 3.0, 2.0, BZ - 2.8, 50]); camFin(); } },
   { t: 20.48, set: HOME, mood: MOOD.home, hud: () => ['UND BEN?', 'BLEIBT AUF DER ERDE'],
     upd(lt){ dT = T; show(ben); suit(false); SLICE.visible = true; bRest(ben, T, 0); place(ben, 0.2, 0, -2.0, 0); sit(ben, 1.1); ben.sh[1].rotation.set(-1.5 + 0.25 * Math.sin(T * 3), 0, 0.2); ben.el[1].rotation.x = -0.9;
       eyeS = 1; bFace(ben, 0.7, 0.15 + 0.1 * Math.sin(T * 6)); homeK = E.out(seg(T, 21.0, 21.3)) * (1 - seg(T, 22.75, 22.9));
